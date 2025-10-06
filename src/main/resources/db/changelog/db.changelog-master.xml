@@ -1,0 +1,1203 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+    http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <!-- ========================================== -->
+    <!-- CHANGESET 1: CREATE CORE TABLES -->
+    <!-- ========================================== -->
+
+    <changeSet id="1" author="paybridge">
+        <comment>Create merchants table</comment>
+        <createTable tableName="merchants">
+            <column name="id" type="BIGSERIAL">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="name" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="plan_type" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="status" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="2" author="paybridge">
+        <comment>Create providers table</comment>
+        <createTable tableName="providers">
+            <column name="id" type="BIGSERIAL">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="name" type="VARCHAR(50)">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="display_name" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="brand_color" type="VARCHAR(7)"/>
+            <column name="created_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="3" author="paybridge">
+        <comment>Create provider_configs table</comment>
+        <createTable tableName="provider_configs">
+            <column name="id" type="BIGSERIAL">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="merchant_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="provider_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="is_enabled" type="BOOLEAN" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="config" type="JSONB"/>
+            <column name="created_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addForeignKeyConstraint
+                constraintName="fk_provider_configs_merchant"
+                baseTableName="provider_configs"
+                baseColumnNames="merchant_id"
+                referencedTableName="merchants"
+                referencedColumnNames="id"
+                onDelete="CASCADE"/>
+
+        <addForeignKeyConstraint
+                constraintName="fk_provider_configs_provider"
+                baseTableName="provider_configs"
+                baseColumnNames="provider_id"
+                referencedTableName="providers"
+                referencedColumnNames="id"
+                onDelete="CASCADE"/>
+
+        <addUniqueConstraint
+                constraintName="uk_provider_configs_merchant_provider"
+                tableName="provider_configs"
+                columnNames="merchant_id, provider_id"/>
+    </changeSet>
+
+    <changeSet id="4" author="paybridge">
+        <comment>Create customers table</comment>
+        <createTable tableName="customers">
+            <column name="id" type="BIGSERIAL">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="merchant_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="email" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="first_name" type="VARCHAR(100)"/>
+            <column name="last_name" type="VARCHAR(100)"/>
+            <column name="created_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addForeignKeyConstraint
+                constraintName="fk_customers_merchant"
+                baseTableName="customers"
+                baseColumnNames="merchant_id"
+                referencedTableName="merchants"
+                referencedColumnNames="id"
+                onDelete="CASCADE"/>
+
+        <createIndex indexName="idx_customers_merchant_email" tableName="customers">
+            <column name="merchant_id"/>
+            <column name="email"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="5" author="paybridge">
+        <comment>Create payments table</comment>
+        <createTable tableName="payments">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="merchant_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="customer_id" type="BIGINT"/>
+            <column name="provider_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="amount" type="NUMERIC(12,2)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="currency" type="VARCHAR(3)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="status" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="refunded_amount" type="NUMERIC(12,2)" defaultValueNumeric="0.00"/>
+            <column name="created_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addForeignKeyConstraint
+                constraintName="fk_payments_merchant"
+                baseTableName="payments"
+                baseColumnNames="merchant_id"
+                referencedTableName="merchants"
+                referencedColumnNames="id"/>
+
+        <addForeignKeyConstraint
+                constraintName="fk_payments_customer"
+                baseTableName="payments"
+                baseColumnNames="customer_id"
+                referencedTableName="customers"
+                referencedColumnNames="id"/>
+
+        <addForeignKeyConstraint
+                constraintName="fk_payments_provider"
+                baseTableName="payments"
+                baseColumnNames="provider_id"
+                referencedTableName="providers"
+                referencedColumnNames="id"/>
+
+        <createIndex indexName="idx_payments_merchant_status" tableName="payments">
+            <column name="merchant_id"/>
+            <column name="status"/>
+        </createIndex>
+
+        <createIndex indexName="idx_payments_created_at" tableName="payments">
+            <column name="created_at"/>
+        </createIndex>
+    </changeSet>
+
+    <!-- ========================================== -->
+    <!-- CHANGESET 6-10: PAYMENT RELATED TABLES -->
+    <!-- ========================================== -->
+
+    <changeSet id="6" author="paybridge">
+        <comment>Create payment_events table</comment>
+        <createTable tableName="payment_events">
+            <column name="id" type="BIGSERIAL">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="payment_id" type="UUID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="event_type" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="timestamp" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="description" type="TEXT"/>
+        </createTable>
+
+        <addForeignKeyConstraint
+                constraintName="fk_payment_events_payment"
+                baseTableName="payment_events"
+                baseColumnNames="payment_id"
+                referencedTableName="payments"
+                referencedColumnNames="id"
+                onDelete="CASCADE"/>
+
+        <createIndex indexName="idx_payment_events_payment_timestamp" tableName="payment_events">
+            <column name="payment_id"/>
+            <column name="timestamp"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="7" author="paybridge">
+        <comment>Create payment_metadata table</comment>
+        <createTable tableName="payment_metadata">
+            <column name="id" type="BIGSERIAL">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="payment_id" type="UUID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="key" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="value" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addForeignKeyConstraint
+                constraintName="fk_payment_metadata_payment"
+                baseTableName="payment_metadata"
+                baseColumnNames="payment_id"
+                referencedTableName="payments"
+                referencedColumnNames="id"
+                onDelete="CASCADE"/>
+
+        <createIndex indexName="idx_payment_metadata_payment_key" tableName="payment_metadata">
+            <column name="payment_id"/>
+            <column name="key"/>
+        </createIndex>
+    </changeSet>
+
+    <!-- ========================================== -->
+    <!-- CHANGESET 8-11: PROVIDER INTEGRATION -->
+    <!-- ========================================== -->
+
+    <changeSet id="8" author="paybridge">
+        <comment>Create provider_tx_refs table</comment>
+        <createTable tableName="provider_tx_refs">
+            <column name="id" type="BIGSERIAL">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="payment_id" type="UUID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="provider_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="reference_id" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="amount" type="NUMERIC(12,2)"/>
+            <column name="status" type="VARCHAR(50)"/>
+            <column name="created_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addForeignKeyConstraint
+                constraintName="fk_provider_tx_refs_payment"
+                baseTableName="provider_tx_refs"
+                baseColumnNames="payment_id"
+                referencedTableName="payments"
+                referencedColumnNames="id"
+                onDelete="CASCADE"/>
+
+        <addForeignKeyConstraint
+                constraintName="fk_provider_tx_refs_provider"
+                baseTableName="provider_tx_refs"
+                baseColumnNames="provider_id"
+                referencedTableName="providers"
+                referencedColumnNames="id"/>
+
+        <createIndex indexName="idx_provider_tx_refs_reference" tableName="provider_tx_refs">
+            <column name="reference_id"/>
+        </createIndex>
+
+        <addUniqueConstraint
+                constraintName="uk_provider_tx_refs_payment"
+                tableName="provider_tx_refs"
+                columnNames="payment_id"/>
+    </changeSet>
+
+    <changeSet id="9" author="paybridge">
+        <comment>Create provider_webhooks table</comment>
+        <createTable tableName="provider_webhooks">
+            <column name="id" type="BIGSERIAL">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="provider_tx_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="event_type" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="payload_data" type="JSONB">
+                <constraints nullable="false"/>
+            </column>
+            <column name="received_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addForeignKeyConstraint
+                constraintName="fk_provider_webhooks_tx_ref"
+                baseTableName="provider_webhooks"
+                baseColumnNames="provider_tx_id"
+                referencedTableName="provider_tx_refs"
+                referencedColumnNames="id"
+                onDelete="CASCADE"/>
+
+        <createIndex indexName="idx_provider_webhooks_received_at" tableName="provider_webhooks">
+            <column name="received_at"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="10" author="paybridge">
+        <comment>Create webhook_payloads table</comment>
+        <createTable tableName="webhook_payloads">
+            <column name="id" type="BIGSERIAL">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="payment_id" type="UUID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="payload_type" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="payload_data" type="JSONB">
+                <constraints nullable="false"/>
+            </column>
+            <column name="received_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="processed_at" type="TIMESTAMP"/>
+        </createTable>
+
+        <addForeignKeyConstraint
+                constraintName="fk_webhook_payloads_payment"
+                baseTableName="webhook_payloads"
+                baseColumnNames="payment_id"
+                referencedTableName="payments"
+                referencedColumnNames="id"
+                onDelete="CASCADE"/>
+
+        <createIndex indexName="idx_webhook_payloads_processed" tableName="webhook_payloads">
+            <column name="processed_at"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="11" author="paybridge">
+        <comment>Create webhook_deliveries table</comment>
+        <createTable tableName="webhook_deliveries">
+            <column name="id" type="BIGSERIAL">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="merchant_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="webhook_payload_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="endpoint" type="VARCHAR(512)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="response_status" type="INTEGER"/>
+            <column name="response_body" type="TEXT"/>
+            <column name="attempts" type="INTEGER" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="delivered_at" type="TIMESTAMP"/>
+            <column name="next_retry_at" type="TIMESTAMP"/>
+        </createTable>
+
+        <addForeignKeyConstraint
+                constraintName="fk_webhook_deliveries_merchant"
+                baseTableName="webhook_deliveries"
+                baseColumnNames="merchant_id"
+                referencedTableName="merchants"
+                referencedColumnNames="id"/>
+
+        <addForeignKeyConstraint
+                constraintName="fk_webhook_deliveries_payload"
+                baseTableName="webhook_deliveries"
+                baseColumnNames="webhook_payload_id"
+                referencedTableName="webhook_payloads"
+                referencedColumnNames="id"
+                onDelete="CASCADE"/>
+
+        <createIndex indexName="idx_webhook_deliveries_retry" tableName="webhook_deliveries">
+            <column name="next_retry_at"/>
+        </createIndex>
+    </changeSet>
+
+    <!-- ========================================== -->
+    <!-- CHANGESET 12: AUDITING -->
+    <!-- ========================================== -->
+
+    <changeSet id="12" author="paybridge">
+        <comment>Create audit_logs table</comment>
+        <createTable tableName="audit_logs">
+            <column name="id" type="BIGSERIAL">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="merchant_id" type="BIGINT"/>
+            <column name="user_id" type="VARCHAR(255)"/>
+            <column name="action" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="resource_type" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="resource_id" type="VARCHAR(255)"/>
+            <column name="old_values" type="JSONB"/>
+            <column name="new_values" type="JSONB"/>
+            <column name="timestamp" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addForeignKeyConstraint
+                constraintName="fk_audit_logs_merchant"
+                baseTableName="audit_logs"
+                baseColumnNames="merchant_id"
+                referencedTableName="merchants"
+                referencedColumnNames="id"
+                onDelete="CASCADE"/>
+
+        <createIndex indexName="idx_audit_logs_merchant_timestamp" tableName="audit_logs">
+            <column name="merchant_id"/>
+            <column name="timestamp"/>
+        </createIndex>
+
+        <createIndex indexName="idx_audit_logs_resource" tableName="audit_logs">
+            <column name="resource_type"/>
+            <column name="resource_id"/>
+        </createIndex>
+    </changeSet>
+
+    <!-- ========================================== -->
+    <!-- CHANGESET 13-16: RECONCILIATION SYSTEM -->
+    <!-- ========================================== -->
+
+    <changeSet id="13" author="paybridge">
+        <comment>Create reconciliation_jobs table</comment>
+        <createTable tableName="reconciliation_jobs">
+            <column name="id" type="BIGSERIAL">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="merchant_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="provider_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="start_date" type="DATE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="end_date" type="DATE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="status" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="completed_at" type="TIMESTAMP"/>
+        </createTable>
+
+        <addForeignKeyConstraint
+                constraintName="fk_reconciliation_jobs_merchant"
+                baseTableName="reconciliation_jobs"
+                baseColumnNames="merchant_id"
+                referencedTableName="merchants"
+                referencedColumnNames="id"/>
+
+        <addForeignKeyConstraint
+                constraintName="fk_reconciliation_jobs_provider"
+                baseTableName="reconciliation_jobs"
+                baseColumnNames="provider_id"
+                referencedTableName="providers"
+                referencedColumnNames="id"/>
+
+        <createIndex indexName="idx_reconciliation_jobs_status" tableName="reconciliation_jobs">
+            <column name="status"/>
+            <column name="created_at"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="14" author="paybridge">
+        <comment>Create job_summaries table</comment>
+        <createTable tableName="job_summaries">
+            <column name="id" type="BIGSERIAL">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="job_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="metric_type" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="metric_value" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addForeignKeyConstraint
+                constraintName="fk_job_summaries_job"
+                baseTableName="job_summaries"
+                baseColumnNames="job_id"
+                referencedTableName="reconciliation_jobs"
+                referencedColumnNames="id"
+                onDelete="CASCADE"/>
+    </changeSet>
+
+    <changeSet id="15" author="paybridge">
+        <comment>Create reconciliation_discrepancies table</comment>
+        <createTable tableName="reconciliation_discrepancies">
+            <column name="id" type="BIGSERIAL">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="job_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="discrepancy_type" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="payment_id" type="UUID"/>
+            <column name="provider_tx_id" type="BIGINT"/>
+            <column name="created_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addForeignKeyConstraint
+                constraintName="fk_reconciliation_discrepancies_job"
+                baseTableName="reconciliation_discrepancies"
+                baseColumnNames="job_id"
+                referencedTableName="reconciliation_jobs"
+                referencedColumnNames="id"
+                onDelete="CASCADE"/>
+
+        <addForeignKeyConstraint
+                constraintName="fk_reconciliation_discrepancies_payment"
+                baseTableName="reconciliation_discrepancies"
+                baseColumnNames="payment_id"
+                referencedTableName="payments"
+                referencedColumnNames="id"
+                onDelete="SET NULL"/>
+
+        <addForeignKeyConstraint
+                constraintName="fk_reconciliation_discrepancies_tx_ref"
+                baseTableName="reconciliation_discrepancies"
+                baseColumnNames="provider_tx_id"
+                referencedTableName="provider_tx_refs"
+                referencedColumnNames="id"
+                onDelete="SET NULL"/>
+    </changeSet>
+
+    <changeSet id="16" author="paybridge">
+        <comment>Create discrepancy_details table</comment>
+        <createTable tableName="discrepancy_details">
+            <column name="id" type="BIGSERIAL">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="discrepancy_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="field_name" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="paybridge_value" type="TEXT"/>
+            <column name="provider_value" type="TEXT"/>
+            <column name="difference" type="TEXT"/>
+        </createTable>
+
+        <addForeignKeyConstraint
+                constraintName="fk_discrepancy_details_discrepancy"
+                baseTableName="discrepancy_details"
+                baseColumnNames="discrepancy_id"
+                referencedTableName="reconciliation_discrepancies"
+                referencedColumnNames="id"
+                onDelete="CASCADE"/>
+    </changeSet>
+
+    <!-- ========================================== -->
+    <!-- CHANGESET 17: SEED DATA -->
+    <!-- ========================================== -->
+
+    <changeSet id="17" author="paybridge">
+        <comment>Insert default payment providers</comment>
+        <insert tableName="providers">
+            <column name="name" value="stripe"/>
+            <column name="display_name" value="Stripe"/>
+            <column name="brand_color" value="#635BFF"/>
+        </insert>
+        <insert tableName="providers">
+            <column name="name" value="paypal"/>
+            <column name="display_name" value="PayPal"/>
+            <column name="brand_color" value="#003087"/>
+        </insert>
+        <insert tableName="providers">
+            <column name="name" value="flutterwave"/>
+            <column name="display_name" value="Flutterwave"/>
+            <column name="brand_color" value="#F5A623"/>
+        </insert>
+    </changeSet>
+
+    <!-- ========================================== -->
+    <!-- CHANGESET 18-20: ENHANCED FEATURES -->
+    <!-- ========================================== -->
+
+    <changeSet id="18" author="paybridge">
+        <comment>Add idempotency_key column to payments</comment>
+        <addColumn tableName="payments">
+            <column name="idempotency_key" type="VARCHAR(255)"/>
+        </addColumn>
+
+        <createIndex indexName="idx_payments_idempotency" tableName="payments">
+            <column name="merchant_id"/>
+            <column name="idempotency_key"/>
+        </createIndex>
+
+        <addUniqueConstraint
+                constraintName="uk_payments_merchant_idempotency"
+                tableName="payments"
+                columnNames="merchant_id, idempotency_key"/>
+    </changeSet>
+
+    <changeSet id="19" author="paybridge">
+        <comment>Add additional merchant fields</comment>
+        <addColumn tableName="merchants">
+            <column name="webhook_url" type="VARCHAR(512)"/>
+            <column name="webhook_secret" type="VARCHAR(255)"/>
+            <column name="business_country" type="VARCHAR(2)"/>
+            <column name="business_type" type="VARCHAR(50)"/>
+        </addColumn>
+    </changeSet>
+
+    <changeSet id="20" author="paybridge">
+        <comment>Add additional payment tracking fields</comment>
+        <addColumn tableName="payments">
+            <column name="customer_ip" type="VARCHAR(45)"/>
+            <column name="user_agent" type="TEXT"/>
+            <column name="failure_reason" type="VARCHAR(255)"/>
+            <column name="provider_payment_id" type="VARCHAR(255)"/>
+            <column name="routing_decision" type="JSONB"/>
+        </addColumn>
+
+        <createIndex indexName="idx_payments_provider_payment_id" tableName="payments">
+            <column name="provider_payment_id"/>
+        </createIndex>
+    </changeSet>
+
+    <!-- ========================================== -->
+    <!-- CHANGESET 21-23: ADDITIONAL FEATURES -->
+    <!-- ========================================== -->
+
+    <changeSet id="21" author="paybridge">
+        <comment>Create idempotency_keys table for Redis backup</comment>
+        <createTable tableName="idempotency_keys">
+            <column name="id" type="BIGSERIAL">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="merchant_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="idempotency_key" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="payment_id" type="UUID"/>
+            <column name="created_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="expires_at" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addForeignKeyConstraint
+                constraintName="fk_idempotency_keys_merchant"
+                baseTableName="idempotency_keys"
+                baseColumnNames="merchant_id"
+                referencedTableName="merchants"
+                referencedColumnNames="id"
+                onDelete="CASCADE"/>
+
+        <addForeignKeyConstraint
+                constraintName="fk_idempotency_keys_payment"
+                baseTableName="idempotency_keys"
+                baseColumnNames="payment_id"
+                referencedTableName="payments"
+                referencedColumnNames="id"
+                onDelete="CASCADE"/>
+
+        <addUniqueConstraint
+                constraintName="uk_idempotency_keys_merchant_key"
+                tableName="idempotency_keys"
+                columnNames="merchant_id, idempotency_key"/>
+
+        <createIndex indexName="idx_idempotency_keys_expires" tableName="idempotency_keys">
+            <column name="expires_at"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="22" author="paybridge">
+        <comment>Create routing_rules table</comment>
+        <createTable tableName="routing_rules">
+            <column name="id" type="BIGSERIAL">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="merchant_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="rule_name" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="conditions" type="JSONB">
+                <constraints nullable="false"/>
+            </column>
+            <column name="provider_preference" type="JSONB">
+                <constraints nullable="false"/>
+            </column>
+            <column name="is_active" type="BOOLEAN" defaultValueBoolean="true">
+                <constraints nullable="false"/>
+            </column>
+            <column name="priority" type="INTEGER" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addForeignKeyConstraint
+                constraintName="fk_routing_rules_merchant"
+                baseTableName="routing_rules"
+                baseColumnNames="merchant_id"
+                referencedTableName="merchants"
+                referencedColumnNames="id"
+                onDelete="CASCADE"/>
+
+        <createIndex indexName="idx_routing_rules_merchant_active" tableName="routing_rules">
+            <column name="merchant_id"/>
+            <column name="is_active"/>
+            <column name="priority"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="23" author="paybridge">
+        <comment>Create payment_attempts table</comment>
+        <createTable tableName="payment_attempts">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="payment_id" type="UUID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="provider_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="attempt_number" type="INTEGER">
+                <constraints nullable="false"/>
+            </column>
+            <column name="status" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="provider_response" type="JSONB"/>
+            <column name="failure_code" type="VARCHAR(100)"/>
+            <column name="failure_message" type="TEXT"/>
+            <column name="created_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addForeignKeyConstraint
+                constraintName="fk_payment_attempts_payment"
+                baseTableName="payment_attempts"
+                baseColumnNames="payment_id"
+                referencedTableName="payments"
+                referencedColumnNames="id"
+                onDelete="CASCADE"/>
+
+        <addForeignKeyConstraint
+                constraintName="fk_payment_attempts_provider"
+                baseTableName="payment_attempts"
+                baseColumnNames="provider_id"
+                referencedTableName="providers"
+                referencedColumnNames="id"/>
+
+        <createIndex indexName="idx_payment_attempts_payment" tableName="payment_attempts">
+            <column name="payment_id"/>
+            <column name="attempt_number"/>
+        </createIndex>
+    </changeSet>
+
+    <!-- ========================================== -->
+    <!-- CHANGESET 24-26: ANALYTICS & MONITORING -->
+    <!-- ========================================== -->
+
+    <changeSet id="24" author="paybridge">
+        <comment>Create payment_analytics table for pre-aggregated data</comment>
+        <createTable tableName="payment_analytics">
+            <column name="id" type="BIGSERIAL">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="merchant_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="provider_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="date_bucket" type="DATE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="total_volume" type="NUMERIC(12,2)" defaultValueNumeric="0"/>
+            <column name="total_count" type="INTEGER" defaultValueNumeric="0"/>
+            <column name="success_count" type="INTEGER" defaultValueNumeric="0"/>
+            <column name="failure_count" type="INTEGER" defaultValueNumeric="0"/>
+            <column name="avg_processing_time_ms" type="INTEGER"/>
+            <column name="created_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addForeignKeyConstraint
+                constraintName="fk_payment_analytics_merchant"
+                baseTableName="payment_analytics"
+                baseColumnNames="merchant_id"
+                referencedTableName="merchants"
+                referencedColumnNames="id"
+                onDelete="CASCADE"/>
+
+        <addForeignKeyConstraint
+                constraintName="fk_payment_analytics_provider"
+                baseTableName="payment_analytics"
+                baseColumnNames="provider_id"
+                referencedTableName="providers"
+                referencedColumnNames="id"/>
+
+        <addUniqueConstraint
+                constraintName="uk_payment_analytics_merchant_provider_date"
+                tableName="payment_analytics"
+                columnNames="merchant_id, provider_id, date_bucket"/>
+
+        <createIndex indexName="idx_payment_analytics_date" tableName="payment_analytics">
+            <column name="date_bucket"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="25" author="paybridge">
+        <comment>Create provider_health_checks table</comment>
+        <createTable tableName="provider_health_checks">
+            <column name="id" type="BIGSERIAL">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="provider_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="check_time" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="response_time_ms" type="INTEGER"/>
+            <column name="is_healthy" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column name="error_message" type="TEXT"/>
+            <column name="created_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addForeignKeyConstraint
+                constraintName="fk_provider_health_checks_provider"
+                baseTableName="provider_health_checks"
+                baseColumnNames="provider_id"
+                referencedTableName="providers"
+                referencedColumnNames="id"
+                onDelete="CASCADE"/>
+
+        <createIndex indexName="idx_provider_health_checks_time" tableName="provider_health_checks">
+            <column name="provider_id"/>
+            <column name="check_time"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="26" author="paybridge">
+        <comment>Create rate_limits table (without api_key_id reference)</comment>
+        <createTable tableName="rate_limits">
+            <column name="id" type="BIGSERIAL">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="merchant_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="time_window" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="request_count" type="INTEGER" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="window_start" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addForeignKeyConstraint
+                constraintName="fk_rate_limits_merchant"
+                baseTableName="rate_limits"
+                baseColumnNames="merchant_id"
+                referencedTableName="merchants"
+                referencedColumnNames="id"
+                onDelete="CASCADE"/>
+
+        <createIndex indexName="idx_rate_limits_window" tableName="rate_limits">
+            <column name="merchant_id"/>
+            <column name="window_start"/>
+        </createIndex>
+    </changeSet>
+
+    <!-- ========================================== -->
+    <!-- CHANGESET 27-28: REFUNDS & SETTLEMENTS -->
+    <!-- ========================================== -->
+
+    <changeSet id="27" author="paybridge">
+        <comment>Create refunds table</comment>
+        <createTable tableName="refunds">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="payment_id" type="UUID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="amount" type="NUMERIC(12,2)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="status" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="provider_refund_id" type="VARCHAR(255)"/>
+            <column name="reason" type="VARCHAR(500)"/>
+            <column name="created_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addForeignKeyConstraint
+                constraintName="fk_refunds_payment"
+                baseTableName="refunds"
+                baseColumnNames="payment_id"
+                referencedTableName="payments"
+                referencedColumnNames="id"
+                onDelete="CASCADE"/>
+
+        <createIndex indexName="idx_refunds_payment" tableName="refunds">
+            <column name="payment_id"/>
+        </createIndex>
+
+        <createIndex indexName="idx_refunds_status" tableName="refunds">
+            <column name="status"/>
+            <column name="created_at"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="28" author="paybridge">
+        <comment>Create settlement_batches table</comment>
+        <createTable tableName="settlement_batches">
+            <column name="id" type="BIGSERIAL">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="merchant_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="provider_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="batch_date" type="DATE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="total_volume" type="NUMERIC(12,2)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="fee_amount" type="NUMERIC(12,2)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="net_amount" type="NUMERIC(12,2)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="status" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="settled_at" type="TIMESTAMP"/>
+            <column name="created_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addForeignKeyConstraint
+                constraintName="fk_settlement_batches_merchant"
+                baseTableName="settlement_batches"
+                baseColumnNames="merchant_id"
+                referencedTableName="merchants"
+                referencedColumnNames="id"
+                onDelete="CASCADE"/>
+
+        <addForeignKeyConstraint
+                constraintName="fk_settlement_batches_provider"
+                baseTableName="settlement_batches"
+                baseColumnNames="provider_id"
+                referencedTableName="providers"
+                referencedColumnNames="id"/>
+
+        <createIndex indexName="idx_settlement_batches_merchant_date" tableName="settlement_batches">
+            <column name="merchant_id"/>
+            <column name="batch_date"/>
+        </createIndex>
+    </changeSet>
+
+    <!-- ========================================== -->
+    <!-- CHANGESET 29-30: PERFORMANCE VIEWS -->
+    <!-- ========================================== -->
+
+    <changeSet id="29" author="paybridge">
+        <comment>Create merchant_dashboard_summary view</comment>
+        <createView viewName="merchant_dashboard_summary" replaceIfExists="true">
+            SELECT
+            m.id as merchant_id,
+            m.name as merchant_name,
+            COUNT(p.id) as total_payments,
+            SUM(CASE WHEN p.status = 'SUCCEEDED' THEN 1 ELSE 0 END) as successful_payments,
+            SUM(CASE WHEN p.status = 'FAILED' THEN 1 ELSE 0 END) as failed_payments,
+            SUM(CASE WHEN p.status = 'SUCCEEDED' THEN p.amount ELSE 0 END) as total_volume,
+            AVG(CASE WHEN p.status = 'SUCCEEDED' THEN p.amount END) as avg_transaction_size,
+            CAST(SUM(CASE WHEN p.status = 'SUCCEEDED' THEN 1 ELSE 0 END) AS FLOAT) /
+            NULLIF(COUNT(p.id), 0) as success_rate
+            FROM merchants m
+            LEFT JOIN payments p ON m.id = p.merchant_id
+            AND p.created_at >= CURRENT_DATE - INTERVAL '30 days'
+            GROUP BY m.id, m.name
+        </createView>
+    </changeSet>
+
+    <changeSet id="30" author="paybridge">
+        <comment>Create provider_performance view</comment>
+        <createView viewName="provider_performance" replaceIfExists="true">
+            SELECT
+            pr.id as provider_id,
+            pr.name as provider_name,
+            pr.display_name,
+            COUNT(p.id) as total_payments,
+            SUM(CASE WHEN p.status = 'SUCCEEDED' THEN 1 ELSE 0 END) as successful_payments,
+            CAST(SUM(CASE WHEN p.status = 'SUCCEEDED' THEN 1 ELSE 0 END) AS FLOAT) /
+            NULLIF(COUNT(p.id), 0) as success_rate,
+            AVG(EXTRACT(EPOCH FROM (p.updated_at - p.created_at)) * 1000) as avg_processing_time_ms,
+            SUM(CASE WHEN p.status = 'SUCCEEDED' THEN p.amount ELSE 0 END) as total_volume
+            FROM providers pr
+            LEFT JOIN payments p ON pr.id = p.provider_id
+            AND p.created_at >= CURRENT_DATE - INTERVAL '30 days'
+            GROUP BY pr.id, pr.name, pr.display_name
+        </createView>
+    </changeSet>
+
+    <!-- ========================================== -->
+    <!-- CHANGESET 31-32: SKIP FUNCTIONS -->
+    <!-- ========================================== -->
+
+    <changeSet id="31" author="paybridge">
+        <comment>Skip function creation for now - will add later</comment>
+        <sql>
+            -- Function creation temporarily skipped to resolve syntax issues
+            -- Will be added in a future changeset
+        </sql>
+    </changeSet>
+
+    <changeSet id="32" author="paybridge">
+        <comment>Skip second function creation for now</comment>
+        <sql>
+            -- Function creation temporarily skipped to resolve syntax issues
+            -- Will be added in a future changeset
+        </sql>
+    </changeSet>
+
+    <!-- ========================================== -->
+    <!-- CHANGESET 33: ADDITIONAL INDEXES -->
+    <!-- ========================================== -->
+
+    <changeSet id="33" author="paybridge">
+        <comment>Create additional performance indexes</comment>
+
+        <!-- Composite indexes for common queries -->
+        <createIndex indexName="idx_payments_merchant_created_status" tableName="payments">
+            <column name="merchant_id"/>
+            <column name="created_at"/>
+            <column name="status"/>
+        </createIndex>
+
+        <createIndex indexName="idx_payments_provider_status_created" tableName="payments">
+            <column name="provider_id"/>
+            <column name="status"/>
+            <column name="created_at"/>
+        </createIndex>
+
+        <!-- Partial indexes for active records -->
+        <createIndex indexName="idx_webhook_deliveries_pending_retry" tableName="webhook_deliveries">
+            <column name="next_retry_at"/>
+            <column name="delivered_at"/>
+        </createIndex>
+
+        <createIndex indexName="idx_payments_customer_created" tableName="payments">
+            <column name="customer_id"/>
+            <column name="created_at"/>
+        </createIndex>
+
+        <createIndex indexName="idx_provider_configs_enabled" tableName="provider_configs">
+            <column name="merchant_id"/>
+            <column name="is_enabled"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="34" author="paybridge">
+       <comment>Create email column in merchant table</comment>
+       <addColumn tableName="merchants">
+           <column name="email" type="VARCHAR(30)">
+               <constraints nullable="false"/>
+           </column>
+       </addColumn>
+    </changeSet>
+
+
+    <changeSet id="35" author="paybridge">
+        <comment>Drop Column Plan Type</comment>
+        <dropColumn tableName="merchants" columnName="plan_type"/>
+    </changeSet>
+
+    <changeSet id="36" author="paybridge">
+    <comment>Add Column Password</comment>
+        <addColumn tableName="merchants">
+            <column name="password" type="VARCHAR(25)">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+    </changeSet>
+
+
+</databaseChangeLog>
