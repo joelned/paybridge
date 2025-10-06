@@ -45,8 +45,6 @@ public class User {
     @JoinColumn(name = "merchant_id")
     private Merchant merchant; // will be null if admin
 
-    @ManyToMany(fetch = FetchType.EAGER)
-    private Set<Role> roles = new HashSet<>();
 
     private boolean enabled;
 
@@ -83,13 +81,6 @@ public class User {
         this.merchant = merchant;
     }
 
-    public Set<Role> getRoles() {
-        return roles;
-    }
-
-    public void setRoles(Set<Role> roles) {
-        this.roles = roles;
-    }
 
     public boolean isEnabled() {
         return enabled;

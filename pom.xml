@@ -11,7 +11,7 @@
 	<groupId>com.paybridge</groupId>
 	<artifactId>paybridge</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name>paybridge</name>
+	<businessName>paybridge</businessName>
 	<description>Payment Gateway Orchestrator</description>
 	<url/>
 	<licenses>

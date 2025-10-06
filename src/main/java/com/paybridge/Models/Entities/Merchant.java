@@ -1,7 +1,6 @@
 package com.paybridge.Models.Entities;
 
 import com.paybridge.Models.Enums.MerchantStatus;
-import com.paybridge.Models.Enums.PlanType;
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
@@ -18,16 +17,21 @@ public class Merchant {
     private Long id;
 
     @Column(nullable = false)
-    private String name;
+    private String businessName;
 
+    @Column(nullable = false)
+    private String businessType;
+
+    @Column(nullable = false)
+    private String businessCountry;
 
     @Column(nullable = false)
     private String email;
 
-
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private MerchantStatus status;
+
 
     @CreationTimestamp
     @Column(name = "created_at")
@@ -63,8 +67,23 @@ public class Merchant {
         this.users = users;
     }
 
-    public String getName() {
-        return name;
+    public String getBusinessCountry() {
+        return businessCountry;
+    }
+
+    public String getBusinessType() {
+        return businessType;
+    }
+
+    public void setBusinessType(String businessType) {
+        this.businessType = businessType;
+    }
+
+    public void setBusinessCountry(String businessCountry) {
+        this.businessCountry = businessCountry;
+    }
+    public String getBusinessName() {
+        return businessName;
     }
 
     public String getEmail() {
@@ -93,8 +112,8 @@ public class Merchant {
     }
 
 
-    public void setName(String name) {
-        this.name = name;
+    public void setBusinessName(String businessName) {
+        this.businessName = businessName;
     }
 
     public void setEmail(String email) {

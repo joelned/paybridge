@@ -149,10 +149,10 @@ if ($distributionSha256Sum) {
 # unzip and move
 Expand-Archive "$TMP_DOWNLOAD_DIR/$distributionUrlName" -DestinationPath "$TMP_DOWNLOAD_DIR" | Out-Null
 
-# Find the actual extracted directory name (handles snapshots where filename != directory name)
+# Find the actual extracted directory businessName (handles snapshots where filename != directory businessName)
 $actualDistributionDir = ""
 
-# First try the expected directory name (for regular distributions)
+# First try the expected directory businessName (for regular distributions)
 $expectedPath = Join-Path "$TMP_DOWNLOAD_DIR" "$distributionUrlNameMain"
 $expectedMvnPath = Join-Path "$expectedPath" "bin/$MVN_CMD"
 if ((Test-Path -Path $expectedPath -PathType Container) -and (Test-Path -Path $expectedMvnPath -PathType Leaf)) {
