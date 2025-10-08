@@ -43,6 +43,21 @@ public class MerchantService {
             throw new IllegalArgumentException("Email not found");
         }
 
+        Merchant merchant = createMerchant(request);
+        Users user = createMerchantUser(merchant, request);
+
+        userRepository.save(user);
+        merchantRepository.save(merchant);
+
+        return new MerchantRegistrationResponse(
+                merchant.getBusinessName(), merchant.getEmail(), merchant.getStatus(),
+                "Merchant Successfully Registered",
+                "Please configure payment providers to start receiving payments"
+        );
+    }
+
+    private Merchant createMerchant(MerchantRegistrationRequest request){
+
         Merchant merchant = new Merchant();
         merchant.setBusinessType(request.getBusinessType());
         merchant.setBusinessCountry(request.getBusinessCountry());
@@ -52,6 +67,10 @@ public class MerchantService {
         merchant.setUpdatedAt(LocalDateTime.now());
         merchant.setEmail(request.getEmail());
         merchant.setStatus(MerchantStatus.PENDING_PROVIDER_SETUP);
+        return merchant;
+    }
+
+    private Users createMerchantUser(Merchant merchant, MerchantRegistrationRequest request){
 
         Users users = new Users();
         users.setMerchant(merchant);
@@ -59,15 +78,7 @@ public class MerchantService {
         users.setEmail(request.getEmail());
         users.setEnabled(true);
         users.setPassword(passwordEncoder.encode(request.getPassword()));
-
-        userRepository.save(users);
-        merchantRepository.save(merchant);
-
-
-        return new MerchantRegistrationResponse(
-                merchant.getBusinessName(), merchant.getEmail(), merchant.getStatus(),
-                "Merchant Successfully Registered",
-                "Please configure payment providers to start receiving payments"
-        );
+        return users;
     }
+
 }
