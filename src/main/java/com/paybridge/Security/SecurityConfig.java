@@ -43,11 +43,8 @@ public class SecurityConfig {
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/actuator/**", "/h2-console/**", "/v1/webhooks/**").permitAll()
-                        .requestMatchers("/v1/payments/**", "/v1/merchants/**", "/v1/refunds/**").authenticated()
-                        .requestMatchers("/v1/admin/**").hasAuthority("admin")
-                        .requestMatchers("/public").permitAll()
-                        .requestMatchers("/protected").authenticated()
+                        .requestMatchers("/api/v1/merchants").permitAll()
+                        .requestMatchers("/api/v1/auth/**").permitAll()
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth -> oauth
                         .jwt(Customizer.withDefaults()));

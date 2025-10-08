@@ -32,6 +32,15 @@ public class Merchant {
     @Column(nullable = false)
     private MerchantStatus status;
 
+    @Column(nullable = false)
+    private String webhookUrl;
+
+    @Column(nullable = false)
+    private String webhookSecret;
+
+
+    @Column(name = "website_url")
+    private String websiteUrl;
 
     @CreationTimestamp
     @Column(name = "created_at")
@@ -40,6 +49,8 @@ public class Merchant {
     @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+
 
     // Relationships
     @OneToMany(mappedBy = "merchant", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
@@ -52,18 +63,27 @@ public class Merchant {
     private List<ProviderConfig> providerConfigs = new ArrayList<>();
 
 
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<User> users = new ArrayList<>();
+    @OneToMany(mappedBy = "merchant", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<Users> users = new ArrayList<>();
 
     public List<ProviderConfig> getProviderConfigs() {
         return providerConfigs;
     }
 
-    public List<User> getUsers() {
+
+    public String getWebhookSecret() {
+        return webhookSecret;
+    }
+
+    public void setWebhookSecret(String webhookSecret) {
+        this.webhookSecret = webhookSecret;
+    }
+
+    public List<Users> getUsers() {
         return users;
     }
 
-    public void setUsers(List<User> users) {
+    public void setUsers(List<Users> users) {
         this.users = users;
     }
 
@@ -73,6 +93,14 @@ public class Merchant {
 
     public String getBusinessType() {
         return businessType;
+    }
+
+    public String getWebsiteUrl() {
+        return websiteUrl;
+    }
+
+    public void setWebsiteUrl(String websiteUrl) {
+        this.websiteUrl = websiteUrl;
     }
 
     public void setBusinessType(String businessType) {
@@ -143,5 +171,13 @@ public class Merchant {
 
     public void setProviderConfigs(List<ProviderConfig> providerConfigs) {
         this.providerConfigs = providerConfigs;
+    }
+
+    public String getWebHookUrl() {
+        return webhookUrl;
+    }
+
+    public void setWebHookUrl(String webHookUrl) {
+        this.webhookUrl = webHookUrl;
     }
 }

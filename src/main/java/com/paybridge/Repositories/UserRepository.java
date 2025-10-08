@@ -1,10 +1,8 @@
 package com.paybridge.Repositories;
 
-import com.paybridge.Models.Entities.User;
+import com.paybridge.Models.Entities.Users;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-import java.util.UUID;
-
-public interface UserRepository extends JpaRepository<User, UUID> {
-    User findByEmail(String email);
+public interface UserRepository extends JpaRepository<Users, Long> {
+    Users findByEmail(String email);
 }

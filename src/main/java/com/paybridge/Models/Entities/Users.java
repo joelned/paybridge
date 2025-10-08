@@ -2,21 +2,28 @@ package com.paybridge.Models.Entities;
 
 import com.paybridge.Models.Enums.UserType;
 import jakarta.persistence.*;
-
-import java.util.HashSet;
-import java.util.Set;
 import java.util.UUID;
 
 @Entity
 @Table
-public class User {
+public class Users {
 
     @Id
     @GeneratedValue(
             strategy = GenerationType.IDENTITY
     )
 
-    private UUID id;
+    private Long id;
+
+    @Enumerated(EnumType.STRING)
+    private UserType userType;
+    private String email;
+    private String password;
+
+    @ManyToOne
+    @JoinColumn(name = "merchant_id")
+    private Merchant merchant; // will be null if admin
+    private boolean enabled;
 
     public String getEmail() {
         return email;
@@ -34,21 +41,6 @@ public class User {
         this.password = password;
     }
 
-    @Enumerated(EnumType.STRING)
-    private UserType userType;
-
-    private String email;
-
-    private String password;
-
-    @ManyToOne
-    @JoinColumn(name = "merchant_id")
-    private Merchant merchant; // will be null if admin
-
-
-    private boolean enabled;
-
-
     public boolean isMerchant(){
         return userType == UserType.MERCHANT;
     }
@@ -57,11 +49,11 @@ public class User {
         return userType == UserType.ADMIN;
     }
 
-    public UUID getId() {
+    public Long getId() {
         return id;
     }
 
-    public void setId(UUID id) {
+    public void setId(Long id) {
         this.id = id;
     }
 

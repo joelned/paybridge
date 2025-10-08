@@ -12,22 +12,22 @@
     <changeSet id="1" author="paybridge">
         <comment>Create merchants table</comment>
         <createTable tableName="merchants">
-            <column businessName="id" type="BIGSERIAL">
+            <column name="id" type="BIGSERIAL">
                 <constraints primaryKey="true" nullable="false"/>
             </column>
-            <column businessName="businessName" type="VARCHAR(255)">
+            <column name="name" type="VARCHAR(255)">
                 <constraints nullable="false"/>
             </column>
-            <column businessName="plan_type" type="VARCHAR(50)">
+            <column name="plan_type" type="VARCHAR(50)">
                 <constraints nullable="false"/>
             </column>
-            <column businessName="status" type="VARCHAR(50)">
+            <column name="status" type="VARCHAR(50)">
                 <constraints nullable="false"/>
             </column>
-            <column businessName="created_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+            <column name="created_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
                 <constraints nullable="false"/>
             </column>
-            <column businessName="updated_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+            <column name="updated_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
                 <constraints nullable="false"/>
             </column>
         </createTable>
@@ -36,20 +36,20 @@
     <changeSet id="2" author="paybridge">
         <comment>Create providers table</comment>
         <createTable tableName="providers">
-            <column businessName="id" type="BIGSERIAL">
+            <column name="id" type="BIGSERIAL">
                 <constraints primaryKey="true" nullable="false"/>
             </column>
-            <column businessName="businessName" type="VARCHAR(50)">
+            <column name="name" type="VARCHAR(50)">
                 <constraints nullable="false" unique="true"/>
             </column>
-            <column businessName="display_name" type="VARCHAR(100)">
+            <column name="display_name" type="VARCHAR(100)">
                 <constraints nullable="false"/>
             </column>
-            <column businessName="brand_color" type="VARCHAR(7)"/>
-            <column businessName="created_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+            <column name="brand_color" type="VARCHAR(7)"/>
+            <column name="created_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
                 <constraints nullable="false"/>
             </column>
-            <column businessName="updated_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+            <column name="updated_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
                 <constraints nullable="false"/>
             </column>
         </createTable>
@@ -58,23 +58,23 @@
     <changeSet id="3" author="paybridge">
         <comment>Create provider_configs table</comment>
         <createTable tableName="provider_configs">
-            <column businessName="id" type="BIGSERIAL">
+            <column name="id" type="BIGSERIAL">
                 <constraints primaryKey="true" nullable="false"/>
             </column>
-            <column businessName="merchant_id" type="BIGINT">
+            <column name="merchant_id" type="BIGINT">
                 <constraints nullable="false"/>
             </column>
-            <column businessName="provider_id" type="BIGINT">
+            <column name="provider_id" type="BIGINT">
                 <constraints nullable="false"/>
             </column>
-            <column businessName="is_enabled" type="BOOLEAN" defaultValueBoolean="false">
+            <column name="is_enabled" type="BOOLEAN" defaultValueBoolean="false">
                 <constraints nullable="false"/>
             </column>
-            <column businessName="config" type="JSONB"/>
-            <column businessName="created_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+            <column name="config" type="JSONB"/>
+            <column name="created_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
                 <constraints nullable="false"/>
             </column>
-            <column businessName="updated_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+            <column name="updated_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
                 <constraints nullable="false"/>
             </column>
         </createTable>
@@ -104,21 +104,21 @@
     <changeSet id="4" author="paybridge">
         <comment>Create customers table</comment>
         <createTable tableName="customers">
-            <column businessName="id" type="BIGSERIAL">
+            <column name="id" type="BIGSERIAL">
                 <constraints primaryKey="true" nullable="false"/>
             </column>
-            <column businessName="merchant_id" type="BIGINT">
+            <column name="merchant_id" type="BIGINT">
                 <constraints nullable="false"/>
             </column>
-            <column businessName="email" type="VARCHAR(255)">
+            <column name="email" type="VARCHAR(255)">
                 <constraints nullable="false"/>
             </column>
-            <column businessName="first_name" type="VARCHAR(100)"/>
-            <column businessName="last_name" type="VARCHAR(100)"/>
-            <column businessName="created_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+            <column name="first_name" type="VARCHAR(100)"/>
+            <column name="last_name" type="VARCHAR(100)"/>
+            <column name="created_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
                 <constraints nullable="false"/>
             </column>
-            <column businessName="updated_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+            <column name="updated_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
                 <constraints nullable="false"/>
             </column>
         </createTable>
@@ -132,38 +132,38 @@
                 onDelete="CASCADE"/>
 
         <createIndex indexName="idx_customers_merchant_email" tableName="customers">
-            <column businessName="merchant_id"/>
-            <column businessName="email"/>
+            <column name="merchant_id"/>
+            <column name="email"/>
         </createIndex>
     </changeSet>
 
     <changeSet id="5" author="paybridge">
         <comment>Create payments table</comment>
         <createTable tableName="payments">
-            <column businessName="id" type="UUID">
+            <column name="id" type="BIGINT">
                 <constraints primaryKey="true" nullable="false"/>
             </column>
-            <column businessName="merchant_id" type="BIGINT">
+            <column name="merchant_id" type="BIGINT">
                 <constraints nullable="false"/>
             </column>
-            <column businessName="customer_id" type="BIGINT"/>
-            <column businessName="provider_id" type="BIGINT">
+            <column name="customer_id" type="BIGINT"/>
+            <column name="provider_id" type="BIGINT">
                 <constraints nullable="false"/>
             </column>
-            <column businessName="amount" type="NUMERIC(12,2)">
+            <column name="amount" type="NUMERIC(12,2)">
                 <constraints nullable="false"/>
             </column>
-            <column businessName="currency" type="VARCHAR(3)">
+            <column name="currency" type="VARCHAR(3)">
                 <constraints nullable="false"/>
             </column>
-            <column businessName="status" type="VARCHAR(50)">
+            <column name="status" type="VARCHAR(50)">
                 <constraints nullable="false"/>
             </column>
-            <column businessName="refunded_amount" type="NUMERIC(12,2)" defaultValueNumeric="0.00"/>
-            <column businessName="created_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+            <column name="refunded_amount" type="NUMERIC(12,2)" defaultValueNumeric="0.00"/>
+            <column name="created_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
                 <constraints nullable="false"/>
             </column>
-            <column businessName="updated_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+            <column name="updated_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
                 <constraints nullable="false"/>
             </column>
         </createTable>
@@ -190,12 +190,12 @@
                 referencedColumnNames="id"/>
 
         <createIndex indexName="idx_payments_merchant_status" tableName="payments">
-            <column businessName="merchant_id"/>
-            <column businessName="status"/>
+            <column name="merchant_id"/>
+            <column name="status"/>
         </createIndex>
 
         <createIndex indexName="idx_payments_created_at" tableName="payments">
-            <column businessName="created_at"/>
+            <column name="created_at"/>
         </createIndex>
     </changeSet>
 
@@ -206,19 +206,19 @@
     <changeSet id="6" author="paybridge">
         <comment>Create payment_events table</comment>
         <createTable tableName="payment_events">
-            <column businessName="id" type="BIGSERIAL">
+            <column name="id" type="BIGSERIAL">
                 <constraints primaryKey="true" nullable="false"/>
             </column>
-            <column businessName="payment_id" type="UUID">
+            <column name="payment_id" type="BIGINT">
                 <constraints nullable="false"/>
             </column>
-            <column businessName="event_type" type="VARCHAR(50)">
+            <column name="event_type" type="VARCHAR(50)">
                 <constraints nullable="false"/>
             </column>
-            <column businessName="timestamp" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+            <column name="timestamp" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
                 <constraints nullable="false"/>
             </column>
-            <column businessName="description" type="TEXT"/>
+            <column name="description" type="TEXT"/>
         </createTable>
 
         <addForeignKeyConstraint
@@ -230,27 +230,27 @@
                 onDelete="CASCADE"/>
 
         <createIndex indexName="idx_payment_events_payment_timestamp" tableName="payment_events">
-            <column businessName="payment_id"/>
-            <column businessName="timestamp"/>
+            <column name="payment_id"/>
+            <column name="timestamp"/>
         </createIndex>
     </changeSet>
 
     <changeSet id="7" author="paybridge">
         <comment>Create payment_metadata table</comment>
         <createTable tableName="payment_metadata">
-            <column businessName="id" type="BIGSERIAL">
+            <column name="id" type="BIGSERIAL">
                 <constraints primaryKey="true" nullable="false"/>
             </column>
-            <column businessName="payment_id" type="UUID">
+            <column name="payment_id" type="BIGINT">
                 <constraints nullable="false"/>
             </column>
-            <column businessName="key" type="VARCHAR(100)">
+            <column name="key" type="VARCHAR(100)">
                 <constraints nullable="false"/>
             </column>
-            <column businessName="value" type="TEXT">
+            <column name="value" type="TEXT">
                 <constraints nullable="false"/>
             </column>
-            <column businessName="created_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+            <column name="created_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
                 <constraints nullable="false"/>
             </column>
         </createTable>
@@ -264,8 +264,8 @@
                 onDelete="CASCADE"/>
 
         <createIndex indexName="idx_payment_metadata_payment_key" tableName="payment_metadata">
-            <column businessName="payment_id"/>
-            <column businessName="key"/>
+            <column name="payment_id"/>
+            <column name="key"/>
         </createIndex>
     </changeSet>
 
@@ -276,24 +276,24 @@
     <changeSet id="8" author="paybridge">
         <comment>Create provider_tx_refs table</comment>
         <createTable tableName="provider_tx_refs">
-            <column businessName="id" type="BIGSERIAL">
+            <column name="id" type="BIGSERIAL">
                 <constraints primaryKey="true" nullable="false"/>
             </column>
-            <column businessName="payment_id" type="UUID">
+            <column name="payment_id" type="BIGINT">
                 <constraints nullable="false"/>
             </column>
-            <column businessName="provider_id" type="BIGINT">
+            <column name="provider_id" type="BIGINT">
                 <constraints nullable="false"/>
             </column>
-            <column businessName="reference_id" type="VARCHAR(255)">
+            <column name="reference_id" type="VARCHAR(255)">
                 <constraints nullable="false"/>
             </column>
-            <column businessName="amount" type="NUMERIC(12,2)"/>
-            <column businessName="status" type="VARCHAR(50)"/>
-            <column businessName="created_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+            <column name="amount" type="NUMERIC(12,2)"/>
+            <column name="status" type="VARCHAR(50)"/>
+            <column name="created_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
                 <constraints nullable="false"/>
             </column>
-            <column businessName="updated_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+            <column name="updated_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
                 <constraints nullable="false"/>
             </column>
         </createTable>
@@ -314,7 +314,7 @@
                 referencedColumnNames="id"/>
 
         <createIndex indexName="idx_provider_tx_refs_reference" tableName="provider_tx_refs">
-            <column businessName="reference_id"/>
+            <column name="reference_id"/>
         </createIndex>
 
         <addUniqueConstraint
@@ -326,19 +326,19 @@
     <changeSet id="9" author="paybridge">
         <comment>Create provider_webhooks table</comment>
         <createTable tableName="provider_webhooks">
-            <column businessName="id" type="BIGSERIAL">
+            <column name="id" type="BIGSERIAL">
                 <constraints primaryKey="true" nullable="false"/>
             </column>
-            <column businessName="provider_tx_id" type="BIGINT">
+            <column name="provider_tx_id" type="BIGINT">
                 <constraints nullable="false"/>
             </column>
-            <column businessName="event_type" type="VARCHAR(100)">
+            <column name="event_type" type="VARCHAR(100)">
                 <constraints nullable="false"/>
             </column>
-            <column businessName="payload_data" type="JSONB">
+            <column name="payload_data" type="JSONB">
                 <constraints nullable="false"/>
             </column>
-            <column businessName="received_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+            <column name="received_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
                 <constraints nullable="false"/>
             </column>
         </createTable>
@@ -352,29 +352,29 @@
                 onDelete="CASCADE"/>
 
         <createIndex indexName="idx_provider_webhooks_received_at" tableName="provider_webhooks">
-            <column businessName="received_at"/>
+            <column name="received_at"/>
         </createIndex>
     </changeSet>
 
     <changeSet id="10" author="paybridge">
         <comment>Create webhook_payloads table</comment>
         <createTable tableName="webhook_payloads">
-            <column businessName="id" type="BIGSERIAL">
+            <column name="id" type="BIGSERIAL">
                 <constraints primaryKey="true" nullable="false"/>
             </column>
-            <column businessName="payment_id" type="UUID">
+            <column name="payment_id" type="BIGINT">
                 <constraints nullable="false"/>
             </column>
-            <column businessName="payload_type" type="VARCHAR(50)">
+            <column name="payload_type" type="VARCHAR(50)">
                 <constraints nullable="false"/>
             </column>
-            <column businessName="payload_data" type="JSONB">
+            <column name="payload_data" type="JSONB">
                 <constraints nullable="false"/>
             </column>
-            <column businessName="received_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+            <column name="received_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
                 <constraints nullable="false"/>
             </column>
-            <column businessName="processed_at" type="TIMESTAMP"/>
+            <column name="processed_at" type="TIMESTAMP"/>
         </createTable>
 
         <addForeignKeyConstraint
@@ -386,32 +386,32 @@
                 onDelete="CASCADE"/>
 
         <createIndex indexName="idx_webhook_payloads_processed" tableName="webhook_payloads">
-            <column businessName="processed_at"/>
+            <column name="processed_at"/>
         </createIndex>
     </changeSet>
 
     <changeSet id="11" author="paybridge">
         <comment>Create webhook_deliveries table</comment>
         <createTable tableName="webhook_deliveries">
-            <column businessName="id" type="BIGSERIAL">
+            <column name="id" type="BIGSERIAL">
                 <constraints primaryKey="true" nullable="false"/>
             </column>
-            <column businessName="merchant_id" type="BIGINT">
+            <column name="merchant_id" type="BIGINT">
                 <constraints nullable="false"/>
             </column>
-            <column businessName="webhook_payload_id" type="BIGINT">
+            <column name="webhook_payload_id" type="BIGINT">
                 <constraints nullable="false"/>
             </column>
-            <column businessName="endpoint" type="VARCHAR(512)">
+            <column name="endpoint" type="VARCHAR(512)">
                 <constraints nullable="false"/>
             </column>
-            <column businessName="response_status" type="INTEGER"/>
-            <column businessName="response_body" type="TEXT"/>
-            <column businessName="attempts" type="INTEGER" defaultValueNumeric="0">
+            <column name="response_status" type="INTEGER"/>
+            <column name="response_body" type="TEXT"/>
+            <column name="attempts" type="INTEGER" defaultValueNumeric="0">
                 <constraints nullable="false"/>
             </column>
-            <column businessName="delivered_at" type="TIMESTAMP"/>
-            <column businessName="next_retry_at" type="TIMESTAMP"/>
+            <column name="delivered_at" type="TIMESTAMP"/>
+            <column name="next_retry_at" type="TIMESTAMP"/>
         </createTable>
 
         <addForeignKeyConstraint
@@ -430,7 +430,7 @@
                 onDelete="CASCADE"/>
 
         <createIndex indexName="idx_webhook_deliveries_retry" tableName="webhook_deliveries">
-            <column businessName="next_retry_at"/>
+            <column name="next_retry_at"/>
         </createIndex>
     </changeSet>
 
@@ -441,21 +441,21 @@
     <changeSet id="12" author="paybridge">
         <comment>Create audit_logs table</comment>
         <createTable tableName="audit_logs">
-            <column businessName="id" type="BIGSERIAL">
+            <column name="id" type="BIGSERIAL">
                 <constraints primaryKey="true" nullable="false"/>
             </column>
-            <column businessName="merchant_id" type="BIGINT"/>
-            <column businessName="user_id" type="VARCHAR(255)"/>
-            <column businessName="action" type="VARCHAR(50)">
+            <column name="merchant_id" type="BIGINT"/>
+            <column name="user_id" type="VARCHAR(255)"/>
+            <column name="action" type="VARCHAR(50)">
                 <constraints nullable="false"/>
             </column>
-            <column businessName="resource_type" type="VARCHAR(50)">
+            <column name="resource_type" type="VARCHAR(50)">
                 <constraints nullable="false"/>
             </column>
-            <column businessName="resource_id" type="VARCHAR(255)"/>
-            <column businessName="old_values" type="JSONB"/>
-            <column businessName="new_values" type="JSONB"/>
-            <column businessName="timestamp" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+            <column name="resource_id" type="VARCHAR(255)"/>
+            <column name="old_values" type="JSONB"/>
+            <column name="new_values" type="JSONB"/>
+            <column name="timestamp" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
                 <constraints nullable="false"/>
             </column>
         </createTable>
@@ -469,13 +469,13 @@
                 onDelete="CASCADE"/>
 
         <createIndex indexName="idx_audit_logs_merchant_timestamp" tableName="audit_logs">
-            <column businessName="merchant_id"/>
-            <column businessName="timestamp"/>
+            <column name="merchant_id"/>
+            <column name="timestamp"/>
         </createIndex>
 
         <createIndex indexName="idx_audit_logs_resource" tableName="audit_logs">
-            <column businessName="resource_type"/>
-            <column businessName="resource_id"/>
+            <column name="resource_type"/>
+            <column name="resource_id"/>
         </createIndex>
     </changeSet>
 
@@ -486,28 +486,28 @@
     <changeSet id="13" author="paybridge">
         <comment>Create reconciliation_jobs table</comment>
         <createTable tableName="reconciliation_jobs">
-            <column businessName="id" type="BIGSERIAL">
+            <column name="id" type="BIGSERIAL">
                 <constraints primaryKey="true" nullable="false"/>
             </column>
-            <column businessName="merchant_id" type="BIGINT">
+            <column name="merchant_id" type="BIGINT">
                 <constraints nullable="false"/>
             </column>
-            <column businessName="provider_id" type="BIGINT">
+            <column name="provider_id" type="BIGINT">
                 <constraints nullable="false"/>
             </column>
-            <column businessName="start_date" type="DATE">
+            <column name="start_date" type="DATE">
                 <constraints nullable="false"/>
             </column>
-            <column businessName="end_date" type="DATE">
+            <column name="end_date" type="DATE">
                 <constraints nullable="false"/>
             </column>
-            <column businessName="status" type="VARCHAR(50)">
+            <column name="status" type="VARCHAR(50)">
                 <constraints nullable="false"/>
             </column>
-            <column businessName="created_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+            <column name="created_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
                 <constraints nullable="false"/>
             </column>
-            <column businessName="completed_at" type="TIMESTAMP"/>
+            <column name="completed_at" type="TIMESTAMP"/>
         </createTable>
 
         <addForeignKeyConstraint
@@ -525,27 +525,27 @@
                 referencedColumnNames="id"/>
 
         <createIndex indexName="idx_reconciliation_jobs_status" tableName="reconciliation_jobs">
-            <column businessName="status"/>
-            <column businessName="created_at"/>
+            <column name="status"/>
+            <column name="created_at"/>
         </createIndex>
     </changeSet>
 
     <changeSet id="14" author="paybridge">
         <comment>Create job_summaries table</comment>
         <createTable tableName="job_summaries">
-            <column businessName="id" type="BIGSERIAL">
+            <column name="id" type="BIGSERIAL">
                 <constraints primaryKey="true" nullable="false"/>
             </column>
-            <column businessName="job_id" type="BIGINT">
+            <column name="job_id" type="BIGINT">
                 <constraints nullable="false"/>
             </column>
-            <column businessName="metric_type" type="VARCHAR(100)">
+            <column name="metric_type" type="VARCHAR(100)">
                 <constraints nullable="false"/>
             </column>
-            <column businessName="metric_value" type="TEXT">
+            <column name="metric_value" type="TEXT">
                 <constraints nullable="false"/>
             </column>
-            <column businessName="created_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+            <column name="created_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
                 <constraints nullable="false"/>
             </column>
         </createTable>
@@ -562,18 +562,18 @@
     <changeSet id="15" author="paybridge">
         <comment>Create reconciliation_discrepancies table</comment>
         <createTable tableName="reconciliation_discrepancies">
-            <column businessName="id" type="BIGSERIAL">
+            <column name="id" type="BIGSERIAL">
                 <constraints primaryKey="true" nullable="false"/>
             </column>
-            <column businessName="job_id" type="BIGINT">
+            <column name="job_id" type="BIGINT">
                 <constraints nullable="false"/>
             </column>
-            <column businessName="discrepancy_type" type="VARCHAR(50)">
+            <column name="discrepancy_type" type="VARCHAR(50)">
                 <constraints nullable="false"/>
             </column>
-            <column businessName="payment_id" type="UUID"/>
-            <column businessName="provider_tx_id" type="BIGINT"/>
-            <column businessName="created_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+            <column name="payment_id" type="BIGINT"/>
+            <column name="provider_tx_id" type="BIGINT"/>
+            <column name="created_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
                 <constraints nullable="false"/>
             </column>
         </createTable>
@@ -606,18 +606,18 @@
     <changeSet id="16" author="paybridge">
         <comment>Create discrepancy_details table</comment>
         <createTable tableName="discrepancy_details">
-            <column businessName="id" type="BIGSERIAL">
+            <column name="id" type="BIGSERIAL">
                 <constraints primaryKey="true" nullable="false"/>
             </column>
-            <column businessName="discrepancy_id" type="BIGINT">
+            <column name="discrepancy_id" type="BIGINT">
                 <constraints nullable="false"/>
             </column>
-            <column businessName="field_name" type="VARCHAR(100)">
+            <column name="field_name" type="VARCHAR(100)">
                 <constraints nullable="false"/>
             </column>
-            <column businessName="paybridge_value" type="TEXT"/>
-            <column businessName="provider_value" type="TEXT"/>
-            <column businessName="difference" type="TEXT"/>
+            <column name="paybridge_value" type="TEXT"/>
+            <column name="provider_value" type="TEXT"/>
+            <column name="difference" type="TEXT"/>
         </createTable>
 
         <addForeignKeyConstraint
@@ -636,19 +636,19 @@
     <changeSet id="17" author="paybridge">
         <comment>Insert default payment providers</comment>
         <insert tableName="providers">
-            <column businessName="businessName" value="stripe"/>
-            <column businessName="display_name" value="Stripe"/>
-            <column businessName="brand_color" value="#635BFF"/>
+            <column name="name" value="stripe"/>
+            <column name="display_name" value="Stripe"/>
+            <column name="brand_color" value="#635BFF"/>
         </insert>
         <insert tableName="providers">
-            <column businessName="businessName" value="paypal"/>
-            <column businessName="display_name" value="PayPal"/>
-            <column businessName="brand_color" value="#003087"/>
+            <column name="name" value="paypal"/>
+            <column name="display_name" value="PayPal"/>
+            <column name="brand_color" value="#003087"/>
         </insert>
         <insert tableName="providers">
-            <column businessName="businessName" value="flutterwave"/>
-            <column businessName="display_name" value="Flutterwave"/>
-            <column businessName="brand_color" value="#F5A623"/>
+            <column name="name" value="flutterwave"/>
+            <column name="display_name" value="Flutterwave"/>
+            <column name="brand_color" value="#F5A623"/>
         </insert>
     </changeSet>
 
@@ -659,12 +659,12 @@
     <changeSet id="18" author="paybridge">
         <comment>Add idempotency_key column to payments</comment>
         <addColumn tableName="payments">
-            <column businessName="idempotency_key" type="VARCHAR(255)"/>
+            <column name="idempotency_key" type="VARCHAR(255)"/>
         </addColumn>
 
         <createIndex indexName="idx_payments_idempotency" tableName="payments">
-            <column businessName="merchant_id"/>
-            <column businessName="idempotency_key"/>
+            <column name="merchant_id"/>
+            <column name="idempotency_key"/>
         </createIndex>
 
         <addUniqueConstraint
@@ -676,25 +676,25 @@
     <changeSet id="19" author="paybridge">
         <comment>Add additional merchant fields</comment>
         <addColumn tableName="merchants">
-            <column businessName="webhook_url" type="VARCHAR(512)"/>
-            <column businessName="webhook_secret" type="VARCHAR(255)"/>
-            <column businessName="business_country" type="VARCHAR(2)"/>
-            <column businessName="business_type" type="VARCHAR(50)"/>
+            <column name="webhook_url" type="VARCHAR(512)"/>
+            <column name="webhook_secret" type="VARCHAR(255)"/>
+            <column name="business_country" type="VARCHAR(2)"/>
+            <column name="business_type" type="VARCHAR(50)"/>
         </addColumn>
     </changeSet>
 
     <changeSet id="20" author="paybridge">
         <comment>Add additional payment tracking fields</comment>
         <addColumn tableName="payments">
-            <column businessName="customer_ip" type="VARCHAR(45)"/>
-            <column businessName="user_agent" type="TEXT"/>
-            <column businessName="failure_reason" type="VARCHAR(255)"/>
-            <column businessName="provider_payment_id" type="VARCHAR(255)"/>
-            <column businessName="routing_decision" type="JSONB"/>
+            <column name="customer_ip" type="VARCHAR(45)"/>
+            <column name="user_agent" type="TEXT"/>
+            <column name="failure_reason" type="VARCHAR(255)"/>
+            <column name="provider_payment_id" type="VARCHAR(255)"/>
+            <column name="routing_decision" type="JSONB"/>
         </addColumn>
 
         <createIndex indexName="idx_payments_provider_payment_id" tableName="payments">
-            <column businessName="provider_payment_id"/>
+            <column name="provider_payment_id"/>
         </createIndex>
     </changeSet>
 
@@ -705,20 +705,20 @@
     <changeSet id="21" author="paybridge">
         <comment>Create idempotency_keys table for Redis backup</comment>
         <createTable tableName="idempotency_keys">
-            <column businessName="id" type="BIGSERIAL">
+            <column name="id" type="BIGSERIAL">
                 <constraints primaryKey="true" nullable="false"/>
             </column>
-            <column businessName="merchant_id" type="BIGINT">
+            <column name="merchant_id" type="BIGINT">
                 <constraints nullable="false"/>
             </column>
-            <column businessName="idempotency_key" type="VARCHAR(255)">
+            <column name="idempotency_key" type="VARCHAR(255)">
                 <constraints nullable="false"/>
             </column>
-            <column businessName="payment_id" type="UUID"/>
-            <column businessName="created_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+            <column name="payment_id" type="BIGINT"/>
+            <column name="created_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
                 <constraints nullable="false"/>
             </column>
-            <column businessName="expires_at" type="TIMESTAMP">
+            <column name="expires_at" type="TIMESTAMP">
                 <constraints nullable="false"/>
             </column>
         </createTable>
@@ -745,38 +745,38 @@
                 columnNames="merchant_id, idempotency_key"/>
 
         <createIndex indexName="idx_idempotency_keys_expires" tableName="idempotency_keys">
-            <column businessName="expires_at"/>
+            <column name="expires_at"/>
         </createIndex>
     </changeSet>
 
     <changeSet id="22" author="paybridge">
         <comment>Create routing_rules table</comment>
         <createTable tableName="routing_rules">
-            <column businessName="id" type="BIGSERIAL">
+            <column name="id" type="BIGSERIAL">
                 <constraints primaryKey="true" nullable="false"/>
             </column>
-            <column businessName="merchant_id" type="BIGINT">
+            <column name="merchant_id" type="BIGINT">
                 <constraints nullable="false"/>
             </column>
-            <column businessName="rule_name" type="VARCHAR(100)">
+            <column name="rule_name" type="VARCHAR(100)">
                 <constraints nullable="false"/>
             </column>
-            <column businessName="conditions" type="JSONB">
+            <column name="conditions" type="JSONB">
                 <constraints nullable="false"/>
             </column>
-            <column businessName="provider_preference" type="JSONB">
+            <column name="provider_preference" type="JSONB">
                 <constraints nullable="false"/>
             </column>
-            <column businessName="is_active" type="BOOLEAN" defaultValueBoolean="true">
+            <column name="is_active" type="BOOLEAN" defaultValueBoolean="true">
                 <constraints nullable="false"/>
             </column>
-            <column businessName="priority" type="INTEGER" defaultValueNumeric="0">
+            <column name="priority" type="INTEGER" defaultValueNumeric="0">
                 <constraints nullable="false"/>
             </column>
-            <column businessName="created_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+            <column name="created_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
                 <constraints nullable="false"/>
             </column>
-            <column businessName="updated_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+            <column name="updated_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
                 <constraints nullable="false"/>
             </column>
         </createTable>
@@ -790,34 +790,34 @@
                 onDelete="CASCADE"/>
 
         <createIndex indexName="idx_routing_rules_merchant_active" tableName="routing_rules">
-            <column businessName="merchant_id"/>
-            <column businessName="is_active"/>
-            <column businessName="priority"/>
+            <column name="merchant_id"/>
+            <column name="is_active"/>
+            <column name="priority"/>
         </createIndex>
     </changeSet>
 
     <changeSet id="23" author="paybridge">
         <comment>Create payment_attempts table</comment>
         <createTable tableName="payment_attempts">
-            <column businessName="id" type="UUID">
+            <column name="id" type="BIGINT">
                 <constraints primaryKey="true" nullable="false"/>
             </column>
-            <column businessName="payment_id" type="UUID">
+            <column name="payment_id" type="BIGINT">
                 <constraints nullable="false"/>
             </column>
-            <column businessName="provider_id" type="BIGINT">
+            <column name="provider_id" type="BIGINT">
                 <constraints nullable="false"/>
             </column>
-            <column businessName="attempt_number" type="INTEGER">
+            <column name="attempt_number" type="INTEGER">
                 <constraints nullable="false"/>
             </column>
-            <column businessName="status" type="VARCHAR(50)">
+            <column name="status" type="VARCHAR(50)">
                 <constraints nullable="false"/>
             </column>
-            <column businessName="provider_response" type="JSONB"/>
-            <column businessName="failure_code" type="VARCHAR(100)"/>
-            <column businessName="failure_message" type="TEXT"/>
-            <column businessName="created_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+            <column name="provider_response" type="JSONB"/>
+            <column name="failure_code" type="VARCHAR(100)"/>
+            <column name="failure_message" type="TEXT"/>
+            <column name="created_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
                 <constraints nullable="false"/>
             </column>
         </createTable>
@@ -838,8 +838,8 @@
                 referencedColumnNames="id"/>
 
         <createIndex indexName="idx_payment_attempts_payment" tableName="payment_attempts">
-            <column businessName="payment_id"/>
-            <column businessName="attempt_number"/>
+            <column name="payment_id"/>
+            <column name="attempt_number"/>
         </createIndex>
     </changeSet>
 
@@ -850,27 +850,27 @@
     <changeSet id="24" author="paybridge">
         <comment>Create payment_analytics table for pre-aggregated data</comment>
         <createTable tableName="payment_analytics">
-            <column businessName="id" type="BIGSERIAL">
+            <column name="id" type="BIGSERIAL">
                 <constraints primaryKey="true" nullable="false"/>
             </column>
-            <column businessName="merchant_id" type="BIGINT">
+            <column name="merchant_id" type="BIGINT">
                 <constraints nullable="false"/>
             </column>
-            <column businessName="provider_id" type="BIGINT">
+            <column name="provider_id" type="BIGINT">
                 <constraints nullable="false"/>
             </column>
-            <column businessName="date_bucket" type="DATE">
+            <column name="date_bucket" type="DATE">
                 <constraints nullable="false"/>
             </column>
-            <column businessName="total_volume" type="NUMERIC(12,2)" defaultValueNumeric="0"/>
-            <column businessName="total_count" type="INTEGER" defaultValueNumeric="0"/>
-            <column businessName="success_count" type="INTEGER" defaultValueNumeric="0"/>
-            <column businessName="failure_count" type="INTEGER" defaultValueNumeric="0"/>
-            <column businessName="avg_processing_time_ms" type="INTEGER"/>
-            <column businessName="created_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+            <column name="total_volume" type="NUMERIC(12,2)" defaultValueNumeric="0"/>
+            <column name="total_count" type="INTEGER" defaultValueNumeric="0"/>
+            <column name="success_count" type="INTEGER" defaultValueNumeric="0"/>
+            <column name="failure_count" type="INTEGER" defaultValueNumeric="0"/>
+            <column name="avg_processing_time_ms" type="INTEGER"/>
+            <column name="created_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
                 <constraints nullable="false"/>
             </column>
-            <column businessName="updated_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+            <column name="updated_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
                 <constraints nullable="false"/>
             </column>
         </createTable>
@@ -896,28 +896,28 @@
                 columnNames="merchant_id, provider_id, date_bucket"/>
 
         <createIndex indexName="idx_payment_analytics_date" tableName="payment_analytics">
-            <column businessName="date_bucket"/>
+            <column name="date_bucket"/>
         </createIndex>
     </changeSet>
 
     <changeSet id="25" author="paybridge">
         <comment>Create provider_health_checks table</comment>
         <createTable tableName="provider_health_checks">
-            <column businessName="id" type="BIGSERIAL">
+            <column name="id" type="BIGSERIAL">
                 <constraints primaryKey="true" nullable="false"/>
             </column>
-            <column businessName="provider_id" type="BIGINT">
+            <column name="provider_id" type="BIGINT">
                 <constraints nullable="false"/>
             </column>
-            <column businessName="check_time" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+            <column name="check_time" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
                 <constraints nullable="false"/>
             </column>
-            <column businessName="response_time_ms" type="INTEGER"/>
-            <column businessName="is_healthy" type="BOOLEAN">
+            <column name="response_time_ms" type="INTEGER"/>
+            <column name="is_healthy" type="BOOLEAN">
                 <constraints nullable="false"/>
             </column>
-            <column businessName="error_message" type="TEXT"/>
-            <column businessName="created_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+            <column name="error_message" type="TEXT"/>
+            <column name="created_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
                 <constraints nullable="false"/>
             </column>
         </createTable>
@@ -931,30 +931,30 @@
                 onDelete="CASCADE"/>
 
         <createIndex indexName="idx_provider_health_checks_time" tableName="provider_health_checks">
-            <column businessName="provider_id"/>
-            <column businessName="check_time"/>
+            <column name="provider_id"/>
+            <column name="check_time"/>
         </createIndex>
     </changeSet>
 
     <changeSet id="26" author="paybridge">
         <comment>Create rate_limits table (without api_key_id reference)</comment>
         <createTable tableName="rate_limits">
-            <column businessName="id" type="BIGSERIAL">
+            <column name="id" type="BIGSERIAL">
                 <constraints primaryKey="true" nullable="false"/>
             </column>
-            <column businessName="merchant_id" type="BIGINT">
+            <column name="merchant_id" type="BIGINT">
                 <constraints nullable="false"/>
             </column>
-            <column businessName="time_window" type="VARCHAR(50)">
+            <column name="time_window" type="VARCHAR(50)">
                 <constraints nullable="false"/>
             </column>
-            <column businessName="request_count" type="INTEGER" defaultValueNumeric="0">
+            <column name="request_count" type="INTEGER" defaultValueNumeric="0">
                 <constraints nullable="false"/>
             </column>
-            <column businessName="window_start" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+            <column name="window_start" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
                 <constraints nullable="false"/>
             </column>
-            <column businessName="created_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+            <column name="created_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
                 <constraints nullable="false"/>
             </column>
         </createTable>
@@ -968,8 +968,8 @@
                 onDelete="CASCADE"/>
 
         <createIndex indexName="idx_rate_limits_window" tableName="rate_limits">
-            <column businessName="merchant_id"/>
-            <column businessName="window_start"/>
+            <column name="merchant_id"/>
+            <column name="window_start"/>
         </createIndex>
     </changeSet>
 
@@ -980,24 +980,24 @@
     <changeSet id="27" author="paybridge">
         <comment>Create refunds table</comment>
         <createTable tableName="refunds">
-            <column businessName="id" type="UUID">
+            <column name="id" type="BIGINT">
                 <constraints primaryKey="true" nullable="false"/>
             </column>
-            <column businessName="payment_id" type="UUID">
+            <column name="payment_id" type="BIGINT">
                 <constraints nullable="false"/>
             </column>
-            <column businessName="amount" type="NUMERIC(12,2)">
+            <column name="amount" type="NUMERIC(12,2)">
                 <constraints nullable="false"/>
             </column>
-            <column businessName="status" type="VARCHAR(50)">
+            <column name="status" type="VARCHAR(50)">
                 <constraints nullable="false"/>
             </column>
-            <column businessName="provider_refund_id" type="VARCHAR(255)"/>
-            <column businessName="reason" type="VARCHAR(500)"/>
-            <column businessName="created_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+            <column name="provider_refund_id" type="VARCHAR(255)"/>
+            <column name="reason" type="VARCHAR(500)"/>
+            <column name="created_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
                 <constraints nullable="false"/>
             </column>
-            <column businessName="updated_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+            <column name="updated_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
                 <constraints nullable="false"/>
             </column>
         </createTable>
@@ -1011,44 +1011,44 @@
                 onDelete="CASCADE"/>
 
         <createIndex indexName="idx_refunds_payment" tableName="refunds">
-            <column businessName="payment_id"/>
+            <column name="payment_id"/>
         </createIndex>
 
         <createIndex indexName="idx_refunds_status" tableName="refunds">
-            <column businessName="status"/>
-            <column businessName="created_at"/>
+            <column name="status"/>
+            <column name="created_at"/>
         </createIndex>
     </changeSet>
 
     <changeSet id="28" author="paybridge">
         <comment>Create settlement_batches table</comment>
         <createTable tableName="settlement_batches">
-            <column businessName="id" type="BIGSERIAL">
+            <column name="id" type="BIGSERIAL">
                 <constraints primaryKey="true" nullable="false"/>
             </column>
-            <column businessName="merchant_id" type="BIGINT">
+            <column name="merchant_id" type="BIGINT">
                 <constraints nullable="false"/>
             </column>
-            <column businessName="provider_id" type="BIGINT">
+            <column name="provider_id" type="BIGINT">
                 <constraints nullable="false"/>
             </column>
-            <column businessName="batch_date" type="DATE">
+            <column name="batch_date" type="DATE">
                 <constraints nullable="false"/>
             </column>
-            <column businessName="total_volume" type="NUMERIC(12,2)">
+            <column name="total_volume" type="NUMERIC(12,2)">
                 <constraints nullable="false"/>
             </column>
-            <column businessName="fee_amount" type="NUMERIC(12,2)">
+            <column name="fee_amount" type="NUMERIC(12,2)">
                 <constraints nullable="false"/>
             </column>
-            <column businessName="net_amount" type="NUMERIC(12,2)">
+            <column name="net_amount" type="NUMERIC(12,2)">
                 <constraints nullable="false"/>
             </column>
-            <column businessName="status" type="VARCHAR(50)">
+            <column name="status" type="VARCHAR(50)">
                 <constraints nullable="false"/>
             </column>
-            <column businessName="settled_at" type="TIMESTAMP"/>
-            <column businessName="created_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+            <column name="settled_at" type="TIMESTAMP"/>
+            <column name="created_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
                 <constraints nullable="false"/>
             </column>
         </createTable>
@@ -1069,8 +1069,8 @@
                 referencedColumnNames="id"/>
 
         <createIndex indexName="idx_settlement_batches_merchant_date" tableName="settlement_batches">
-            <column businessName="merchant_id"/>
-            <column businessName="batch_date"/>
+            <column name="merchant_id"/>
+            <column name="batch_date"/>
         </createIndex>
     </changeSet>
 
@@ -1083,7 +1083,7 @@
         <createView viewName="merchant_dashboard_summary" replaceIfExists="true">
             SELECT
             m.id as merchant_id,
-            m.businessName as merchant_name,
+            m.name as merchant_name,
             COUNT(p.id) as total_payments,
             SUM(CASE WHEN p.status = 'SUCCEEDED' THEN 1 ELSE 0 END) as successful_payments,
             SUM(CASE WHEN p.status = 'FAILED' THEN 1 ELSE 0 END) as failed_payments,
@@ -1094,7 +1094,7 @@
             FROM merchants m
             LEFT JOIN payments p ON m.id = p.merchant_id
             AND p.created_at >= CURRENT_DATE - INTERVAL '30 days'
-            GROUP BY m.id, m.businessName
+            GROUP BY m.id, m.name
         </createView>
     </changeSet>
 
@@ -1103,7 +1103,7 @@
         <createView viewName="provider_performance" replaceIfExists="true">
             SELECT
             pr.id as provider_id,
-            pr.businessName as provider_name,
+            pr.name as provider_name,
             pr.display_name,
             COUNT(p.id) as total_payments,
             SUM(CASE WHEN p.status = 'SUCCEEDED' THEN 1 ELSE 0 END) as successful_payments,
@@ -1114,7 +1114,7 @@
             FROM providers pr
             LEFT JOIN payments p ON pr.id = p.provider_id
             AND p.created_at >= CURRENT_DATE - INTERVAL '30 days'
-            GROUP BY pr.id, pr.businessName, pr.display_name
+            GROUP BY pr.id, pr.name, pr.display_name
         </createView>
     </changeSet>
 
@@ -1147,38 +1147,38 @@
 
         <!-- Composite indexes for common queries -->
         <createIndex indexName="idx_payments_merchant_created_status" tableName="payments">
-            <column businessName="merchant_id"/>
-            <column businessName="created_at"/>
-            <column businessName="status"/>
+            <column name="merchant_id"/>
+            <column name="created_at"/>
+            <column name="status"/>
         </createIndex>
 
         <createIndex indexName="idx_payments_provider_status_created" tableName="payments">
-            <column businessName="provider_id"/>
-            <column businessName="status"/>
-            <column businessName="created_at"/>
+            <column name="provider_id"/>
+            <column name="status"/>
+            <column name="created_at"/>
         </createIndex>
 
         <!-- Partial indexes for active records -->
         <createIndex indexName="idx_webhook_deliveries_pending_retry" tableName="webhook_deliveries">
-            <column businessName="next_retry_at"/>
-            <column businessName="delivered_at"/>
+            <column name="next_retry_at"/>
+            <column name="delivered_at"/>
         </createIndex>
 
         <createIndex indexName="idx_payments_customer_created" tableName="payments">
-            <column businessName="customer_id"/>
-            <column businessName="created_at"/>
+            <column name="customer_id"/>
+            <column name="created_at"/>
         </createIndex>
 
         <createIndex indexName="idx_provider_configs_enabled" tableName="provider_configs">
-            <column businessName="merchant_id"/>
-            <column businessName="is_enabled"/>
+            <column name="merchant_id"/>
+            <column name="is_enabled"/>
         </createIndex>
     </changeSet>
 
     <changeSet id="34" author="paybridge">
        <comment>Create email column in merchant table</comment>
        <addColumn tableName="merchants">
-           <column businessName="email" type="VARCHAR(30)">
+           <column name="email" type="VARCHAR(30)">
                <constraints nullable="false"/>
            </column>
        </addColumn>
@@ -1193,7 +1193,7 @@
     <changeSet id="36" author="paybridge">
     <comment>Add Column Password</comment>
         <addColumn tableName="merchants">
-            <column businessName="password" type="VARCHAR(25)">
+            <column name="password" type="VARCHAR(25)">
                 <constraints nullable="false"/>
             </column>
         </addColumn>
@@ -1202,23 +1202,91 @@
     <changeSet id="37" author="paybridge">
     <comment>Create User Table</comment>
     <createTable tableName="users">
-        <column businessName="id" type="BIGSERIAL">
+        <column name="id" type="BIGSERIAL">
             <constraints primaryKey="true" nullable="false"/>
         </column>
-        <column businessName="email" type="VARCHAR(30)">
+        <column name="email" type="VARCHAR(30)">
             <constraints nullable="false"/>
         </column>
-        <column businessName="password" type="VARCHAR(25)">
+        <column name="password" type="VARCHAR(25)">
             <constraints nullable="false"/>
         </column>
-        <column businessName="payment_id" type="UUID"/>
-        <column businessName="created_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+        <column name="payment_id" type="BIGINT"/>
+        <column type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP" name="created_at">
             <constraints nullable="false"/>
         </column>
-        <column businessName="expires_at" type="TIMESTAMP">
+        <column  type="TIMESTAMP" name="expires_at">
             <constraints nullable="false"/>
         </column>
     </createTable>
     </changeSet>
+
+    <changeSet id = "38" author="paybridge">
+       <comment>Changing column name to [business_name]</comment>
+        <renameColumn tableName="merchants" oldColumnName="name" newColumnName="business_name" columnDataType="VARCHAR(40)"/>
+    </changeSet>
+
+    <changeSet id="39" author="paybridge">
+        <comment>Adding website url to merchants table</comment>
+        <addColumn tableName="merchants">
+            <column name="website_url" type="VARCHAR(30)">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+    </changeSet>
+
+    <changeSet id="40" author="paybridge">
+       <comment>Drop Column paymentId and expiresAt</comment>
+        <dropColumn tableName="users" columnName="payment_id"/>
+    </changeSet>
+
+    <changeSet id="41" author="paybridge">
+        <comment>Drop Columns created_by and expires_at</comment>
+        <dropColumn tableName="users" columnName="created_at"/>
+        <dropColumn tableName="users" columnName="expires_at"/>
+    </changeSet>
+    
+    <changeSet id="42" author="paybridge">
+        <comment>Add columns to users table</comment>
+        <addColumn tableName="users">
+            <column name="user_type" type="VARCHAR(8)">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+        <addColumn tableName="users">
+            <column name="enabled" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+
+        <addColumn tableName="users">
+            <column name="merchant_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+
+        <addForeignKeyConstraint baseTableName="users"
+                                 baseColumnNames="merchant_id"
+                                 constraintName="fk_merchant_user"
+                                 referencedTableName="merchants"
+                                 referencedColumnNames="id"/>
+    </changeSet>
+
+
+    <changeSet id="43" author="paybridge">
+        <comment>Increase password length space to accommodate BCrypt hashed passwords</comment>
+        <modifyDataType tableName="users" columnName="password" newDataType="VARCHAR(255)"/>
+    </changeSet>
+
+    <changeSet id="44" author="paybridge">
+        <comment>Change merchant_id column to be nullable</comment>
+        <dropNotNullConstraint tableName="users" columnName="merchant_id"/>
+    </changeSet>
+
+    <changeSet id="45" author="paybridge">
+        <comment>Remove columns password</comment>
+        <dropColumn tableName="merchants" columnName="password"/>
+    </changeSet>
+    
 
 </databaseChangeLog>
