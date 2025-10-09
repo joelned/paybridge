@@ -74,7 +74,6 @@ PayBridge is a modern payment gateway aggregator built with Spring Boot that ena
 ### Key Libraries
 - **Nimbus JOSE JWT**: JWT token generation and validation
 - **Jackson**: JSON processing
-- **Lombok**: Boilerplate reduction
 - **MapStruct**: Object mapping
 - **AssertJ**: Fluent assertions for testing
 - **Mockito**: Mocking framework
