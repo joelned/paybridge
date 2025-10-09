@@ -420,10 +420,4 @@ We welcome contributions! The project follows standard Spring Boot conventions. 
 - Update documentation for API changes
 - Ensure all tests pass before submitting
 
-## License
 
-This project is part of a payment processing platform. Refer to the LICENSE file for usage terms.
-
----
-
-**Ready to process your first payment?** Start by registering a merchant account and configuring your first payment provider. The platform handles the complexity while you focus on your business logic.
