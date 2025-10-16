@@ -70,6 +70,9 @@ public class MerchantRegistrationRequest {
         return businessName;
     }
 
+    public MerchantRegistrationRequest() {
+    }
+
     public String getEmail() {
         return email;
     }

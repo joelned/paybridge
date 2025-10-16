@@ -22,14 +22,19 @@ public class TokenService {
     public String generateToken(Authentication authentication) {
         Instant now = Instant.now();
 
-        String scope = authentication.getAuthorities().stream()
-                .map(GrantedAuthority::getAuthority)
-                .collect(Collectors.joining(" "));
+        StringBuilder scopeBuilder = new StringBuilder();
+        authentication.getAuthorities().forEach(authority ->{
+                    if(!scopeBuilder.isEmpty()){
+                        scopeBuilder.append(' ');
+                    }
+
+                    scopeBuilder.append(authority.getAuthority());
+                });
 
         JwtClaimsSet claims = JwtClaimsSet.builder()
                 .issuedAt(now)
                 .expiresAt(now.plus(1, ChronoUnit.HOURS))
-                .claim("scope", scope)
+                .claim("scope", scopeBuilder.toString())
                 .subject(authentication.getName())
                 .issuer("self")
                 .build();

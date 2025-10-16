@@ -2,6 +2,8 @@ package com.paybridge.Services;
 
 import com.paybridge.Models.DTOs.LoginRequest;
 import com.paybridge.Models.DTOs.LoginResponse;
+import com.paybridge.Models.Entities.Users;
+import com.paybridge.Repositories.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -17,6 +19,9 @@ public class AuthenticationService {
     @Autowired
     private TokenService tokenService;
 
+    @Autowired
+    private UserRepository userRepository;
+
 
     public AuthenticationService(AuthenticationManager authenticationManager
             , TokenService tokenService) {
@@ -25,6 +30,10 @@ public class AuthenticationService {
     }
 
     public LoginResponse login(LoginRequest request) {
+        Users user = userRepository.findByEmail(request.getEmail());
+        if (user != null && !user.isEmailVerified()) {
+            throw new RuntimeException("Please verify your email before logging in");
+        }
         Authentication authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(
                 request.getEmail(), request.getPassword()
         ));

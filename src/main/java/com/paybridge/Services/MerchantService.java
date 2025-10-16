@@ -27,6 +27,9 @@ public class MerchantService {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+    @Autowired
+    private EmailService emailService;
+
 
     public MerchantService(UserRepository userRepository, MerchantRepository merchantRepository, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
@@ -37,26 +40,26 @@ public class MerchantService {
 
     @Transactional
     public MerchantRegistrationResponse registerMerchant(MerchantRegistrationRequest request){
-        boolean merchantExists= merchantRepository.existsByEmail(request.getEmail());
-
+        boolean merchantExists = merchantRepository.existsByEmail(request.getEmail());
         if(merchantExists){
-            throw new IllegalArgumentException("Email not found");
+            throw new RuntimeException("Merchant already exists");
         }
-
         Merchant merchant = createMerchant(request);
         Users user = createMerchantUser(merchant, request);
 
         userRepository.save(user);
         merchantRepository.save(merchant);
 
+       emailService.sendVerificationEmail(user.getEmail(), user.getVerificationCode(), user.getMerchant().getBusinessName());
+
         return new MerchantRegistrationResponse(
                 merchant.getBusinessName(), merchant.getEmail(), merchant.getStatus(),
-                "Merchant Successfully Registered",
-                "Please configure payment providers to start receiving payments"
+                "Registration successful. Please check your email for verification code.",
+                "Verify your email to activate your account"
         );
     }
 
-    private Merchant createMerchant(MerchantRegistrationRequest request){
+    public Merchant createMerchant(MerchantRegistrationRequest request){
 
         Merchant merchant = new Merchant();
         merchant.setBusinessType(request.getBusinessType());
@@ -70,7 +73,7 @@ public class MerchantService {
         return merchant;
     }
 
-    private Users createMerchantUser(Merchant merchant, MerchantRegistrationRequest request){
+    public Users createMerchantUser(Merchant merchant, MerchantRegistrationRequest request){
 
         Users users = new Users();
         users.setMerchant(merchant);
@@ -78,6 +81,7 @@ public class MerchantService {
         users.setEmail(request.getEmail());
         users.setEnabled(true);
         users.setPassword(passwordEncoder.encode(request.getPassword()));
+        users.generateVerificationCode();
         return users;
     }
 

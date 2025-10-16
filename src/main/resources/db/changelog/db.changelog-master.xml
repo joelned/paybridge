@@ -1287,6 +1287,22 @@
         <comment>Remove columns password</comment>
         <dropColumn tableName="merchants" columnName="password"/>
     </changeSet>
-    
+
+    <changeSet id = "46" author="paybridge">
+       <comment>Adding email verified boolean flag</comment>
+        <addColumn tableName="users">
+            <column name="email_verified" type="BOOLEAN">
+            </column>
+        </addColumn>
+    </changeSet>
+    <changeSet id="add-email-verification-fields-to-users" author="embiid">
+        <addColumn tableName="users">
+            <column name="verification_code" type="VARCHAR(255)"/>
+            <column name="verification_code_expires_at" type="TIMESTAMP"/>
+            <column name="verification_attempts" type="INT" defaultValueNumeric="0"/>
+            <column name="last_verification_request_at" type="TIMESTAMP"/>
+        </addColumn>
+    </changeSet>
+
 
 </databaseChangeLog>
