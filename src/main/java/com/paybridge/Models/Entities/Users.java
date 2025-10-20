@@ -63,7 +63,7 @@ public class Users {
     public void generateVerificationCode() {
         Random random = new Random();
         this.verificationCode = String.format("%06d", random.nextInt(1_000_000));
-        this.verificationCodeExpiresAt = LocalDateTime.now().plusMinutes(15);
+        this.verificationCodeExpiresAt = LocalDateTime.now().plusMinutes(10);
         this.lastVerificationRequestAt = LocalDateTime.now();
         this.verificationAttempts = 0;
     }

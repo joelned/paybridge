@@ -50,6 +50,19 @@ public class Merchant {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
+    @Column(name="api_key_test")
+    private String apiKeyTest;
+
+    @Column(name="api_key_live")
+    private String apiKeyLive;
+
+    @Column(name="test_mode")
+    private boolean testMode = true;
+
+    public String getActiveKey(){
+        return testMode ? apiKeyTest : apiKeyLive;
+    }
+
 
 
     // Relationships
@@ -85,6 +98,38 @@ public class Merchant {
 
     public void setUsers(List<Users> users) {
         this.users = users;
+    }
+
+    public String getWebhookUrl() {
+        return webhookUrl;
+    }
+
+    public void setWebhookUrl(String webhookUrl) {
+        this.webhookUrl = webhookUrl;
+    }
+
+    public String getApiKeyTest() {
+        return apiKeyTest;
+    }
+
+    public void setApiKeyTest(String apiKeyTest) {
+        this.apiKeyTest = apiKeyTest;
+    }
+
+    public String getApiKeyLive() {
+        return apiKeyLive;
+    }
+
+    public void setApiKeyLive(String apiKeyLive) {
+        this.apiKeyLive = apiKeyLive;
+    }
+
+    public boolean isTestMode() {
+        return testMode;
+    }
+
+    public void setTestMode(boolean testMode) {
+        this.testMode = testMode;
     }
 
     public String getBusinessCountry() {

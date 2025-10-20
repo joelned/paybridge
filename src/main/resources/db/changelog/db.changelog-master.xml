@@ -1304,5 +1304,17 @@
         </addColumn>
     </changeSet>
 
+    <changeSet id="47" author="paybridge">
+        <comment>Adding columns for api key to merchant class</comment>
+        <addColumn tableName="merchants">
+            <column name="api_key_test" type="VARCHAR(64)">
+                <constraints unique="true"/>
+            </column>
+            <column name="api_key_live" type="VARCHAR(64)">
+               <constraints unique="true"/>
+            </column>
+        </addColumn>
+    </changeSet>
+
 
 </databaseChangeLog>

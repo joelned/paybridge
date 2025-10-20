@@ -68,7 +68,7 @@ public class EmailService {
                 "        \n" +
                 "        <div class=\"code\">" + verificationCode + "</div>\n" +
                 "        \n" +
-                "        <p>This verification code will expire in <strong>15 minutes</strong>.</p>\n" +
+                "        <p>This verification code will expire in <strong>10 minutes</strong>.</p>\n" +
                 "        \n" +
                 "        <p>If you didn't create an account with PayBridge, please ignore this email.</p>\n" +
                 "        \n" +
