@@ -1,7 +1,5 @@
 package com.paybridge.Services;
 
-import com.paybridge.Models.Entities.Users;
-import org.apache.catalina.User;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
