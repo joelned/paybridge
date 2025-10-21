@@ -79,6 +79,14 @@ public class Merchant {
     @OneToMany(mappedBy = "merchant", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Users> users = new ArrayList<>();
 
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
     public List<ProviderConfig> getProviderConfigs() {
         return providerConfigs;
     }
