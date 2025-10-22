@@ -13,8 +13,10 @@ public class ApiKeyUsage {
     @GeneratedValue(
             strategy = GenerationType.IDENTITY
     )
-
     private Integer id;
+
+    @Column(name = "merchand_id")
+    private Long merchantId;
 
     @Column(name = "endpoint")
     private String endpoint;
@@ -25,7 +27,25 @@ public class ApiKeyUsage {
     @Column(name = "response_status")
     private int responseStatus;
 
+    @Column(name = "method")
+    private String method;
+
+    @Column(name = "user_agent")
+    private String userAgent;
+
     @CreationTimestamp
-    @Column(name = "created_at")
-    private LocalDateTime createdAt;
+    @Column(name = "time_stamp")
+    private LocalDateTime timeStamp;
+
+
+    public ApiKeyUsage(Long merchantId, String endpoint, String ipAddress,
+                       int responseStatus, String method, String userAgent, LocalDateTime timeStamp) {
+        this.merchantId = merchantId;
+        this.endpoint = endpoint;
+        this.ipAddress = ipAddress;
+        this.responseStatus = responseStatus;
+        this.method = method;
+        this.userAgent = userAgent;
+        this.timeStamp = timeStamp;
+    }
 }
