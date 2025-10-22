@@ -9,7 +9,7 @@ public interface MerchantRepository extends JpaRepository<Merchant, Long> {
 
     boolean existsByEmail(String email);
 
-    Optional<String> findByApiKeyLive(String apiKey);
-    Optional<String> findByApiKeyTest(String apiKey);
+    Optional<Merchant> findByApiKeyLive(String apiKey);
+    Optional<Merchant> findByApiKeyTest(String apiKey);
 }
 
