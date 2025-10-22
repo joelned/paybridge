@@ -39,13 +39,13 @@ public class ApiKeyUsage {
 
 
     public ApiKeyUsage(Long merchantId, String endpoint, String ipAddress,
-                       int responseStatus, String method, String userAgent, LocalDateTime timeStamp) {
+                       int responseStatus, String method, String userAgent) {
         this.merchantId = merchantId;
         this.endpoint = endpoint;
         this.ipAddress = ipAddress;
         this.responseStatus = responseStatus;
         this.method = method;
         this.userAgent = userAgent;
-        this.timeStamp = timeStamp;
+        this.timeStamp = LocalDateTime.now();
     }
 }
