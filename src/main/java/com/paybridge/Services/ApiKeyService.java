@@ -1,5 +1,6 @@
 package com.paybridge.Services;
 
+import com.paybridge.Models.Entities.Merchant;
 import com.paybridge.Repositories.ApiKeyUsageRepository;
 import com.paybridge.Repositories.MerchantRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -7,6 +8,7 @@ import org.springframework.stereotype.Service;
 
 import java.security.SecureRandom;
 import java.util.Base64;
+import java.util.Optional;
 
 @Service
 public class ApiKeyService {
@@ -29,4 +31,25 @@ public class ApiKeyService {
 
         return isTestMode ? TEST_PREFIX : LIVE_PREFIX + key;
     }
+
+    public Optional<Merchant> validateApiKey(String apiKey){
+        if(apiKey == null || apiKey.isEmpty()){
+            return Optional.empty();
+        }
+
+        if(apiKey.startsWith(TEST_PREFIX)){
+            return merchantRepository.findByApiKeyTest(apiKey);
+        }
+        if(apiKey.startsWith(LIVE_PREFIX)){
+            return merchantRepository.findByApiKeyLive(apiKey);
+        }
+
+        return Optional.empty();
+    }
+
+    public boolean isTestMode(String apiKey){
+        return apiKey != null && apiKey.startsWith(TEST_PREFIX);
+    }
+
+
 }
