@@ -5,6 +5,7 @@ import com.paybridge.Repositories.ApiKeyUsageRepository;
 import com.paybridge.Repositories.MerchantRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.security.SecureRandom;
 import java.util.Base64;
@@ -49,6 +50,22 @@ public class ApiKeyService {
 
     public boolean isTestMode(String apiKey){
         return apiKey != null && apiKey.startsWith(TEST_PREFIX);
+    }
+
+    @Transactional
+    public void regenerateApiKey(Long merchantId, boolean regenerateTest, boolean regenerateLive){
+        Merchant merchant = merchantRepository.findById(merchantId)
+                .orElseThrow(()-> new IllegalArgumentException("Merchant not found"));
+
+        if(regenerateTest){
+            merchant.setApiKeyTest(generateApiKey(true));
+        }
+
+        if(regenerateLive){
+            merchant.setApiKeyLive(generateApiKey(false));
+        }
+
+        merchantRepository.save(merchant);
     }
 
 
