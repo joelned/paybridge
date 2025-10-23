@@ -9,6 +9,6 @@ import java.time.LocalDateTime;
 
 public interface ApiKeyUsageRepository extends JpaRepository<ApiKeyUsage, Integer> {
 
-    @Query("SELECT COUNT(a) FROM ApiKeyUsage a WHERE a.merchant.id = :merchantId AND a.createdAt >= :since")
+    @Query("SELECT COUNT(a) FROM ApiKeyUsage a WHERE a.merchantId = :merchantId AND a.timeStamp >= :since")
     long countByMerchantSince(@Param("merchantId") Long merchantId, @Param("since")LocalDateTime since);
 }
