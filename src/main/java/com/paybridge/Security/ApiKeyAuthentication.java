@@ -15,7 +15,8 @@ public class ApiKeyAuthentication extends AbstractAuthenticationToken {
     private final Merchant merchant;
 
 
-    public ApiKeyAuthentication(Collection<? extends GrantedAuthority> authorities, String apiKey, boolean isTestMode, Merchant merchant) {
+
+    public ApiKeyAuthentication(String apiKey, boolean isTestMode, Merchant merchant) {
         super(Collections.singletonList(new SimpleGrantedAuthority("API_KEY")));
         this.apiKey = apiKey;
         this.isTestMode = isTestMode;

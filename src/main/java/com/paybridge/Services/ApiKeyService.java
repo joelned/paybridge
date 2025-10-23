@@ -3,6 +3,7 @@ package com.paybridge.Services;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.paybridge.Models.Entities.ApiKeyUsage;
 import com.paybridge.Models.Entities.Merchant;
+import com.paybridge.Models.Entities.Users;
 import com.paybridge.Repositories.ApiKeyUsageRepository;
 import com.paybridge.Repositories.MerchantRepository;
 import jakarta.servlet.http.HttpServletRequest;
@@ -12,6 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -54,7 +56,7 @@ public class ApiKeyService {
         secureRandom.nextBytes(bytes);
         String key = Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
 
-        return isTestMode ? TEST_PREFIX : LIVE_PREFIX + key;
+        return (isTestMode ? TEST_PREFIX : LIVE_PREFIX ) + key;
     }
 
     public Optional<Merchant> validateApiKey(String apiKey){

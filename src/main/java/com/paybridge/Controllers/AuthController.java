@@ -1,6 +1,9 @@
 package com.paybridge.Controllers;
 
 import com.paybridge.Models.DTOs.*;
+import com.paybridge.Models.Entities.Merchant;
+import com.paybridge.Repositories.MerchantRepository;
+import com.paybridge.Services.ApiKeyService;
 import com.paybridge.Services.AuthenticationService;
 import com.paybridge.Services.VerificationService;
 import jakarta.validation.Valid;
@@ -22,6 +25,12 @@ public class AuthController {
     @Autowired
     private VerificationService verificationService;
 
+    @Autowired
+    private MerchantRepository merchantRepository;
+
+    @Autowired
+    private ApiKeyService apiKeyService;
+
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> login(@RequestBody @Valid LoginRequest loginRequest){
         LoginResponse response = authenticationService.login(loginRequest);
@@ -32,6 +41,13 @@ public class AuthController {
     public ResponseEntity<VerifyEmailResponse> verifyEmail(@RequestBody @Valid VerifyEmailRequest request) {
         VerifyEmailResponse response = verificationService.verifyEmail(request.getEmail(), request.getCode());
         HttpStatus status = response.isSuccess() ? HttpStatus.OK : HttpStatus.BAD_REQUEST;
+
+        Merchant merchant = merchantRepository.findByEmail(request.getEmail());
+        merchant.setTestMode(true);
+        merchant.setApiKeyTest(apiKeyService.generateApiKey(true));
+        merchant.setApiKeyLive(apiKeyService.generateApiKey(false));
+        merchantRepository.save(merchant);
+
         return ResponseEntity.status(status).body(response);
     }
 

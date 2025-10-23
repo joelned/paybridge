@@ -1316,5 +1316,49 @@
         </addColumn>
     </changeSet>
 
+    <changeSet id="create-api-key-usage-table" author="joel">
+        <createTable tableName="api_key_usage">
+            <column name="id" type="INT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
 
+            <column name="merchant_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+
+            <column name="endpoint" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+
+            <column name="ip_address" type="VARCHAR(100)">
+                <constraints nullable="true"/>
+            </column>
+
+            <column name="response_status" type="INT">
+                <constraints nullable="false"/>
+            </column>
+
+            <column name="method" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+
+            <column name="user_agent" type="VARCHAR(512)">
+                <constraints nullable="true"/>
+            </column>
+
+            <column name="time_stamp" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="48" author="joel">
+        <addColumn tableName="merchants">
+            <column name="api_key_test" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="api_key_live" type="VARCHAR(100)"/>
+            <column name="is_test_mode" type="BOOLEAN"/>
+        </addColumn>
+    </changeSet>
 </databaseChangeLog>

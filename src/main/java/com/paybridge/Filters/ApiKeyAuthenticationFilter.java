@@ -35,38 +35,46 @@ public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
 
         if(apiKey != null){
             try{
-                if(!apiKeyService.checkRateLimit(apiKey)){
+                if (!apiKeyService.checkRateLimit(apiKey)) {
                     response.setStatus(429);
                     response.setContentType("application/json");
                     response.getWriter().write(
-                            "{\"error\":\"Rate limit exceeded\",\"message\":\"You have exceeded your API rate limit." +
-                                    " Please try again later.\"}"
+                            "{\"error\":\"Rate limit exceeded\",\"message\":\"You have exceeded your API rate limit. Please try again later.\"}"
                     );
+                    return; // ⛔ stop here
                 }
+
                 Optional<Merchant> merchantOpt = apiKeyService.validateApiKey(apiKey);
 
-                if(merchantOpt.isPresent()){
-                    Merchant merchant = merchantOpt.get();
-
-                    boolean isTestMode = apiKeyService.isTestMode(apiKey);
-
-                    ApiKeyAuthentication apiKeyAuthentication = new ApiKeyAuthentication(
-                           apiKey, isTestMode, merchant
-                    );
-
-                    SecurityContextHolder.getContext().setAuthentication(apiKeyAuthentication);
-
-                    logger.debug("API Key authenticated for merchant: {} ({})",
-                            merchant.getBusinessName(),
-                            isTestMode ? "TEST" : "LIVE");
-
-                    apiKeyService.logApiKeyUsageToRedis(merchant, apiKey, request, response.getStatus());
-                }
-                else{
+                if (merchantOpt.isEmpty()) {
                     logger.warn("Invalid API key attempt from IP: {}", request.getRemoteAddr());
+                    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                    response.setContentType("application/json");
+                    response.getWriter().write(
+                            "{\"error\":\"Unauthorized\",\"message\":\"Invalid API key.\"}"
+                    );
+                    return; // ⛔ stop here
                 }
-            }catch (Exception ex){
-                logger.error("Error occured authenticating API key ", ex);
+
+                // Valid key → authenticate
+                Merchant merchant = merchantOpt.get();
+                boolean isTestMode = apiKeyService.isTestMode(apiKey);
+
+                ApiKeyAuthentication apiKeyAuthentication = new ApiKeyAuthentication(apiKey, isTestMode, merchant);
+                SecurityContextHolder.getContext().setAuthentication(apiKeyAuthentication);
+
+                logger.debug("API Key authenticated for merchant: {} ({})",
+                        merchant.getBusinessName(),
+                        isTestMode ? "TEST" : "LIVE");
+
+                apiKeyService.logApiKeyUsageToRedis(merchant, apiKey, request, response.getStatus());
+
+            } catch (Exception e) {
+                logger.error("Error occurred authenticating API key", e);
+                response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                response.setContentType("application/json");
+                response.getWriter().write("{\"error\":\"Internal Server Error\"}");
+                return;
             }
         }
         filterChain.doFilter(request, response);
