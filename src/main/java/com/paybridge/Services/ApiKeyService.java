@@ -38,7 +38,7 @@ public class ApiKeyService {
     @Autowired
     private ObjectMapper objectMapper;
 
-    private Logger logger = LoggerFactory.getLogger(ApiKeyService.class);
+    private final Logger logger = LoggerFactory.getLogger(ApiKeyService.class);
 
     private static final String REDIS_COUNT_KEY = "apikey:%s:count:%s:%s";
     private static final String REDIS_LOG_KEY = "apikey:%s:log";
@@ -59,20 +59,6 @@ public class ApiKeyService {
         return (isTestMode ? TEST_PREFIX : LIVE_PREFIX ) + key;
     }
 
-    public Optional<Merchant> validateApiKey(String apiKey){
-        if(apiKey == null || apiKey.isEmpty()){
-            return Optional.empty();
-        }
-
-        if(apiKey.startsWith(TEST_PREFIX)){
-            return merchantRepository.findByApiKeyTest(apiKey);
-        }
-        if(apiKey.startsWith(LIVE_PREFIX)){
-            return merchantRepository.findByApiKeyLive(apiKey);
-        }
-
-        return Optional.empty();
-    }
 
     public boolean isTestMode(String apiKey){
         return apiKey != null && apiKey.startsWith(TEST_PREFIX);
@@ -90,7 +76,6 @@ public class ApiKeyService {
         if(regenerateLive){
             merchant.setApiKeyLive(generateApiKey(false));
         }
-
         merchantRepository.save(merchant);
     }
 

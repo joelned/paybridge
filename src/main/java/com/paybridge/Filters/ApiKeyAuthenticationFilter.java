@@ -1,104 +1,69 @@
 package com.paybridge.Filters;
 
 import com.paybridge.Models.Entities.Merchant;
-import com.paybridge.Security.ApiKeyAuthentication;
-import com.paybridge.Services.ApiKeyService;
+import com.paybridge.Repositories.MerchantRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.Optional;
 
 @Component
 public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
 
-    private final String API_KEY_HEADER = "X-API-Key";
-    private final Logger logger = LoggerFactory.getLogger(ApiKeyAuthenticationFilter.class);
+    private static final String API_KEY_HEADER = "x-api-key";
 
-    private final ApiKeyService apiKeyService;
+    private final MerchantRepository merchantRepository;
 
-    public ApiKeyAuthenticationFilter(ApiKeyService apiKeyService) {
-        this.apiKeyService = apiKeyService;
+    public ApiKeyAuthenticationFilter(MerchantRepository merchantRepository) {
+        this.merchantRepository = merchantRepository;
     }
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
+    protected void doFilterInternal(HttpServletRequest request,
+                                    HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
-        String apiKey = extractApiKey(request);
 
-        if(apiKey != null){
-            try{
-                if (!apiKeyService.checkRateLimit(apiKey)) {
-                    response.setStatus(429);
-                    response.setContentType("application/json");
-                    response.getWriter().write(
-                            "{\"error\":\"Rate limit exceeded\",\"message\":\"You have exceeded your API rate limit. Please try again later.\"}"
-                    );
-                    return; // ⛔ stop here
-                }
+        String apiKey = request.getHeader(API_KEY_HEADER);
 
-                Optional<Merchant> merchantOpt = apiKeyService.validateApiKey(apiKey);
-
-                if (merchantOpt.isEmpty()) {
-                    logger.warn("Invalid API key attempt from IP: {}", request.getRemoteAddr());
-                    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                    response.setContentType("application/json");
-                    response.getWriter().write(
-                            "{\"error\":\"Unauthorized\",\"message\":\"Invalid API key.\"}"
-                    );
-                    return; // ⛔ stop here
-                }
-
-                // Valid key → authenticate
-                Merchant merchant = merchantOpt.get();
-                boolean isTestMode = apiKeyService.isTestMode(apiKey);
-
-                ApiKeyAuthentication apiKeyAuthentication = new ApiKeyAuthentication(apiKey, isTestMode, merchant);
-                SecurityContextHolder.getContext().setAuthentication(apiKeyAuthentication);
-
-                logger.debug("API Key authenticated for merchant: {} ({})",
-                        merchant.getBusinessName(),
-                        isTestMode ? "TEST" : "LIVE");
-
-                apiKeyService.logApiKeyUsageToRedis(merchant, apiKey, request, response.getStatus());
-
-            } catch (Exception e) {
-                logger.error("Error occurred authenticating API key", e);
-                response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-                response.setContentType("application/json");
-                response.getWriter().write("{\"error\":\"Internal Server Error\"}");
-                return;
-            }
+        if (apiKey == null || apiKey.isEmpty()) {
+            filterChain.doFilter(request, response);
+            return;
         }
+
+        Optional<Merchant> merchantOpt = merchantRepository.findByApiKeyTestOrApiKeyLive(apiKey);
+
+        if (merchantOpt.isPresent()) {
+            Merchant merchant = merchantOpt.get();
+
+            UsernamePasswordAuthenticationToken authentication =
+                    new UsernamePasswordAuthenticationToken(
+                            merchant.getEmail(),
+                            null,
+                            Collections.singletonList(new SimpleGrantedAuthority("ROLE_MERCHANT"))
+                    );
+
+            authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+        }
+
         filterChain.doFilter(request, response);
     }
 
-    private String extractApiKey(HttpServletRequest request){
-        String apiKey = request.getHeader(API_KEY_HEADER);
-
-        if(apiKey == null){
-            String authorization = request.getHeader("Authorization");
-            if(authorization != null && authorization.startsWith("Bearer pk_")){
-                return authorization.substring(7);
-            }
-        }
-
-        return apiKey;
-    }
-
     @Override
-    protected boolean shouldNotFilter(HttpServletRequest request){
+    protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
         String path = request.getRequestURI();
-
-        return path.startsWith("/api/v1/auth") ||
-                path.startsWith("/api/v1/merchants");
+        return path.startsWith("/api/v1/auth/") ||
+                path.equals("/api/v1/merchants");
     }
-
 }

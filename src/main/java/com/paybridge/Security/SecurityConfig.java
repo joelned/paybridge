@@ -8,6 +8,7 @@ import com.nimbusds.jose.jwk.source.JWKSource;
 import com.nimbusds.jose.proc.SecurityContext;
 import com.paybridge.Configs.RsaKeyProperties;
 import com.paybridge.Filters.ApiKeyAuthenticationFilter;
+import com.paybridge.Repositories.MerchantRepository;
 import com.paybridge.Services.ApiKeyService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
@@ -44,7 +45,7 @@ public class SecurityConfig {
     private RsaKeyProperties rsaKeyProperties;
 
     @Autowired
-    private ApiKeyService apiKeyService;
+    private MerchantRepository merchantRepository;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -57,9 +58,9 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/merchants").permitAll()
                         .requestMatchers("/api/v1/auth/**").permitAll()
                         .anyRequest().authenticated())
+                .addFilterBefore(new ApiKeyAuthenticationFilter(merchantRepository), UsernamePasswordAuthenticationFilter.class)
                 .oauth2ResourceServer(oauth -> oauth
-                        .jwt(Customizer.withDefaults()))
-                .addFilterBefore(new ApiKeyAuthenticationFilter(apiKeyService), UsernamePasswordAuthenticationFilter.class);
+                        .jwt(Customizer.withDefaults()));
 
         return http.build();
     }
