@@ -47,6 +47,9 @@ public class SecurityConfig {
     @Autowired
     private MerchantRepository merchantRepository;
 
+    @Autowired
+    private ApiKeyService apiKeyService;
+
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
@@ -58,7 +61,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/merchants").permitAll()
                         .requestMatchers("/api/v1/auth/**").permitAll()
                         .anyRequest().authenticated())
-                .addFilterBefore(new ApiKeyAuthenticationFilter(merchantRepository), UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(new ApiKeyAuthenticationFilter(merchantRepository, apiKeyService),
+                        UsernamePasswordAuthenticationFilter.class)
                 .oauth2ResourceServer(oauth -> oauth
                         .jwt(Customizer.withDefaults()));
 

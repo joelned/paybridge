@@ -2,6 +2,7 @@ package com.paybridge.Filters;
 
 import com.paybridge.Models.Entities.Merchant;
 import com.paybridge.Repositories.MerchantRepository;
+import com.paybridge.Services.ApiKeyService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -24,8 +25,11 @@ public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
 
     private final MerchantRepository merchantRepository;
 
-    public ApiKeyAuthenticationFilter(MerchantRepository merchantRepository) {
+    private final ApiKeyService apiKeyService;
+
+    public ApiKeyAuthenticationFilter(MerchantRepository merchantRepository, ApiKeyService apiKeyService) {
         this.merchantRepository = merchantRepository;
+        this.apiKeyService = apiKeyService;
     }
 
     @Override
@@ -37,6 +41,16 @@ public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
 
         if (apiKey == null || apiKey.isEmpty()) {
             filterChain.doFilter(request, response);
+            return;
+        }
+
+        if(!apiKeyService.checkRateLimit(apiKey)){
+            response.setStatus(429);
+            response.setContentType("application/json");
+            response.getWriter().write(
+                    "{\"error\":\"Rate limit exceeded\", \"message\":\"You have exceeded your API rate limit. " +
+                            "Please try again later.\"}"
+            );
             return;
         }
 
@@ -55,6 +69,7 @@ public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
             authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
             SecurityContextHolder.getContext().setAuthentication(authentication);
+            apiKeyService.logApiKeyUsageToRedis(merchant, apiKey, request, response.getStatus());
         }
 
         filterChain.doFilter(request, response);
