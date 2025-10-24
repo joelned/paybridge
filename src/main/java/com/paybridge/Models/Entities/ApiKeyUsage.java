@@ -15,7 +15,7 @@ public class ApiKeyUsage {
     )
     private Integer id;
 
-    @Column(name = "merchand_id")
+    @Column(name = "merchant_id")
     private Long merchantId;
 
     @Column(name = "endpoint")
