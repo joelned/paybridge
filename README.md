@@ -1,423 +1,390 @@
-# PayBridge - Unified Payment Gateway Platform
+# PayBridge - Payment Orchestration Platform
 
-PayBridge is a comprehensive payment orchestration platform that enables merchants to integrate multiple payment providers through a single, unified API. The system handles payment routing, reconciliation, webhook management, and provides detailed analytics across different payment gateways.
+## Introduction
 
-## What is PayBridge?
+PayBridge is a comprehensive payment orchestration platform designed to simplify payment processing for merchants. Built with Spring Boot and modern Java technologies, it provides a unified API interface to multiple payment providers while handling complex payment workflows, reconciliation, and merchant management.
 
-Think of PayBridge as a universal adapter for payment processing. Instead of integrating with Stripe, PayPal, and Flutterwave separately, merchants integrate once with PayBridge and gain access to all providers. The platform intelligently routes payments, handles failures, manages reconciliation, and provides unified reporting across all payment channels.
+Think of PayBridge as a "universal translator" for payment systems - it allows merchants to integrate once and connect to multiple payment providers (Stripe, PayPal, Flutterwave, etc.) through a single, consistent API.
+
+## Key Features
+
+### 🔐 Multi-Layer Security
+- **JWT Authentication** with RSA key pairs for secure API access
+- **API Key Management** with test/live mode support and rate limiting
+- **Role-based Access Control** for merchants and administrators
+
+### 💳 Payment Orchestration
+- Unified payment processing across multiple providers
+- Smart routing and failover capabilities
+- Webhook handling for payment status updates
+- Comprehensive payment event tracking
+
+### 📊 Advanced Monitoring
+- Real-time API usage statistics and rate limiting
+- Redis-powered analytics with hourly/daily limits
+- Automated reconciliation between PayBridge and provider records
+- Detailed audit logging for compliance
+
+### 🚀 Merchant Management
+- Self-service merchant onboarding with email verification
+- Test and live mode API keys
+- Provider configuration management
+- Webhook endpoint configuration
 
 ## Architecture Overview
 
-PayBridge is built on Spring Boot and follows a multi-tenant architecture where each merchant can configure multiple payment providers. The system uses PostgreSQL for persistent storage, Redis for caching and idempotency, and RabbitMQ for asynchronous processing.
-
-Key components include:
-- **Payment Processing Engine**: Handles transaction lifecycle from initiation to completion
-- **Smart Routing**: Routes payments to optimal providers based on configurable rules
-- **Reconciliation System**: Automatically reconciles transactions with provider records
-- **Webhook Management**: Delivers payment events to merchant endpoints with retry logic
-- **Audit System**: Comprehensive logging of all system activities
-
-## Project Requirements
-
-### Software Requirements
-- **Java 17** or higher
-- **Maven 3.8+** for dependency management
-- **PostgreSQL 14+** as the primary database
-- **Redis 6+** for caching and distributed locking
-- **RabbitMQ 3.10+** for message queuing
-
-### Development Tools
-- **IntelliJ IDEA** or **Eclipse** (recommended IDEs)
-- **Postman** or similar API testing tool
-- **Docker** and **Docker Compose** (optional, for containerized dependencies)
-
-## Dependencies
-
-PayBridge uses Spring Boot 3.x with the following major dependencies:
-
-### Core Framework
-- `spring-boot-starter-web` - REST API endpoints
-- `spring-boot-starter-data-jpa` - Database persistence
-- `spring-boot-starter-security` - Authentication and authorization
-- `spring-boot-starter-oauth2-resource-server` - JWT token validation
-
-### Database & Persistence
-- `postgresql` - PostgreSQL JDBC driver
-- `liquibase-core` - Database migration management
-- `spring-boot-starter-data-redis` - Redis integration
-
-### Messaging & Events
-- `spring-boot-starter-amqp` - RabbitMQ integration
-
-### Security
-- `nimbus-jose-jwt` - JWT encoding and decoding
-- `bcrypt` - Password hashing (via Spring Security)
-
-### Validation & Utilities
-- `spring-boot-starter-validation` - Request validation
-- `jackson-databind` - JSON processing
-
-### Testing
-- `spring-boot-starter-test` - Testing framework
-- `junit-jupiter` - JUnit 5 testing
-- `mockito-core` - Mocking framework
-
-## Getting Started
-
-### Database Setup
-
-PayBridge requires a PostgreSQL database. Create the database and user:
-
-```sql
-CREATE DATABASE paybridge;
-CREATE USER admin WITH PASSWORD 'your_secure_password';
-GRANT ALL PRIVILEGES ON DATABASE paybridge TO admin;
+```
+Client Apps → PayBridge API → Payment Providers
+    ↑              ↓              ↓
+    └───────── Redis (Caching & Analytics)
+                ↓
+           PostgreSQL (Persistence)
 ```
 
-### Generate RSA Keys
+## Technology Stack
+
+- **Backend Framework**: Spring Boot 3.x
+- **Security**: Spring Security 6 + JWT + RSA Encryption
+- **Database**: PostgreSQL with Hibernate/JPA
+- **Caching**: Redis for rate limiting and analytics
+- **Messaging**: RabbitMQ for async processing
+- **Email**: Spring Mail for verification and notifications
 
-The application uses RSA keys for JWT signing. Generate a key pair:
-
-```bash
-# Generate private key
-openssl genrsa -out private.pem 2048
-
-# Generate public key
-openssl rsa -in private.pem -pubout -out public.pem
-```
-
-### Configuration
-
-Create an `application.properties` file or set environment variables:
-
-```properties
-# Database Configuration
-DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=paybridge
-DB_USER=admin
-DB_PASSWORD=your_secure_password
-
-# Redis Configuration
-REDIS_HOST=localhost
-REDIS_PORT=6379
-
-# RabbitMQ Configuration
-RABBIT_HOST=localhost
-RABBIT_PORT=5672
-
-# RSA Keys (base64 encoded or file paths)
-RSA_PRIVATE_KEY=classpath:certs/private.pem
-RSA_PUBLIC_KEY=classpath:certs/public.pem
-```
-
-For production, pass RSA keys as environment variables instead of file paths:
-
-```bash
-export RSA_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----
-MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAo...
------END PRIVATE KEY-----"
-```
-
-### Install Dependencies
-
-Navigate to the project root and run:
-
-```bash
-mvn clean install
-```
-
-This command downloads all dependencies and compiles the project.
-
-## Running the Application
-
-### Local Development
-
-Start the application using Maven:
-
-```bash
-mvn spring-boot:run
-```
-
-The API will be available at `http://localhost:8080`.
-
-### Running with Docker Compose
-
-If you prefer containerized dependencies:
-
-```bash
-docker-compose up -d postgres redis rabbitmq
-mvn spring-boot:run
-```
-
-### Building for Production
-
-Create an executable JAR:
-
-```bash
-mvn clean package -DskipTests
-java -jar target/paybridge-0.0.1-SNAPSHOT.jar
-```
-
-## API Endpoints
-
-### Authentication
-
-#### Login
-Authenticate and receive a JWT token for subsequent requests.
-
-```http
-POST /api/v1/auth/login
-Content-Type: application/json
-
-{
-  "email": "merchant@example.com",
-  "password": "securePassword123"
-}
-```
-
-Response:
-```json
-{
-  "token": "eyJhbGciOiJSUzI1NiJ9...",
-  "email": "merchant@example.com",
-  "userType": "MERCHANT",
-  "expiresIn": "1 hour"
-}
-```
-
-### Merchant Registration
-
-#### Register New Merchant
-Create a new merchant account with business details.
-
-```http
-POST /api/v1/merchants
-Content-Type: application/json
-
-{
-  "businessName": "Tech Store",
-  "email": "contact@techstore.com",
-  "password": "SecurePass123",
-  "businessType": "ecommerce",
-  "businessCountry": "NG",
-  "websiteUrl": "https://techstore.com"
-}
-```
-
-Response:
-```json
-{
-  "businessName": "Tech Store",
-  "email": "contact@techstore.com",
-  "status": "PENDING_PROVIDER_SETUP",
-  "message": "Merchant Successfully Registered",
-  "nextStep": "Please configure payment providers to start receiving payments"
-}
-```
-
-### Protected Endpoints
-
-Include the JWT token in the Authorization header:
-
-```http
-GET /protected
-Authorization: Bearer eyJhbGciOiJSUzI1NiJ9...
-```
-
-## Code Examples
-
-### Custom User Details Implementation
-
-PayBridge implements Spring Security's `UserDetails` to manage authentication:
-
-```java
-public class CustomUserDetails implements UserDetails {
-    private Users users;
-
-    public CustomUserDetails(Users users) {
-        this.users = users;
-    }
-
-    @Override
-    public Collection<? extends GrantedAuthority> getAuthorities() {
-        return Collections.singletonList(
-            new SimpleGrantedAuthority(users.getUserType().name())
-        );
-    }
-
-    @Override
-    public String getUsername() {
-        return users.getEmail();
-    }
-
-    // Additional methods for account status...
-}
-```
-
-This implementation maps database users to Spring Security's authentication system, enabling role-based access control.
-
-### JWT Token Generation
-
-The token service creates signed JWT tokens with user claims:
-
-```java
-public String generateToken(Authentication authentication) {
-    Instant now = Instant.now();
-    
-    String scope = authentication.getAuthorities().stream()
-        .map(GrantedAuthority::getAuthority)
-        .collect(Collectors.joining(" "));
-
-    JwtClaimsSet claims = JwtClaimsSet.builder()
-        .issuedAt(now)
-        .expiresAt(now.plus(1, ChronoUnit.HOURS))
-        .claim("scope", scope)
-        .subject(authentication.getName())
-        .issuer("self")
-        .build();
-
-    return this.jwtEncoder.encode(JwtEncoderParameters.from(claims))
-        .getTokenValue();
-}
-```
-
-Tokens expire after one hour and include the user's roles for authorization.
-
-### Merchant Registration Flow
-
-The registration process creates both a merchant entity and associated user:
-
-```java
-@Transactional
-public MerchantRegistrationResponse registerMerchant(
-    MerchantRegistrationRequest request) {
-    
-    // Validate unique email
-    if (merchantRepository.existsByEmail(request.getEmail())) {
-        throw new IllegalArgumentException("Email already exists");
-    }
-
-    // Create merchant entity
-    Merchant merchant = new Merchant();
-    merchant.setBusinessName(request.getBusinessName());
-    merchant.setEmail(request.getEmail());
-    merchant.setStatus(MerchantStatus.PENDING_PROVIDER_SETUP);
-    
-    // Create associated user
-    Users user = new Users();
-    user.setMerchant(merchant);
-    user.setUserType(UserType.MERCHANT);
-    user.setPassword(passwordEncoder.encode(request.getPassword()));
-    user.setEnabled(true);
-
-    userRepository.save(user);
-    merchantRepository.save(merchant);
-
-    return new MerchantRegistrationResponse(/* ... */);
-}
-```
-
-The `@Transactional` annotation ensures both entities are saved atomically.
-
-### RSA Key Loading
-
-PayBridge supports loading RSA keys from either classpath or environment variables:
-
-```java
-private String getKeyContent(String keySource) throws Exception {
-    if (keySource.startsWith("classpath:")) {
-        String resourcePath = keySource.substring("classpath:".length());
-        ClassPathResource resource = new ClassPathResource(resourcePath);
-        return FileCopyUtils.copyToString(
-            new InputStreamReader(resource.getInputStream())
-        );
-    } else {
-        // Direct key content from environment variable
-        return keySource;
-    }
-}
-```
-
-This flexibility allows secure key management across different environments.
-
-## Database Schema
-
-PayBridge uses Liquibase for database version control. The schema includes:
-
-- **merchants**: Business accounts using the platform
-- **users**: Authentication credentials (merchants and admins)
-- **providers**: Supported payment gateways (Stripe, PayPal, Flutterwave)
-- **provider_configs**: Merchant-specific provider configurations
-- **payments**: Transaction records
-- **payment_events**: Transaction lifecycle events
-- **webhook_deliveries**: Outbound webhook attempt logs
-- **reconciliation_jobs**: Automated reconciliation processes
-
-All migrations are defined in `src/main/resources/db/changelog/db.changelog-master.xml`.
-
-## Security Configuration
-
-The application uses JWT-based authentication with RSA signatures:
-
-- Public endpoints: `/api/v1/merchants`, `/api/v1/auth/**`
-- Protected endpoints: All others require valid JWT tokens
-- Session management: Stateless (no server-side sessions)
-- Password encoding: BCrypt with strength 10
-
-CSRF protection is disabled as the API is stateless and token-based.
-
-## Testing
-
-Run the test suite:
-
-```bash
-mvn test
-```
-
-The project includes unit tests for core services using JUnit 5 and Mockito. Key test classes:
-
-- `AuthenticationServiceTest`: Validates login flows and token generation
-- `MerchantServiceTest`: Tests merchant registration and validation
 
 ## Project Structure
 
 ```
-src/
-├── main/
-│   ├── java/com/paybridge/
-│   │   ├── Configs/          # Configuration classes
-│   │   ├── Controllers/      # REST API endpoints
-│   │   ├── Models/
-│   │   │   ├── DTOs/        # Data transfer objects
-│   │   │   ├── Entities/    # JPA entities
-│   │   │   └── Enums/       # Enumeration types
-│   │   ├── Repositories/    # Data access layer
-│   │   ├── Security/        # Security configuration
-│   │   └── Services/        # Business logic
-│   └── resources/
-│       ├── application.properties
-│       └── db/changelog/    # Database migrations
-└── test/                    # Unit and integration tests
+src/main/java/com/paybridge/
+├── Configs/           # Configuration classes
+├── Controllers/       # REST API endpoints
+├── Filters/          # Security filters
+├── Models/           # Entities and DTOs
+├── Repositories/     # Data access layer
+├── Security/         # Security configuration
+└── Services/         # Business logic
 ```
 
-## Next Steps
+## Getting Started
 
-After setting up PayBridge, you'll want to:
+### Prerequisites
 
-1. **Configure Payment Providers**: Add API keys for Stripe, PayPal, or Flutterwave
-2. **Set Up Webhooks**: Configure webhook endpoints to receive payment notifications
-3. **Create Routing Rules**: Define intelligent payment routing logic
-4. **Enable Reconciliation**: Schedule automated reconciliation jobs
-5. **Monitor Analytics**: Use the dashboard views for transaction insights
+- Java 17 or higher
+- PostgreSQL 14+
+- Redis 6+
+- RabbitMQ 3.8+
 
-## Contributing
+### Environment Setup
 
-We welcome contributions! The project follows standard Spring Boot conventions. When submitting pull requests:
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd paybridge
+   ```
 
-- Write unit tests for new features
-- Follow existing code style and naming conventions
-- Update documentation for API changes
-- Ensure all tests pass before submitting
+2. **Configure environment variables**
+   ```bash
+   # Database
+   export DB_HOST=localhost
+   export DB_PORT=5432
+   export DB_NAME=paybridge
+   export DB_USER=admin
+   export DB_PASSWORD=your_password
 
+   # Redis
+   export REDIS_HOST=localhost
+   export REDIS_PORT=6379
+
+   # RSA Keys (generate or provide paths)
+   export RSA_PRIVATE_KEY=classpath:private-key.pem
+   export RSA_PUBLIC_KEY=classpath:public-key.pem
+
+   # Email (Gmail example)
+   export SPRING_MAIL_USERNAME=your-email@gmail.com
+   export SPRING_MAIL_PASSWORD=your-app-password
+   ```
+
+3. **Generate RSA Key Pair**
+   ```bash
+   # Generate private key
+   openssl genpkey -algorithm RSA -out private-key.pem -pkeyopt rsa_keygen_bits:2048
+   
+   # Generate public key
+   openssl rsa -pubout -in private-key.pem -out public-key.pem
+   ```
+
+4. **Database Setup**
+   ```sql
+   CREATE DATABASE paybridge;
+   -- Liquibase will handle schema creation on application startup
+   ```
+
+### Running the Application
+
+```bash
+# Build the project
+./mvnw clean package
+
+# Run the application
+java -jar target/paybridge-0.0.1-SNAPSHOT.jar
+
+# Or use Maven Spring Boot plugin
+./mvnw spring-boot:run
+```
+
+The application will start on `http://localhost:8080`
+
+## API Usage Examples
+
+### 1. Merchant Registration
+
+```java
+// Register a new merchant
+POST /api/v1/merchants
+Content-Type: application/json
+
+{
+  "businessName": "Acme Corp",
+  "email": "merchant@acme.com",
+  "password": "SecurePass123",
+  "businessType": "E_COMMERCE",
+  "businessCountry": "US",
+  "websiteUrl": "https://acme.com"
+}
+```
+
+Response:
+```json
+{
+  "businessName": "Acme Corp",
+  "email": "merchant@acme.com",
+  "status": "PENDING_VERIFICATION",
+  "message": "Registration successful. Please check your email for verification code.",
+  "nextStep": "Verify your email to activate your account"
+}
+```
+
+### 2. Email Verification
+
+```java
+// Verify email with code received
+POST /api/v1/auth/verify-email
+Content-Type: application/json
+
+{
+  "email": "merchant@acme.com",
+  "code": "123456"
+}
+```
+
+### 3. API Key Authentication
+
+```java
+// Make authenticated requests with API key
+GET /api/v1/payments
+X-API-Key: pk_test_abc123...
+```
+
+### 4. Check Rate Limits
+
+```java
+// Get current usage statistics
+String apiKey = "pk_test_abc123...";
+Map<String, Object> stats = apiKeyService.getRealTimeStatistics(apiKey);
+
+// Response example
+{
+  "hourlyCount": 150,
+  "hourlyLimit": 1000,
+  "hourlyRemaining": 850,
+  "dailyCount": 450,
+  "dailyLimit": 10000,
+  "dailyRemaining": 9550
+}
+```
+
+## Core Components Deep Dive
+
+### Security Configuration
+
+PayBridge implements a multi-layered security approach:
+
+```java
+@Configuration
+@EnableWebSecurity
+public class SecurityConfig {
+    
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        return http
+            .csrf(AbstractHttpConfigurer::disable)
+            .sessionManagement(session -> 
+                session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .authorizeHttpRequests(auth -> auth
+                .requestMatchers("/api/v1/merchants").permitAll()
+                .requestMatchers("/api/v1/auth/**").permitAll()
+                .anyRequest().authenticated())
+            .addFilterBefore(apiKeyAuthenticationFilter, 
+                UsernamePasswordAuthenticationFilter.class)
+            .oauth2ResourceServer(oauth -> oauth.jwt(Customizer.withDefaults()))
+            .build();
+    }
+}
+```
+
+### API Key Management
+
+The `ApiKeyService` handles key generation, rate limiting, and usage tracking:
+
+```java
+@Service
+public class ApiKeyService {
+    
+    public String generateApiKey(boolean isTestMode) {
+        SecureRandom secureRandom = new SecureRandom();
+        byte[] bytes = new byte[32];
+        secureRandom.nextBytes(bytes);
+        String key = Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+        
+        return (isTestMode ? TEST_PREFIX : LIVE_PREFIX) + key;
+    }
+    
+    public boolean checkRateLimit(String apiKey) {
+        // Check hourly and daily limits in Redis
+        Long hourlyCount = getHourlyUsage(apiKey);
+        Long dailyCount = getDailyUsage(apiKey);
+        
+        return hourlyCount <= HOURLY_LIMIT && dailyCount <= DAILY_LIMIT;
+    }
+}
+```
+
+
+## Configuration Details
+
+### Redis Configuration
+
+```java
+@Configuration
+public class RedisConfig {
+    
+    @Bean
+    public RedisTemplate<String, Object> redisTemplate(
+            RedisConnectionFactory factory) {
+        RedisTemplate<String, Object> template = new RedisTemplate<>();
+        template.setConnectionFactory(factory);
+        
+        // Use String serializer for keys
+        template.setKeySerializer(new StringRedisSerializer());
+        
+        // Use JSON serializer for values
+        template.setValueSerializer(new GenericJackson2JsonRedisSerializer());
+        
+        return template;
+    }
+}
+```
+
+### Async Processing
+
+```java
+@Configuration
+public class AsyncConfig {
+    
+    @Bean
+    public TaskExecutor taskExecutor() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(5);
+        executor.setMaxPoolSize(10);
+        executor.setQueueCapacity(25);
+        executor.setTaskDecorator(new SecurityContextAwareTaskDecorator());
+        return executor;
+    }
+}
+```
+
+## Monitoring and Analytics
+
+### API Usage Tracking
+
+PayBridge automatically tracks API usage in Redis with two-level rate limiting:
+
+- **Hourly Limit**: 1,000 requests per hour
+- **Daily Limit**: 10,000 requests per day
+
+Usage data is periodically persisted to PostgreSQL for long-term analytics.
+
+### Logging Configuration
+
+Method-level logging with execution timing:
+
+```java
+@Around("execution(* com.paybridge.Services.*Service.*(..))")
+public Object logServiceMethods(ProceedingJoinPoint joinPoint) throws Throwable {
+    long start = System.currentTimeMillis();
+    try {
+        Object result = joinPoint.proceed();
+        long duration = System.currentTimeMillis() - start;
+        log.info("{}.{} executed in {} ms", 
+            className, methodName, duration);
+        return result;
+    } catch (Exception e) {
+        long duration = System.currentTimeMillis() - start;
+        log.error("Error in {}.{} after {} ms", 
+            className, methodName, duration, e);
+        throw e;
+    }
+}
+```
+
+### Database Migrations
+
+The project uses Liquibase for database migrations. Add new changesets to `db/changelog/db.changelog-master.xml`.
+
+### Testing
+
+```bash
+# Run unit tests
+./mvnw test
+
+# Run integration tests
+./mvnw verify
+```
+
+## Production Considerations
+
+### Security Best Practices
+
+- Rotate RSA key pairs regularly
+- Monitor API usage patterns for anomalies
+- Implement IP whitelisting for sensitive operations
+- Use HTTPS in production environments
+
+### Performance Optimization
+
+- Configure connection pooling for database and Redis
+- Implement caching for frequently accessed merchant data
+- Use database indexing for query optimization
+- Monitor Redis memory usage and configure eviction policies
+
+### Scaling Strategies
+
+- Horizontal scaling with load balancers
+- Database read replicas for reporting queries
+- Redis cluster for distributed caching
+- Message queue partitioning for high throughput
+
+## Support and Contributing
+
+For issues, feature requests, or contributions:
+
+1. Check existing issues and documentation
+2. Create detailed bug reports with reproduction steps
+3. Follow the code style and testing guidelines
+4. Submit pull requests with clear descriptions
+
+## Conclusion
+
+PayBridge provides a robust foundation for payment orchestration with enterprise-grade security, comprehensive monitoring, and flexible provider integration. The modular architecture allows for easy extension while maintaining high performance and reliability.
+
+Whether you're building a new payment integration or modernizing an existing system, PayBridge offers the tools and infrastructure needed to manage complex payment workflows efficiently.
 
