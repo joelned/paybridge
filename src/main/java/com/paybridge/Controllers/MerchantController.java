@@ -24,10 +24,4 @@ public class MerchantController {
         MerchantRegistrationResponse response = merchantService.registerMerchant(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
-
-    @GetMapping("/test-key")
-    public ResponseEntity<Object> protectedEndpoint(){
-
-        return ResponseEntity.status(HttpStatus.CREATED).body("API key is working");
-    }
 }
