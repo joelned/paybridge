@@ -3,7 +3,6 @@ package com.paybridge.Services;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.paybridge.Models.Entities.ApiKeyUsage;
 import com.paybridge.Models.Entities.Merchant;
-import com.paybridge.Models.Entities.Users;
 import com.paybridge.Repositories.ApiKeyUsageRepository;
 import com.paybridge.Repositories.MerchantRepository;
 import jakarta.servlet.http.HttpServletRequest;
@@ -13,7 +12,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -41,7 +39,7 @@ public class ApiKeyService {
     private final Logger logger = LoggerFactory.getLogger(ApiKeyService.class);
 
     private static final String REDIS_COUNT_KEY = "apikey:%s:count:%s:%s";
-    private static final String REDIS_LOG_KEY = "apikey:%s:log";
+    private static final String REDIS_LOG_KEY = "apikey:%s:logs";
 
     private static final int HOURLY_LIMIT = 1000;
     private static final int DAILY_LIMIT = 10000;
@@ -58,7 +56,6 @@ public class ApiKeyService {
 
         return (isTestMode ? TEST_PREFIX : LIVE_PREFIX ) + key;
     }
-
 
     public boolean isTestMode(String apiKey){
         return apiKey != null && apiKey.startsWith(TEST_PREFIX);
@@ -83,6 +80,7 @@ public class ApiKeyService {
     public void logApiKeyUsageToRedis(Merchant merchant, String apiKey, HttpServletRequest request, int responseStatus){
         try{
             incrementUsageCounter(apiKey);
+            storeDetailedLog(merchant, apiKey, request, responseStatus);  // FIX: Now calling this method
         }catch (Exception ex){
             logger.error("Failed to log API usage to Redis for key: {}",
                     maskApiKey(apiKey), ex);
@@ -108,19 +106,24 @@ public class ApiKeyService {
 
     private void storeDetailedLog(Merchant merchant, String apiKey, HttpServletRequest request,
                                   Integer responseStatus){
-        ApiKeyUsage log = new ApiKeyUsage(
-                merchant.getId(),
-                request.getRequestURI(),
-                getClientIpAddress(request),
-                responseStatus,
-                request.getMethod(),
-                request.getHeader("User-Agent")
-        );
+        try {
+            Map<String, Object> logData = new HashMap<>();
+            logData.put("merchantId", merchant.getId());
+            logData.put("endpoint", request.getRequestURI());
+            logData.put("ipAddress", getClientIpAddress(request));
+            logData.put("responseStatus", responseStatus);
+            logData.put("method", request.getMethod());
+            logData.put("userAgent", request.getHeader("User-Agent"));
+            logData.put("timestamp", LocalDateTime.now().toString());
 
-        String logKey = String.format(REDIS_LOG_KEY, apiKey);
-        redisTemplate.opsForList().rightPush(logKey, log);
+            String logKey = String.format(REDIS_LOG_KEY, apiKey);
+            redisTemplate.opsForList().rightPush(logKey, logData);
+            redisTemplate.expire(logKey, Duration.ofDays(7));
 
-        redisTemplate.expire(logKey, Duration.ofDays(7));
+            logger.debug("Stored log to Redis key: {}", logKey);
+        } catch (Exception e) {
+            logger.error("Failed to store detailed log to Redis", e);
+        }
     }
 
     public boolean checkRateLimit(String apiKey){
@@ -131,21 +134,21 @@ public class ApiKeyService {
                     "yyyy-MM-dd-HH"
             )));
 
-            Integer hourlyCount = (Integer) redisTemplate.opsForValue().get(hourlyKey);
+            Long hourlyCount = convertToLong(redisTemplate.opsForValue().get(hourlyKey));
 
             if(hourlyCount != null && hourlyCount > HOURLY_LIMIT){
-                logger.error("Hourly limit exceeded for api key {}", maskApiKey(apiKey));
+                logger.warn("Hourly limit exceeded for api key {}", maskApiKey(apiKey));
                 return false;
             }
 
             String dailyKey = String.format(REDIS_COUNT_KEY, apiKey, "daily", now.format(DateTimeFormatter.ofPattern(
-                    "yyy-MM-dd"
+                    "yyyy-MM-dd"
             )));
 
-            Integer dailyCount = (Integer) redisTemplate.opsForValue().get(dailyKey);
+            Long dailyCount = convertToLong(redisTemplate.opsForValue().get(dailyKey));
 
             if(dailyCount != null && dailyCount > DAILY_LIMIT){
-                logger.error("Daily limit exceeded for api key {}", apiKey);
+                logger.warn("Daily limit exceeded for api key {}", maskApiKey(apiKey));
                 return false;
             }
 
@@ -154,6 +157,22 @@ public class ApiKeyService {
             logger.error("Failed to check rate limit, allowing request", ex);
             return true;
         }
+    }
+
+    private Long convertToLong(Object value) {
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof Long) {
+            return (Long) value;
+        }
+        if (value instanceof Integer) {
+            return ((Integer) value).longValue();
+        }
+        if (value instanceof Number) {
+            return ((Number) value).longValue();
+        }
+        return null;
     }
 
     public Map<String, Object> getRealTimeStatistics(String apiKey){
@@ -165,10 +184,11 @@ public class ApiKeyService {
                     "yyyy-MM-dd-HH"
             )));
 
-            Integer hourlyCount = (Integer) redisTemplate.opsForValue().get(hourlyKey);
-            Integer hourlyRemaining = hourlyCount != null ? HOURLY_LIMIT - hourlyCount : HOURLY_LIMIT;
+            // FIX: Changed from Integer to Long
+            Long hourlyCount = (Long) redisTemplate.opsForValue().get(hourlyKey);
+            Long hourlyRemaining = hourlyCount != null ? HOURLY_LIMIT - hourlyCount : HOURLY_LIMIT;
 
-            stats.put("hourlyCount", hourlyCount);
+            stats.put("hourlyCount", hourlyCount != null ? hourlyCount : 0);
             stats.put("hourlyLimit", HOURLY_LIMIT);
             stats.put("hourlyRemaining", hourlyRemaining);
 
@@ -176,21 +196,22 @@ public class ApiKeyService {
                     "yyyy-MM-dd"
             )));
 
-            Integer dailyCount = (Integer) redisTemplate.opsForValue().get(dailyKey);
-            Integer dailyRemaining = dailyCount != null ? DAILY_LIMIT - dailyCount : DAILY_LIMIT;
+            // FIX: Changed from Integer to Long
+            Long dailyCount = (Long) redisTemplate.opsForValue().get(dailyKey);
+            Long dailyRemaining = dailyCount != null ? DAILY_LIMIT - dailyCount : DAILY_LIMIT;
 
-            stats.put("dailyCount", dailyCount);
+            stats.put("dailyCount", dailyCount != null ? dailyCount : 0);
             stats.put("dailyLimit", DAILY_LIMIT);
             stats.put("dailyRemaining", dailyRemaining);
 
         }catch (Exception ex){
-           logger.error("Failed to fetch usage statistics ", ex);
-           stats.put("error", "Failed to fetch statistics");
+            logger.error("Failed to fetch usage statistics ", ex);
+            stats.put("error", "Failed to fetch statistics");
         }
         return stats;
     }
 
-    @Scheduled(fixedRate = 100000)
+    @Scheduled(fixedRate = 300000)
     @Transactional
     public void persistLogsToDatabase() {
         logger.info("Starting scheduled job: persisting Redis logs to database");
@@ -198,7 +219,7 @@ public class ApiKeyService {
         try {
             Set<String> logKeys = redisTemplate.keys("apikey:*:logs");
 
-            if (logKeys.isEmpty()) {
+            if (logKeys == null || logKeys.isEmpty()) {
                 logger.debug("No logs found in Redis to persist");
                 return;
             }
@@ -208,38 +229,43 @@ public class ApiKeyService {
 
             for (String logKey : logKeys) {
                 try {
-                    // Get all logs for this API key
                     List<Object> logs = redisTemplate.opsForList().range(logKey, 0, -1);
 
                     if (logs == null || logs.isEmpty()) {
                         continue;
                     }
 
-                    // Convert to database entities
                     for (Object logObj : logs) {
                         try {
-                            ApiKeyUsage log = objectMapper.convertValue(logObj, ApiKeyUsage.class);
+                            @SuppressWarnings("unchecked")
+                            Map<String, Object> logMap = (Map<String, Object>) logObj;
 
-                            // Find merchant (for database foreign key)
-                            Optional<Merchant> merchantOpt = merchantRepository.findById(log.getMerchantId());
+                            Long merchantId = logMap.get("merchantId") instanceof Integer
+                                    ? ((Integer) logMap.get("merchantId")).longValue()
+                                    : (Long) logMap.get("merchantId");
+
+                            Optional<Merchant> merchantOpt = merchantRepository.findById(merchantId);
                             if (merchantOpt.isEmpty()) {
-                                logger.warn("Merchant not found for log: {}", log.getMerchantId());
+                                logger.warn("Merchant not found for log: {}", merchantId);
                                 continue;
                             }
 
-                            // Create database entity
                             ApiKeyUsage usage = new ApiKeyUsage();
-                            usage.setMerchantId(merchantOpt.get().getId());
-                            usage.setEndpoint(log.getEndpoint());
-                            usage.setMethod(log.getMethod());
-                            usage.setIpAddress(log.getIpAddress());
-                            usage.setUserAgent(log.getUserAgent());
-                            usage.setResponseStatus(log.getResponseStatus());
+                            usage.setMerchantId(merchantId);
+                            usage.setEndpoint((String) logMap.get("endpoint"));
+                            usage.setMethod((String) logMap.get("method"));
+                            usage.setIpAddress((String) logMap.get("ipAddress"));
+                            usage.setUserAgent((String) logMap.get("userAgent"));
+
+                            Object responseStatus = logMap.get("responseStatus");
+                            usage.setResponseStatus(responseStatus instanceof Integer
+                                    ? (Integer) responseStatus
+                                    : Integer.parseInt(responseStatus.toString()));
 
                             batch.add(usage);
 
                         } catch (Exception e) {
-                            logger.error("Failed to convert log entry", e);
+                            logger.error("Failed to convert log entry: {}", e.getMessage(), e);
                         }
                     }
 
@@ -250,6 +276,7 @@ public class ApiKeyService {
                     }
 
                     redisTemplate.delete(logKey);
+                    logger.debug("Deleted Redis key after processing: {}", logKey);
 
                 } catch (Exception e) {
                     logger.error("Failed to process logs for key: {}", logKey, e);
@@ -281,5 +308,4 @@ public class ApiKeyService {
 
         return request.getRemoteAddr();
     }
-
 }
