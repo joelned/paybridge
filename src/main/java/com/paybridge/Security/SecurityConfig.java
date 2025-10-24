@@ -8,6 +8,7 @@ import com.nimbusds.jose.jwk.source.JWKSource;
 import com.nimbusds.jose.proc.SecurityContext;
 import com.paybridge.Configs.RsaKeyProperties;
 import com.paybridge.Filters.ApiKeyAuthenticationFilter;
+import com.paybridge.Filters.CookieAuthenticationFilter;
 import com.paybridge.Repositories.MerchantRepository;
 import com.paybridge.Services.ApiKeyService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,8 +28,11 @@ import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
+import org.springframework.security.web.util.matcher.RequestMatcher;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -61,6 +65,11 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/merchants").permitAll()
                         .requestMatchers("/api/v1/auth/**").permitAll()
                         .anyRequest().authenticated())
+                .addFilterBefore(new CookieAuthenticationFilter(
+                        matcher(),
+                        jwtDecoder(),
+                        converter()
+                ), UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(new ApiKeyAuthenticationFilter(merchantRepository, apiKeyService),
                         UsernamePasswordAuthenticationFilter.class)
                 .oauth2ResourceServer(oauth -> oauth
@@ -95,33 +104,47 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
+
         configuration.setAllowedOrigins(Arrays.asList(
-                "http://localhost:5173",  // Your Vite dev server
-                "http://localhost:3000",  // Your React dev server
-                "http://localhost:5174"   // Additional port if needed
+                "http://localhost:5173",
+                "http://localhost:3000",
+                "http://localhost:5174"
         ));
+
         configuration.setAllowedMethods(Arrays.asList(
                 "GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"
         ));
+
         configuration.setAllowedHeaders(Arrays.asList(
                 "Authorization",
                 "Content-Type",
-                "X-Requested-With",
-                "Accept",
-                "Origin",
-                "Access-Control-Request-Method",
-                "Access-Control-Request-Headers"
+                "X-Requested-With"
         ));
+
         configuration.setExposedHeaders(Arrays.asList(
-                "Access-Control-Allow-Origin",
-                "Access-Control-Allow-Credentials"
+                "Set-Cookie"
         ));
-        configuration.setAllowCredentials(true); // 👈 IMPORTANT for cookies
-        configuration.setMaxAge(3600L); // 1 hour
+
+        configuration.setAllowCredentials(true);
+
+        configuration.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", configuration); // Apply to all endpoints
+        source.registerCorsConfiguration("/**", configuration);
+
         return source;
     }
+
+    @Bean
+    public RequestMatcher matcher(){
+        return PathPatternRequestMatcher.withDefaults().matcher("/**");
+    }
+
+    @Bean
+    public JwtAuthenticationConverter converter(){
+        return new JwtAuthenticationConverter();
+    }
+
+
 
 }

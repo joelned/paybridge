@@ -6,9 +6,12 @@ import com.paybridge.Repositories.MerchantRepository;
 import com.paybridge.Services.ApiKeyService;
 import com.paybridge.Services.AuthenticationService;
 import com.paybridge.Services.VerificationService;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -32,9 +35,28 @@ public class AuthController {
     private ApiKeyService apiKeyService;
 
     @PostMapping("/login")
-    public ResponseEntity<LoginResponse> login(@RequestBody @Valid LoginRequest loginRequest){
-        LoginResponse response = authenticationService.login(loginRequest);
-        return ResponseEntity.status(HttpStatus.OK).body(response);
+    public ResponseEntity<LoginResponse> login(@RequestBody @Valid LoginRequest loginRequest,
+                                               HttpServletResponse response){
+        LoginResponse loginResponse = authenticationService.login(loginRequest);
+
+        ResponseCookie cookie = ResponseCookie.from("jwt", loginResponse.getToken())
+                .httpOnly(true)
+                .secure(true) // use HTTPS in production
+                .path("/")
+                .sameSite("None") // REQUIRED for cross-origin (CORS)
+                .maxAge(3600) // 1 hour
+                .build();
+
+        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+
+        LoginResponse sanitizedResponse = new LoginResponse(
+                null, // don’t expose token
+                loginResponse.getEmail(),
+                loginResponse.getUserType(),
+                loginResponse.getExpiresIn()
+        );
+
+        return ResponseEntity.ok(sanitizedResponse);
     }
 
     @PostMapping("/verify-email")
