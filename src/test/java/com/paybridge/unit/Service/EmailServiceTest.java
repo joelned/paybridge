@@ -187,7 +187,7 @@ class EmailServiceTest {
         assertNotNull(result);
         assertTrue(result.contains("Hello " + businessName + ","));
         assertTrue(result.contains(verificationCode));
-        assertTrue(result.contains("15 minutes"));
+        assertTrue(result.contains("10 minutes"));
         assertTrue(result.contains("PayBridge"));
         assertTrue(result.contains("<!DOCTYPE html>"));
     }
@@ -205,7 +205,7 @@ class EmailServiceTest {
         assertNotNull(result);
         assertTrue(result.contains("Hello,"));
         assertTrue(result.contains(verificationCode));
-        assertTrue(result.contains("15 minutes"));
+        assertTrue(result.contains("10 minutes"));
         assertFalse(result.contains("Hello null"));
     }
 
@@ -274,7 +274,7 @@ class EmailServiceTest {
         assertTrue(result.contains("Verify Your Email Address"));
         assertTrue(result.contains("Thank you for registering"));
         assertTrue(result.contains(verificationCode));
-        assertTrue(result.contains("15 minutes"));
+        assertTrue(result.contains("10 minutes"));
         assertTrue(result.contains("The PayBridge Team"));
     }
 
