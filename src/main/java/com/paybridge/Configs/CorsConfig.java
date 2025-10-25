@@ -1,4 +1,3 @@
-// CorsConfig.java
 package com.paybridge.Configs;
 
 import org.springframework.context.annotation.Configuration;
