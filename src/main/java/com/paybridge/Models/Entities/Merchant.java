@@ -32,12 +32,11 @@ public class Merchant {
     @Column(nullable = false)
     private MerchantStatus status;
 
-    @Column(nullable = false)
+    @Column(name = "webhook_url")
     private String webhookUrl;
 
-    @Column(nullable = false)
+    @Column(name = "webhook_secret")
     private String webhookSecret;
-
 
     @Column(name = "website_url")
     private String websiteUrl;
