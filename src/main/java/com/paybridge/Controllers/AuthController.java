@@ -65,6 +65,12 @@ public class AuthController {
         HttpStatus status = response.isSuccess() ? HttpStatus.OK : HttpStatus.BAD_REQUEST;
 
         Merchant merchant = merchantRepository.findByEmail(request.getEmail());
+
+        if(merchant == null){
+            VerifyEmailResponse errorResponse = new VerifyEmailResponse
+                    ("No account found with this email", false);
+            return ResponseEntity.status(400).body(errorResponse);
+        }
         merchant.setTestMode(true);
         merchant.setApiKeyTest(apiKeyService.generateApiKey(true));
         merchant.setApiKeyLive(apiKeyService.generateApiKey(false));
