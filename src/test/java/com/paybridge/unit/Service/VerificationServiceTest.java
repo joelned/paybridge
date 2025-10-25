@@ -61,7 +61,6 @@ class VerificationServiceTest {
         unverifiedUser.setVerificationCodeExpiresAt(LocalDateTime.now().plusMinutes(15));
         unverifiedUser.setVerificationAttempts(0);
 
-        // Setup verified user
         verifiedUser = new Users();
         verifiedUser.setId(2L);
         verifiedUser.setEmail("verified@example.com");
@@ -69,7 +68,6 @@ class VerificationServiceTest {
         verifiedUser.setUserType(UserType.MERCHANT);
     }
 
-    // Test Case 1: Successful email verification
     @Test
     void verifyEmail_Success() {
         // Arrange
@@ -87,7 +85,6 @@ class VerificationServiceTest {
         assertNull(unverifiedUser.getVerificationCode());
     }
 
-    // Test Case 2: User not found
     @Test
     void verifyEmail_UserNotFound() {
         // Arrange
@@ -102,7 +99,6 @@ class VerificationServiceTest {
         verify(userRepository, never()).save(any(Users.class));
     }
 
-    // Test Case 3: Email already verified
     @Test
     void verifyEmail_AlreadyVerified() {
         // Arrange
@@ -117,7 +113,6 @@ class VerificationServiceTest {
         verify(userRepository, never()).save(any(Users.class));
     }
 
-    // Test Case 4: Too many verification attempts
     @Test
     void verifyEmail_TooManyAttempts() {
         // Arrange
@@ -133,7 +128,6 @@ class VerificationServiceTest {
         verify(userRepository, never()).save(any(Users.class));
     }
 
-    // Test Case 5: Invalid verification code
     @Test
     void verifyEmail_InvalidCode() {
         // Arrange
@@ -150,7 +144,6 @@ class VerificationServiceTest {
         assertEquals(1, unverifiedUser.getVerificationAttempts());
     }
 
-    // Test Case 6: Expired verification code
     @Test
     void verifyEmail_ExpiredCode() {
         // Arrange
@@ -167,7 +160,6 @@ class VerificationServiceTest {
         verify(userRepository, times(1)).save(unverifiedUser);
     }
 
-    // Test Case 7: Null verification code
     @Test
     void verifyEmail_NullCode() {
         // Arrange
@@ -182,7 +174,6 @@ class VerificationServiceTest {
         assertEquals("Invalid verification code", response.getMessage());
     }
 
-    // Test Case 8: Successful resend verification code
     @Test
     void resendVerificationCode_Success() {
         // Arrange
@@ -203,7 +194,6 @@ class VerificationServiceTest {
         assertNotNull(unverifiedUser.getVerificationCodeExpiresAt());
     }
 
-    // Test Case 9: Resend - User not found
     @Test
     void resendVerificationCode_UserNotFound() {
         // Arrange
@@ -218,7 +208,6 @@ class VerificationServiceTest {
         verify(emailService, never()).sendVerificationEmail(anyString(), anyString(), anyString());
     }
 
-    // Test Case 10: Resend - Email already verified
     @Test
     void resendVerificationCode_AlreadyVerified() {
         // Arrange
@@ -233,7 +222,6 @@ class VerificationServiceTest {
         verify(emailService, never()).sendVerificationEmail(anyString(), anyString(), anyString());
     }
 
-    // Test Case 11: Resend - Too soon after previous request
     @Test
     void resendVerificationCode_TooSoon() {
         // Arrange
@@ -249,7 +237,6 @@ class VerificationServiceTest {
         verify(emailService, never()).sendVerificationEmail(anyString(), anyString(), anyString());
     }
 
-    // Test Case 12: Resend - User without merchant (null business name)
     @Test
     void resendVerificationCode_UserWithoutMerchant() {
         // Arrange
@@ -274,7 +261,6 @@ class VerificationServiceTest {
         );
     }
 
-    // Test Case 13: Multiple failed attempts then success
     @Test
     void verifyEmail_MultipleFailedAttemptsThenSuccess() {
         // Arrange
@@ -300,7 +286,6 @@ class VerificationServiceTest {
         assertTrue(unverifiedUser.isEmailVerified());
     }
 
-    // Test Case 14: Edge case - Exactly 5 attempts should block (6th attempt)
     @Test
     void verifyEmail_ExactlyFiveAttemptsBlocks() {
         // Arrange

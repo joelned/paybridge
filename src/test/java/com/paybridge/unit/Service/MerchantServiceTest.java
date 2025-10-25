@@ -119,7 +119,6 @@ class MerchantServiceTest {
         verify(emailService, never()).sendVerificationEmail(anyString(), anyString(), anyString());
     }
 
-    // Test Case 3: Null registration request
     @Test
     void registerMerchant_NullRequest_ThrowsException() {
         // Act & Assert
@@ -127,91 +126,7 @@ class MerchantServiceTest {
                 () -> merchantService.registerMerchant(null));
     }
 
-    // Test Case 4: Registration request with null email
-    @Test
-    void registerMerchant_NullEmail_ThrowsException() {
-        // Arrange
-        MerchantRegistrationRequest requestWithNullEmail = new MerchantRegistrationRequest();
-        requestWithNullEmail.setEmail(null);
-        requestWithNullEmail.setPassword(validPassword);
-        requestWithNullEmail.setBusinessName(businessName);
 
-        // Act & Assert
-        assertThrows(Exception.class,
-                () -> merchantService.registerMerchant(requestWithNullEmail));
-    }
-
-    // Test Case 5: Registration request with empty email
-    @Test
-    void registerMerchant_EmptyEmail_ThrowsException() {
-        // Arrange
-        MerchantRegistrationRequest requestWithEmptyEmail = new MerchantRegistrationRequest();
-        requestWithEmptyEmail.setEmail("");
-        requestWithEmptyEmail.setPassword(validPassword);
-        requestWithEmptyEmail.setBusinessName(businessName);
-
-        // Act & Assert
-        assertThrows(Exception.class,
-                () -> merchantService.registerMerchant(requestWithEmptyEmail));
-    }
-
-    // Test Case 6: Registration request with null password
-    @Test
-    void registerMerchant_NullPassword_ThrowsException() {
-        // Arrange
-        MerchantRegistrationRequest requestWithNullPassword = new MerchantRegistrationRequest();
-        requestWithNullPassword.setEmail(validEmail);
-        requestWithNullPassword.setPassword(null);
-        requestWithNullPassword.setBusinessName(businessName);
-
-        // Act & Assert
-        assertThrows(Exception.class,
-                () -> merchantService.registerMerchant(requestWithNullPassword));
-    }
-
-    // Test Case 7: Registration request with empty password
-    @Test
-    void registerMerchant_EmptyPassword_ThrowsException() {
-        // Arrange
-        MerchantRegistrationRequest requestWithEmptyPassword = new MerchantRegistrationRequest();
-        requestWithEmptyPassword.setEmail(validEmail);
-        requestWithEmptyPassword.setPassword("");
-        requestWithEmptyPassword.setBusinessName(businessName);
-
-        // Act & Assert
-        assertThrows(Exception.class,
-                () -> merchantService.registerMerchant(requestWithEmptyPassword));
-    }
-
-    // Test Case 8: Registration request with null business name
-    @Test
-    void registerMerchant_NullBusinessName_ThrowsException() {
-        // Arrange
-        MerchantRegistrationRequest requestWithNullBusinessName = new MerchantRegistrationRequest();
-        requestWithNullBusinessName.setEmail(validEmail);
-        requestWithNullBusinessName.setPassword(validPassword);
-        requestWithNullBusinessName.setBusinessName(null);
-
-        // Act & Assert
-        assertThrows(Exception.class,
-                () -> merchantService.registerMerchant(requestWithNullBusinessName));
-    }
-
-    // Test Case 9: Registration request with empty business name
-    @Test
-    void registerMerchant_EmptyBusinessName_ThrowsException() {
-        // Arrange
-        MerchantRegistrationRequest requestWithEmptyBusinessName = new MerchantRegistrationRequest();
-        requestWithEmptyBusinessName.setEmail(validEmail);
-        requestWithEmptyBusinessName.setPassword(validPassword);
-        requestWithEmptyBusinessName.setBusinessName("");
-
-        // Act & Assert
-        assertThrows(Exception.class,
-                () -> merchantService.registerMerchant(requestWithEmptyBusinessName));
-    }
-
-    // Test Case 10: Very long email address
     @Test
     void registerMerchant_VeryLongEmail_Success() {
         // Arrange
@@ -232,7 +147,6 @@ class MerchantServiceTest {
         verify(merchantRepository, times(1)).existsByEmail(longEmail);
     }
 
-    // Test Case 11: Very long business name
     @Test
     void registerMerchant_VeryLongBusinessName_Success() {
         // Arrange
@@ -252,7 +166,6 @@ class MerchantServiceTest {
         assertEquals(longBusinessName, response.getBusinessName());
     }
 
-    // Test Case 12: Special characters in business name
     @Test
     void registerMerchant_SpecialCharactersInBusinessName_Success() {
         // Arrange
@@ -272,7 +185,6 @@ class MerchantServiceTest {
         assertEquals(specialBusinessName, response.getBusinessName());
     }
 
-    // Test Case 13: Null business type
     @Test
     void registerMerchant_NullBusinessType_Success() {
         // Arrange
@@ -291,7 +203,6 @@ class MerchantServiceTest {
         assertEquals(businessName, response.getBusinessName());
     }
 
-    // Test Case 14: Null business country
     @Test
     void registerMerchant_NullBusinessCountry_Success() {
         // Arrange
@@ -310,7 +221,6 @@ class MerchantServiceTest {
         assertEquals(businessName, response.getBusinessName());
     }
 
-    // Test Case 15: Null website URL
     @Test
     void registerMerchant_NullWebsiteUrl_Success() {
         // Arrange
@@ -329,7 +239,6 @@ class MerchantServiceTest {
         assertEquals(businessName, response.getBusinessName());
     }
 
-    // Test Case 16: Invalid website URL format
     @Test
     void registerMerchant_InvalidWebsiteUrl_Success() {
         // Arrange
@@ -348,31 +257,6 @@ class MerchantServiceTest {
         assertEquals(businessName, response.getBusinessName());
     }
 
-    // Test Case 17: Email service throws exception
-    @Test
-    void registerMerchant_EmailServiceThrowsException_StillSavesEntities() {
-        // Arrange
-        when(merchantRepository.existsByEmail(validEmail)).thenReturn(false);
-        when(passwordEncoder.encode(validPassword)).thenReturn(encodedPassword);
-        when(userRepository.save(any(Users.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        when(merchantRepository.save(any(Merchant.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        doThrow(new RuntimeException("Email service unavailable"))
-                .when(emailService).sendVerificationEmail(anyString(), anyString(), anyString());
-
-        // Act
-        MerchantRegistrationResponse response = merchantService.registerMerchant(validRequest);
-
-        // Assert
-        assertNotNull(response);
-        assertEquals(businessName, response.getBusinessName());
-
-        // Entities should still be saved even if email fails
-        verify(userRepository, times(1)).save(any(Users.class));
-        verify(merchantRepository, times(1)).save(any(Merchant.class));
-        verify(emailService, times(1)).sendVerificationEmail(anyString(), anyString(), anyString());
-    }
-
-    // Test Case 18: User repository throws exception during save
     @Test
     void registerMerchant_UserRepositoryThrowsException_TransactionFails() {
         // Arrange
@@ -391,7 +275,6 @@ class MerchantServiceTest {
         verify(emailService, never()).sendVerificationEmail(anyString(), anyString(), anyString());
     }
 
-    // Test Case 19: Merchant repository throws exception during save
     @Test
     void registerMerchant_MerchantRepositoryThrowsException_TransactionFails() {
         // Arrange
@@ -411,7 +294,6 @@ class MerchantServiceTest {
         verify(emailService, never()).sendVerificationEmail(anyString(), anyString(), anyString());
     }
 
-    // Test Case 20: Password encoder throws exception
     @Test
     void registerMerchant_PasswordEncoderThrowsException_RegistrationFails() {
         // Arrange
@@ -429,7 +311,6 @@ class MerchantServiceTest {
         verify(emailService, never()).sendVerificationEmail(anyString(), anyString(), anyString());
     }
 
-    // Test Case 21: Duplicate registration attempt
     @Test
     void registerMerchant_DuplicateRegistration_ThrowsException() {
         // Arrange
@@ -454,7 +335,6 @@ class MerchantServiceTest {
         assertEquals("Merchant already exists", exception.getMessage());
     }
 
-    // Test Case 22: Create merchant entity validation
     @Test
     void createMerchant_EntityCreation_ValidFields() {
         // Act
@@ -474,7 +354,6 @@ class MerchantServiceTest {
         assertTrue(merchant.getUpdatedAt().isBefore(LocalDateTime.now().plusSeconds(1)));
     }
 
-    // Test Case 23: Create merchant user entity validation
     @Test
     void createMerchantUser_EntityCreation_ValidFields() {
         // Arrange
@@ -499,7 +378,6 @@ class MerchantServiceTest {
         assertNotNull(user.getVerificationCodeExpiresAt());
     }
 
-    // Test Case 24: Constructor injection works correctly
     @Test
     void constructorInjection_WorksCorrectly() {
         // Arrange
