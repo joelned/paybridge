@@ -362,32 +362,57 @@ class ApiKeyServiceTest {
     @Test
     void logApiKeyUsageToRedis_ShouldHandleRedisErrorsGracefully() {
         Merchant merchant = new Merchant();
+        merchant.setId(1L);
         merchant.setEmail("test@example.com");
 
         when(redisTemplate.opsForValue()).thenThrow(new RuntimeException("Redis connection failed"));
 
         // Should not throw exception to avoid breaking main flow
         assertDoesNotThrow(() ->
-                apiKeyService.logApiKeyUsageToRedis(merchant, "pk_test_key", request, 200)
+                apiKeyService.logApiKeyUsageToRedis(
+                        merchant,
+                        "pk_test_key",
+                        "/api/v1/test",
+                        "GET",
+                        "192.168.1.1",
+                        "Mozilla/5.0",
+                        200
+                )
         );
     }
-
     @Test
     void logApiKeyUsageToRedis_ShouldHandleNullMerchant() {
         // Should not throw NPE when merchant is null
         assertDoesNotThrow(() ->
-                apiKeyService.logApiKeyUsageToRedis(null, "pk_test_key", request, 200)
+                apiKeyService.logApiKeyUsageToRedis(
+                        null,
+                        "pk_test_key",
+                        "/api/v1/test",
+                        "GET",
+                        "192.168.1.1",
+                        "Mozilla/5.0",
+                        200
+                )
         );
     }
 
     @Test
-    void logApiKeyUsageToRedis_ShouldHandleNullRequest() {
+    void logApiKeyUsageToRedis_ShouldHandleNullParameters() {
         Merchant merchant = new Merchant();
+        merchant.setId(1L);
         merchant.setEmail("test@example.com");
 
-        // Should not throw NPE when request is null
+        // Should not throw NPE when various parameters are null
         assertDoesNotThrow(() ->
-                apiKeyService.logApiKeyUsageToRedis(merchant, "pk_test_key", null, 200)
+                apiKeyService.logApiKeyUsageToRedis(
+                        merchant,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        200
+                )
         );
     }
 
