@@ -53,8 +53,7 @@ public class CookieAuthenticationFilter extends AbstractAuthenticationProcessing
         String token = getJwtFromCookie(request);
 
         if (token == null) {
-            throw new AuthenticationException("No Jwt Found in Cookie") {
-            };
+            return null;
         }
         Jwt jwt = jwtDecoder.decode(token);
         return jwtAuthenticationConverter.convert(jwt);

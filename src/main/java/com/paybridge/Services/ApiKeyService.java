@@ -77,13 +77,20 @@ public class ApiKeyService {
     }
 
     @Async
-    public void logApiKeyUsageToRedis(Merchant merchant, String apiKey, HttpServletRequest request, int responseStatus){
-        try{
+    public void logApiKeyUsageToRedis(
+            Merchant merchant,
+            String apiKey,
+            String requestUri,
+            String httpMethod,
+            String clientIp,
+            String requestHeader,
+            int responseStatus) {
+
+        try {
             incrementUsageCounter(apiKey);
-            storeDetailedLog(merchant, apiKey, request, responseStatus);  // FIX: Now calling this method
-        }catch (Exception ex){
-            logger.error("Failed to log API usage to Redis for key: {}",
-                    maskApiKey(apiKey), ex);
+            storeDetailedLog(merchant, apiKey, requestUri, httpMethod, clientIp, requestHeader, responseStatus);
+        } catch (Exception ex) {
+            logger.error("Failed to log API usage to Redis for key: {}", maskApiKey(apiKey), ex);
         }
     }
 
@@ -104,16 +111,17 @@ public class ApiKeyService {
         redisTemplate.expire(dailyKey, Duration.ofDays(2));
     }
 
-    private void storeDetailedLog(Merchant merchant, String apiKey, HttpServletRequest request,
+    private void storeDetailedLog(Merchant merchant, String apiKey,String requestURI,
+                                  String httpMethod, String clientIp, String requestHeader,
                                   Integer responseStatus){
         try {
             Map<String, Object> logData = new HashMap<>();
             logData.put("merchantId", merchant.getId());
-            logData.put("endpoint", request.getRequestURI());
-            logData.put("ipAddress", getClientIpAddress(request));
+            logData.put("endpoint", requestURI);
+            logData.put("ipAddress", clientIp);
             logData.put("responseStatus", responseStatus);
-            logData.put("method", request.getMethod());
-            logData.put("userAgent", request.getHeader("User-Agent"));
+            logData.put("method", httpMethod);
+            logData.put("userAgent", requestHeader);
             logData.put("timestamp", LocalDateTime.now().toString());
 
             String logKey = String.format(REDIS_LOG_KEY, apiKey);

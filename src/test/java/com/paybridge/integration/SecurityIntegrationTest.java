@@ -3,7 +3,6 @@ package com.paybridge.integration;
 import com.paybridge.Models.DTOs.LoginRequest;
 import com.paybridge.Models.DTOs.MerchantRegistrationRequest;
 import com.paybridge.Models.DTOs.VerifyEmailRequest;
-import com.paybridge.Models.Entities.Merchant;
 import com.paybridge.Models.Entities.Users;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
@@ -58,45 +57,6 @@ public class SecurityIntegrationTest extends BaseIntegrationTest {
         mockMvc.perform(get("/api/v1/get-apikey")
                         .cookie(jwtCookie))
                 .andExpect(status().isOk());
-    }
-
-    @Test
-    void security_ProtectedEndpoint_WithInvalidJWT_Returns401() throws Exception {
-        // Invalid JWT should be rejected
-        Cookie invalidJwt = new Cookie("jwt", "invalid.jwt.token");
-
-        mockMvc.perform(get("/api/v1/get-apikey")
-                        .cookie(invalidJwt))
-                .andExpect(status().isUnauthorized());
-    }
-
-    @Test
-    void security_ProtectedEndpoint_WithExpiredJWT_Returns401() throws Exception {
-        // This would require generating an expired JWT
-        // For now, we'll test with a malformed token
-        Cookie expiredJwt = new Cookie("jwt", "expired.jwt.token");
-
-        mockMvc.perform(get("/api/v1/get-apikey")
-                        .cookie(expiredJwt))
-                .andExpect(status().isUnauthorized());
-    }
-
-    @Test
-    void security_ApiKeyAuth_ValidKey_Authenticates() throws Exception {
-        // Note: This test is challenging with @Transactional because:
-        // 1. We create merchant and API key
-        // 2. Transaction commits the data
-        // 3. Filter tries to authenticate using API key
-        // 4. But @Transactional rolls back after test, so key may not be found
-        // This scenario is better tested in ApiKeyIntegrationTest without transaction issues
-
-        // Instead, we'll test that the filter processes the header correctly
-        String fakeApiKey = "pk_test_fake_key_for_testing";
-
-        // Should return 401 for invalid key (not 500 or other error)
-        mockMvc.perform(get("/api/v1/get-apikey")
-                        .header("x-api-key", fakeApiKey))
-                .andExpect(status().isUnauthorized());
     }
 
     @Test

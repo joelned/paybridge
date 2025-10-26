@@ -4,7 +4,6 @@ import com.paybridge.Models.DTOs.LoginRequest;
 import com.paybridge.Models.DTOs.LoginResponse;
 import com.paybridge.Models.Entities.Merchant;
 import com.paybridge.Models.Entities.Users;
-import com.paybridge.Repositories.MerchantRepository;
 import com.paybridge.Repositories.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -42,11 +41,20 @@ public class AuthenticationService {
         String jwtToken = tokenService.generateToken(authentication);
         return new LoginResponse(jwtToken, request.getEmail(), authentication.getAuthorities().toString(), "1 hour");
     }
-
     public Merchant getMerchantFromAuthentication(Authentication authentication){
-        String email = authentication.getName();
+        if (authentication == null) {
+            System.out.println("❌ Authentication is null");
+            return null;
+        }
 
+        System.out.println("✅ Authentication class: " + authentication.getClass().getName());
+        System.out.println("✅ Authentication name: " + authentication.getName());
+        System.out.println("✅ Authentication principal: " + authentication.getPrincipal());
+
+        String email = authentication.getName();
         Users user = userRepository.findByEmail(email);
+
+        System.out.println("🔍 Found user: " + user);
 
         if(user == null){
             throw new IllegalArgumentException("User not found");
@@ -60,4 +68,5 @@ public class AuthenticationService {
 
         return merchant;
     }
+
 }

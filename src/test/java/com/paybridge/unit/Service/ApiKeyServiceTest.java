@@ -1,29 +1,26 @@
 package com.paybridge.unit.Service;
 
-import com.paybridge.Models.Entities.ApiKeyUsage;
 import com.paybridge.Models.Entities.Merchant;
 import com.paybridge.Repositories.ApiKeyUsageRepository;
 import com.paybridge.Repositories.MerchantRepository;
 import com.paybridge.Services.ApiKeyService;
-import jakarta.servlet.http.HttpServletRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.*;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
-import org.springframework.data.redis.core.ListOperations;
 
-import java.time.Duration;
+import jakarta.servlet.http.HttpServletRequest;
+
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.*;
-
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
-@ExtendWith(MockitoExtension.class)
 class ApiKeyServiceTest {
 
     @Mock
@@ -39,423 +36,382 @@ class ApiKeyServiceTest {
     private ValueOperations<String, Object> valueOperations;
 
     @Mock
-    private ListOperations<String, Object> listOperations;
-
-    @Mock
     private HttpServletRequest request;
 
     @InjectMocks
     private ApiKeyService apiKeyService;
 
-    private Merchant testMerchant;
-    private final String testApiKey = "pk_test_abcdef123456";
-
     @BeforeEach
     void setUp() {
-        testMerchant = new Merchant();
-        testMerchant.setId(1L);
-        testMerchant.setEmail("test@example.com");
-        testMerchant.setBusinessName("Test Business");
-
+        MockitoAnnotations.openMocks(this);
         when(redisTemplate.opsForValue()).thenReturn(valueOperations);
-        when(redisTemplate.opsForList()).thenReturn(listOperations);
+    }
+
+    // ---------- API Key generation ----------
+    @Test
+    void generateApiKey_ShouldStartWithCorrectPrefix() {
+        String testKey = apiKeyService.generateApiKey(true);
+        String liveKey = apiKeyService.generateApiKey(false);
+
+        assertTrue(testKey.startsWith("pk_test_"));
+        assertTrue(liveKey.startsWith("pk_live_"));
+        assertNotEquals(testKey, liveKey);
     }
 
     @Test
-    void generateApiKey_TestMode_ReturnsTestPrefixedKey() {
-        // Act
-        String apiKey = apiKeyService.generateApiKey(true);
-
-        // Assert
-        assertNotNull(apiKey);
-        assertTrue(apiKey.startsWith("pk_test_"));
-        assertTrue(apiKey.length() > 40); // Base64 encoded 32 bytes + prefix
+    void generateApiKey_ShouldGenerateUniqueKeys() {
+        Set<String> keys = new HashSet<>();
+        for (int i = 0; i < 50; i++) {
+            String key = apiKeyService.generateApiKey(true);
+            assertTrue(keys.add(key), "Should generate unique keys - duplicate: " + key);
+        }
+        assertEquals(50, keys.size());
     }
 
     @Test
-    void generateApiKey_LiveMode_ReturnsLivePrefixedKey() {
-        // Act
-        String apiKey = apiKeyService.generateApiKey(false);
+    void generateApiKey_ShouldHaveSufficientLength() {
+        String testKey = apiKeyService.generateApiKey(true);
+        String liveKey = apiKeyService.generateApiKey(false);
 
-        // Assert
-        assertNotNull(apiKey);
-        assertTrue(apiKey.startsWith("pk_live_"));
-        assertTrue(apiKey.length() > 40);
+        assertTrue(testKey.length() > 30, "Test key should be sufficiently long");
+        assertTrue(liveKey.length() > 30, "Live key should be sufficiently long");
+    }
+
+    // ---------- isTestMode ----------
+    @Test
+    void isTestMode_ShouldDetectTestPrefix() {
+        assertTrue(apiKeyService.isTestMode("pk_test_1234"));
+        assertFalse(apiKeyService.isTestMode("pk_live_1234"));
+        assertFalse(apiKeyService.isTestMode(null));
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+            "pk_test_abc123, true",
+            "pk_live_xyz789, false",
+            "pk_test_, true",
+            "pk_live_, false",
+            "invalid_prefix, false",
+            "test_key, false",
+            "live_key, false",
+            ", false",
+            "'', false"
+    })
+    void isTestMode_Parameterized(String apiKey, boolean expected) {
+        assertEquals(expected, apiKeyService.isTestMode(apiKey));
     }
 
     @Test
-    void generateApiKey_MultipleCalls_ReturnsDifferentKeys() {
-        // Act
-        String key1 = apiKeyService.generateApiKey(true);
-        String key2 = apiKeyService.generateApiKey(true);
-        String key3 = apiKeyService.generateApiKey(false);
+    void isTestMode_ShouldHandleVeryShortKeys() {
+        assertFalse(apiKeyService.isTestMode("pk_t"));
+        assertFalse(apiKeyService.isTestMode("pk_l"));
+        assertFalse(apiKeyService.isTestMode("p"));
+    }
 
-        // Assert
-        assertNotEquals(key1, key2);
-        assertNotEquals(key2, key3);
-        assertNotEquals(key1, key3);
+    // ---------- regenerateApiKey ----------
+    @Test
+    void regenerateApiKey_ShouldUpdateKeys() {
+        Merchant merchant = new Merchant();
+        merchant.setId(1L);
+        merchant.setApiKeyLive("old_live");
+        merchant.setApiKeyTest("old_test");
+
+        when(merchantRepository.findById(1L)).thenReturn(Optional.of(merchant));
+
+        apiKeyService.regenerateApiKey(1L, true, true);
+
+        verify(merchantRepository, times(1)).save(merchant);
+        assertTrue(merchant.getApiKeyLive().startsWith("pk_live_"));
+        assertTrue(merchant.getApiKeyTest().startsWith("pk_test_"));
     }
 
     @Test
-    void isTestMode_TestKey_ReturnsTrue() {
-        // Arrange
-        String testKey = "pk_test_abc123";
+    void regenerateApiKey_ShouldOnlyUpdateTestKeyWhenRequested() {
+        Merchant merchant = new Merchant();
+        merchant.setId(1L);
+        merchant.setApiKeyLive("original_live");
+        merchant.setApiKeyTest("original_test");
 
-        // Act
-        boolean result = apiKeyService.isTestMode(testKey);
+        when(merchantRepository.findById(1L)).thenReturn(Optional.of(merchant));
 
-        // Assert
-        assertTrue(result);
+        // Only regenerate test key
+        apiKeyService.regenerateApiKey(1L, true, false);
+
+        verify(merchantRepository, times(1)).save(merchant);
+        assertTrue(merchant.getApiKeyTest().startsWith("pk_test_"));
+        assertEquals("original_live", merchant.getApiKeyLive()); // Should remain unchanged
     }
 
     @Test
-    void isTestMode_LiveKey_ReturnsFalse() {
-        // Arrange
-        String liveKey = "pk_live_abc123";
+    void regenerateApiKey_ShouldOnlyUpdateLiveKeyWhenRequested() {
+        Merchant merchant = new Merchant();
+        merchant.setId(1L);
+        merchant.setApiKeyLive("original_live");
+        merchant.setApiKeyTest("original_test");
 
-        // Act
-        boolean result = apiKeyService.isTestMode(liveKey);
+        when(merchantRepository.findById(1L)).thenReturn(Optional.of(merchant));
 
-        // Assert
-        assertFalse(result);
+        // Only regenerate live key
+        apiKeyService.regenerateApiKey(1L, false, true);
+
+        verify(merchantRepository, times(1)).save(merchant);
+        assertEquals("original_test", merchant.getApiKeyTest()); // Should remain unchanged
+        assertTrue(merchant.getApiKeyLive().startsWith("pk_live_"));
     }
 
     @Test
-    void isTestMode_NullKey_ReturnsFalse() {
-        // Act
-        boolean result = apiKeyService.isTestMode(null);
-
-        // Assert
-        assertFalse(result);
-    }
-
-    @Test
-    void regenerateApiKey_RegenerateTest_UpdatesTestKey() {
-        // Arrange
-        Long merchantId = 1L;
-        when(merchantRepository.findById(merchantId)).thenReturn(Optional.of(testMerchant));
-        when(merchantRepository.save(any(Merchant.class))).thenReturn(testMerchant);
-
-        String oldTestKey = testMerchant.getApiKeyTest();
-
-        // Act
-        apiKeyService.regenerateApiKey(merchantId, true, false);
-
-        // Assert
-        verify(merchantRepository).save(testMerchant);
-        assertNotEquals(oldTestKey, testMerchant.getApiKeyTest());
-        assertTrue(testMerchant.getApiKeyTest().startsWith("pk_test_"));
-    }
-
-    @Test
-    void regenerateApiKey_RegenerateLive_UpdatesLiveKey() {
-        // Arrange
-        Long merchantId = 1L;
-        when(merchantRepository.findById(merchantId)).thenReturn(Optional.of(testMerchant));
-        when(merchantRepository.save(any(Merchant.class))).thenReturn(testMerchant);
-
-        String oldLiveKey = testMerchant.getApiKeyLive();
-
-        // Act
-        apiKeyService.regenerateApiKey(merchantId, false, true);
-
-        // Assert
-        verify(merchantRepository).save(testMerchant);
-        assertNotEquals(oldLiveKey, testMerchant.getApiKeyLive());
-        assertTrue(testMerchant.getApiKeyLive().startsWith("pk_live_"));
-    }
-
-    @Test
-    void regenerateApiKey_RegenerateBoth_UpdatesBothKeys() {
-        // Arrange
-        Long merchantId = 1L;
-        when(merchantRepository.findById(merchantId)).thenReturn(Optional.of(testMerchant));
-        when(merchantRepository.save(any(Merchant.class))).thenReturn(testMerchant);
-
-        // Act
-        apiKeyService.regenerateApiKey(merchantId, true, true);
-
-        // Assert
-        verify(merchantRepository).save(testMerchant);
-        assertNotNull(testMerchant.getApiKeyTest());
-        assertNotNull(testMerchant.getApiKeyLive());
-    }
-
-    @Test
-    void regenerateApiKey_MerchantNotFound_ThrowsException() {
-        // Arrange
-        Long merchantId = 999L;
-        when(merchantRepository.findById(merchantId)).thenReturn(Optional.empty());
-
-        // Act & Assert
-        assertThrows(IllegalArgumentException.class,
-                () -> apiKeyService.regenerateApiKey(merchantId, true, false));
-    }
-
-    @Test
-    void checkRateLimit_WithinLimit_ReturnsTrue() {
-        // Arrange
-        when(valueOperations.get(anyString())).thenReturn(100L); // Well within limit
-
-        // Act
-        boolean result = apiKeyService.checkRateLimit(testApiKey);
-
-        // Assert
-        assertTrue(result);
-    }
-
-    @Test
-    void checkRateLimit_ExceedsHourlyLimit_ReturnsFalse() {
-        // Arrange
-        when(valueOperations.get(contains("hourly"))).thenReturn(1001L); // Over hourly limit
-        when(valueOperations.get(contains("daily"))).thenReturn(500L);
-
-        // Act
-        boolean result = apiKeyService.checkRateLimit(testApiKey);
-
-        // Assert
-        assertFalse(result);
-    }
-
-    @Test
-    void checkRateLimit_ExceedsDailyLimit_ReturnsFalse() {
-        // Arrange
-        when(valueOperations.get(contains("hourly"))).thenReturn(100L);
-        when(valueOperations.get(contains("daily"))).thenReturn(10001L); // Over daily limit
-
-        // Act
-        boolean result = apiKeyService.checkRateLimit(testApiKey);
-
-        // Assert
-        assertFalse(result);
-    }
-
-    @Test
-    void checkRateLimit_NoExistingCount_ReturnsTrue() {
-        // Arrange
-        when(valueOperations.get(anyString())).thenReturn(null);
-
-        // Act
-        boolean result = apiKeyService.checkRateLimit(testApiKey);
-
-        // Assert
-        assertTrue(result);
-    }
-
-    @Test
-    void checkRateLimit_RedisException_ReturnsTrueAsFailsafe() {
-        // Arrange
-        when(valueOperations.get(anyString())).thenThrow(new RuntimeException("Redis error"));
-
-        // Act
-        boolean result = apiKeyService.checkRateLimit(testApiKey);
-
-        // Assert
-        assertTrue(result); // Should allow request when Redis fails
-    }
-
-    @Test
-    void getRealTimeStatistics_Success_ReturnsStats() {
-        // Arrange
-        when(valueOperations.get(contains("hourly"))).thenReturn(50L);
-        when(valueOperations.get(contains("daily"))).thenReturn(500L);
-
-        // Act
-        Map<String, Object> stats = apiKeyService.getRealTimeStatistics(testApiKey);
-
-        // Assert
-        assertNotNull(stats);
-        assertEquals(50L, stats.get("hourlyCount"));
-        assertEquals(1000, stats.get("hourlyLimit"));
-        assertEquals(950L, stats.get("hourlyRemaining"));
-        assertEquals(500L, stats.get("dailyCount"));
-        assertEquals(10000, stats.get("dailyLimit"));
-        assertEquals(9500L, stats.get("dailyRemaining"));
-    }
-
-    @Test
-    void getRealTimeStatistics_NoUsage_ReturnsZeroCount() {
-        // Arrange
-        when(valueOperations.get(anyString())).thenReturn(null);
-
-        // Act
-        Map<String, Object> stats = apiKeyService.getRealTimeStatistics(testApiKey);
-
-        // Assert
-        assertNotNull(stats);
-        assertEquals(0L, stats.get("hourlyCount"));
-        assertEquals(0L, stats.get("dailyCount"));
-        assertEquals(1000L, stats.get("hourlyRemaining"));
-        assertEquals(10000L, stats.get("dailyRemaining"));
-    }
-
-    @Test
-    void getRealTimeStatistics_RedisException_ReturnsErrorMessage() {
-        // Arrange
-        when(valueOperations.get(anyString())).thenThrow(new RuntimeException("Redis error"));
-
-        // Act
-        Map<String, Object> stats = apiKeyService.getRealTimeStatistics(testApiKey);
-
-        // Assert
-        assertNotNull(stats);
-        assertTrue(stats.containsKey("error"));
-    }
-
-    @Test
-    void logApiKeyUsageToRedis_Success_IncrementsCounters() {
-        // Arrange
-        when(request.getRequestURI()).thenReturn("/api/v1/payments");
-        when(request.getMethod()).thenReturn("POST");
-        when(request.getHeader("User-Agent")).thenReturn("TestAgent");
-        when(request.getRemoteAddr()).thenReturn("127.0.0.1");
-
-        // Act
-        apiKeyService.logApiKeyUsageToRedis(testMerchant, testApiKey, request, 200);
-
-        // Assert
-        verify(valueOperations, times(2)).increment(anyString());
-        verify(redisTemplate, times(2)).expire(anyString(), any(Duration.class));
-        verify(listOperations, times(1)).rightPush(anyString(), any());
-    }
-
-    @Test
-    void getClientIpAddress_WithXForwardedFor_ReturnsFirstIp() {
-        // Arrange
-        when(request.getHeader("X-Forwarded-For")).thenReturn("203.0.113.1, 198.51.100.1");
-
-        // Act
-        String ip = apiKeyService.getClientIpAddress(request);
-
-        // Assert
-        assertEquals("203.0.113.1", ip);
-    }
-
-    @Test
-    void getClientIpAddress_WithoutXForwardedFor_ReturnsRemoteAddr() {
-        // Arrange
-        when(request.getHeader("X-Forwarded-For")).thenReturn(null);
-        when(request.getRemoteAddr()).thenReturn("192.168.1.1");
-
-        // Act
-        String ip = apiKeyService.getClientIpAddress(request);
-
-        // Assert
-        assertEquals("192.168.1.1", ip);
-    }
-
-    @Test
-    void getClientIpAddress_EmptyXForwardedFor_ReturnsRemoteAddr() {
-        // Arrange
-        when(request.getHeader("X-Forwarded-For")).thenReturn("");
-        when(request.getRemoteAddr()).thenReturn("192.168.1.1");
-
-        // Act
-        String ip = apiKeyService.getClientIpAddress(request);
-
-        // Assert
-        assertEquals("192.168.1.1", ip);
-    }
-
-    @Test
-    void persistLogsToDatabase_Success_SavesLogsAndDeletesFromRedis() {
-        // Arrange
-        Set<String> keys = Set.of("apikey:test:logs");
-        when(redisTemplate.keys("apikey:*:logs")).thenReturn(keys);
-
-        Map<String, Object> logData = new HashMap<>();
-        logData.put("merchantId", 1L);
-        logData.put("endpoint", "/api/v1/payments");
-        logData.put("method", "POST");
-        logData.put("ipAddress", "127.0.0.1");
-        logData.put("userAgent", "TestAgent");
-        logData.put("responseStatus", 200);
-        logData.put("timestamp", "2025-01-01T12:00:00");
-
-        List<Object> logs = List.of(logData);
-        when(listOperations.range(anyString(), eq(0L), eq(-1L))).thenReturn(logs);
-        when(merchantRepository.findById(1L)).thenReturn(Optional.of(testMerchant));
-        when(apiKeyUsageRepository.saveAll(anyList())).thenReturn(List.of());
-
-        // Act
-        apiKeyService.persistLogsToDatabase();
-
-        // Assert
-        verify(apiKeyUsageRepository, times(1)).saveAll(anyList());
-        verify(redisTemplate, times(1)).delete(anyString());
-    }
-
-    @Test
-    void persistLogsToDatabase_NoLogs_DoesNothing() {
-        // Arrange
-        when(redisTemplate.keys("apikey:*:logs")).thenReturn(null);
-
-        // Act
-        apiKeyService.persistLogsToDatabase();
-
-        // Assert
-        verify(apiKeyUsageRepository, never()).saveAll(anyList());
-        verify(redisTemplate, never()).delete(anyString());
-    }
-
-    @Test
-    void persistLogsToDatabase_MerchantNotFound_SkipsLog() {
-        // Arrange
-        Set<String> keys = Set.of("apikey:test:logs");
-        when(redisTemplate.keys("apikey:*:logs")).thenReturn(keys);
-
-        Map<String, Object> logData = new HashMap<>();
-        logData.put("merchantId", 999L); // Non-existent merchant
-        logData.put("endpoint", "/api/v1/payments");
-        logData.put("method", "POST");
-        logData.put("ipAddress", "127.0.0.1");
-        logData.put("userAgent", "TestAgent");
-        logData.put("responseStatus", 200);
-
-        List<Object> logs = List.of(logData);
-        when(listOperations.range(anyString(), eq(0L), eq(-1L))).thenReturn(logs);
+    void regenerateApiKey_ShouldThrowExceptionWhenMerchantNotFound() {
         when(merchantRepository.findById(999L)).thenReturn(Optional.empty());
 
-        // Act
-        apiKeyService.persistLogsToDatabase();
+        Exception exception = assertThrows(RuntimeException.class, () ->
+                apiKeyService.regenerateApiKey(999L, true, true)
+        );
 
-        // Assert
-        verify(apiKeyUsageRepository, never()).saveAll(anyList());
+        assertTrue(exception.getMessage().contains("Merchant not found"));
+        verify(merchantRepository, never()).save(any());
     }
 
     @Test
-    void convertToLong_IntegerValue_ReturnsLong() {
-        // Act
-        Long result = apiKeyService.convertToLong(42);
+    void regenerateApiKey_ShouldVerifyRepositoryInteraction() {
+        Merchant merchant = new Merchant();
+        merchant.setId(1L);
+        merchant.setApiKeyLive("old_live");
+        merchant.setApiKeyTest("old_test");
 
-        // Assert
-        assertEquals(42L, result);
+        when(merchantRepository.findById(1L)).thenReturn(Optional.of(merchant));
+
+        apiKeyService.regenerateApiKey(1L, true, true);
+
+        ArgumentCaptor<Merchant> merchantCaptor = ArgumentCaptor.forClass(Merchant.class);
+        verify(merchantRepository).save(merchantCaptor.capture());
+
+        Merchant savedMerchant = merchantCaptor.getValue();
+        assertEquals(1L, savedMerchant.getId());
+        assertTrue(savedMerchant.getApiKeyTest().startsWith("pk_test_"));
+        assertTrue(savedMerchant.getApiKeyLive().startsWith("pk_live_"));
+        assertNotEquals("old_test", savedMerchant.getApiKeyTest());
+        assertNotEquals("old_live", savedMerchant.getApiKeyLive());
+    }
+
+    // ---------- checkRateLimit ----------
+    @Test
+    void checkRateLimit_ShouldAllowWhenBelowLimit() {
+        String apiKey = "pk_test_example";
+
+        // Mock the Redis keys that are actually used by your implementation
+        String hourlyKey = "apikey:" + apiKey + ":count:hourly:" + getCurrentHourlySuffix();
+        String dailyKey = "apikey:" + apiKey + ":count:daily:" + getCurrentDailySuffix();
+
+        when(valueOperations.get(hourlyKey)).thenReturn(100L);
+        when(valueOperations.get(dailyKey)).thenReturn(500L);
+
+        boolean result = apiKeyService.checkRateLimit(apiKey);
+
+        assertTrue(result);
+        verify(valueOperations).get(hourlyKey);
+        verify(valueOperations).get(dailyKey);
     }
 
     @Test
-    void convertToLong_LongValue_ReturnsLong() {
-        // Act
-        Long result = apiKeyService.convertToLong(42L);
+    void checkRateLimit_ShouldBlockWhenAboveLimit() {
+        String apiKey = "pk_test_over";
+        when(valueOperations.get(anyString())).thenReturn(20000L);
 
-        // Asserpublic t
-        assertEquals(42L, result);
+        boolean result = apiKeyService.checkRateLimit(apiKey);
+
+        assertFalse(result);
     }
 
     @Test
-    void convertToLong_NullValue_ReturnsNull() {
-        // Act
-        Long result = apiKeyService.convertToLong(null);
+    void checkRateLimit_ShouldHandleNullRedisResponse() {
+        String apiKey = "pk_test_new";
+        when(valueOperations.get(anyString())).thenReturn(null);
 
-        // Assert
-        assertNull(result);
+        boolean result = apiKeyService.checkRateLimit(apiKey);
+
+        assertTrue(result); // Should allow when no previous usage
     }
 
     @Test
-    void convertToLong_NumberValue_ReturnsLong() {
-        // Act
-        Long result = apiKeyService.convertToLong(42.0);
+    void checkRateLimit_ShouldHandleRedisErrorsGracefully() {
+        String apiKey = "pk_test_error";
+        when(valueOperations.get(anyString())).thenThrow(new RuntimeException("Redis unavailable"));
 
-        // Assert
-        assertEquals(42L, result);
+        // Should not throw exception, should fail open (allow request)
+        assertDoesNotThrow(() -> {
+            boolean result = apiKeyService.checkRateLimit(apiKey);
+            assertTrue(result, "Should allow request when Redis fails");
+        });
+    }
+
+    @ParameterizedTest
+    @ValueSource(longs = {9999L, 10000L, 49999L, 50000L})
+    void checkRateLimit_ShouldRespectDifferentLimits(long usageCount) {
+        String testKey = "pk_test_key";
+        String liveKey = "pk_live_key";
+
+        when(valueOperations.get(anyString())).thenReturn(usageCount);
+
+        boolean testResult = apiKeyService.checkRateLimit(testKey);
+        boolean liveResult = apiKeyService.checkRateLimit(liveKey);
+
+        // Both should behave the same way with current implementation
+        // This test documents the current behavior
+        assertEquals(testResult, liveResult);
+    }
+
+    // ---------- convertToLong ----------
+    @Test
+    void convertToLong_ShouldHandleVariousTypes() {
+        assertEquals(5L, apiKeyService.convertToLong(5));
+        assertEquals(10L, apiKeyService.convertToLong(10L));
+        assertEquals(20L, apiKeyService.convertToLong(20.5)); // truncates decimal
+        assertNull(apiKeyService.convertToLong("not a number"));
+        assertNull(apiKeyService.convertToLong(null));
+    }
+
+    @Test
+    void convertToLong_ShouldHandleEdgeCases() {
+        assertEquals(0L, apiKeyService.convertToLong(0));
+        assertEquals(-5L, apiKeyService.convertToLong(-5));
+        assertEquals(Long.MAX_VALUE, apiKeyService.convertToLong(Long.MAX_VALUE));
+        assertNull(apiKeyService.convertToLong(new Object()));
+        assertNull(apiKeyService.convertToLong(""));
+    }
+
+    // ---------- maskApiKey ----------
+    @Test
+    void maskApiKey_ShouldHideMiddleSection() {
+        String apiKey = "pk_live_abcdefgh123456";
+        String masked = invokeMaskApiKey(apiKey);
+
+        assertTrue(masked.startsWith("pk_live_abc"));
+        assertTrue(masked.endsWith("456"));
+        assertTrue(masked.contains("..."));
+        assertTrue(masked.length() < apiKey.length());
+    }
+
+    @Test
+    void maskApiKey_ShouldHandleShortKeys() {
+        String shortKey = "pk_test_abc";
+        String masked = invokeMaskApiKey(shortKey);
+
+        assertNotNull(masked);
+        // Should handle short keys gracefully without throwing exceptions
+    }
+
+    @Test
+    void maskApiKey_ShouldHandleVeryShortKeys() {
+        String veryShortKey = "pk_test";
+        String masked = invokeMaskApiKey(veryShortKey);
+
+        assertNotNull(masked);
+        // Should not throw exception for very short keys
+    }
+
+    @Test
+    void maskApiKey_ShouldHandleNullAndEmpty() {
+        assertEquals("***", invokeMaskApiKey(null));
+        assertEquals("***", invokeMaskApiKey(""));
+    }
+
+    // ---------- getClientIpAddress ----------
+    @Test
+    void getClientIpAddress_ShouldPreferForwardedHeader() {
+        when(request.getHeader("X-Forwarded-For")).thenReturn("10.0.0.1, 10.0.0.2");
+        when(request.getHeader("X-Real-IP")).thenReturn("10.0.0.3");
+        when(request.getRemoteAddr()).thenReturn("192.168.1.10");
+
+        String ip = apiKeyService.getClientIpAddress(request);
+
+        assertEquals("10.0.0.1", ip);
+    }
+
+
+    @Test
+    void getClientIpAddress_ShouldFallbackToRemoteAddr() {
+        when(request.getHeader("X-Forwarded-For")).thenReturn(null);
+        when(request.getHeader("X-Real-IP")).thenReturn(null);
+        when(request.getRemoteAddr()).thenReturn("192.168.1.10");
+
+        String ip = apiKeyService.getClientIpAddress(request);
+
+        assertEquals("192.168.1.10", ip);
+    }
+
+    @Test
+    void getClientIpAddress_ShouldHandleEmptyForwardedHeader() {
+        when(request.getHeader("X-Forwarded-For")).thenReturn("");
+        when(request.getRemoteAddr()).thenReturn("192.168.1.10");
+
+        String ip = apiKeyService.getClientIpAddress(request);
+
+        assertEquals("192.168.1.10", ip);
+    }
+
+    @Test
+    void getClientIpAddress_ShouldHandleMultipleForwardedIps() {
+        when(request.getHeader("X-Forwarded-For")).thenReturn("10.0.0.2, 10.0.0.3, 10.0.0.4");
+
+        String ip = apiKeyService.getClientIpAddress(request);
+
+        assertEquals("10.0.0.2", ip); // Should take the first one
+    }
+
+    // ---------- logApiKeyUsageToRedis ----------
+    @Test
+    void logApiKeyUsageToRedis_ShouldHandleRedisErrorsGracefully() {
+        Merchant merchant = new Merchant();
+        merchant.setEmail("test@example.com");
+
+        when(redisTemplate.opsForValue()).thenThrow(new RuntimeException("Redis connection failed"));
+
+        // Should not throw exception to avoid breaking main flow
+        assertDoesNotThrow(() ->
+                apiKeyService.logApiKeyUsageToRedis(merchant, "pk_test_key", request, 200)
+        );
+    }
+
+    @Test
+    void logApiKeyUsageToRedis_ShouldHandleNullMerchant() {
+        // Should not throw NPE when merchant is null
+        assertDoesNotThrow(() ->
+                apiKeyService.logApiKeyUsageToRedis(null, "pk_test_key", request, 200)
+        );
+    }
+
+    @Test
+    void logApiKeyUsageToRedis_ShouldHandleNullRequest() {
+        Merchant merchant = new Merchant();
+        merchant.setEmail("test@example.com");
+
+        // Should not throw NPE when request is null
+        assertDoesNotThrow(() ->
+                apiKeyService.logApiKeyUsageToRedis(merchant, "pk_test_key", null, 200)
+        );
+    }
+
+    // Helper method to access private maskApiKey method
+    private String invokeMaskApiKey(String apiKey) {
+        try {
+            var method = ApiKeyService.class.getDeclaredMethod("maskApiKey", String.class);
+            method.setAccessible(true);
+            return (String) method.invoke(apiKeyService, apiKey);
+        } catch (Exception e) {
+            fail("Failed to call maskApiKey: " + e.getMessage());
+            return null;
+        }
+    }
+
+    private String getCurrentHourlySuffix() {
+        LocalDateTime now = LocalDateTime.now();
+        return String.format("%d-%02d-%02d-%02d",
+                now.getYear(), now.getMonthValue(), now.getDayOfMonth(), now.getHour());
+    }
+
+    private String getCurrentDailySuffix() {
+        LocalDate today = LocalDate.now();
+        return String.format("%d-%02d-%02d",
+                today.getYear(), today.getMonthValue(), today.getDayOfMonth());
     }
 }

@@ -10,8 +10,10 @@ import com.paybridge.Repositories.MerchantRepository;
 import com.paybridge.Repositories.UserRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 
@@ -42,7 +44,8 @@ public class MerchantService {
     public MerchantRegistrationResponse registerMerchant(MerchantRegistrationRequest request){
         boolean merchantExists = merchantRepository.existsByEmail(request.getEmail());
         if(merchantExists){
-            throw new RuntimeException("Merchant already exists");
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Merchant already exists");
+
         }
         Merchant merchant = createMerchant(request);
         Users user = createMerchantUser(merchant, request);

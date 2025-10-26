@@ -61,7 +61,7 @@ public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
 
             UsernamePasswordAuthenticationToken authentication =
                     new UsernamePasswordAuthenticationToken(
-                            merchant.getEmail(),
+                           merchant,
                             null,
                             Collections.singletonList(new SimpleGrantedAuthority("ROLE_MERCHANT"))
                     );
@@ -69,7 +69,12 @@ public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
             authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
             SecurityContextHolder.getContext().setAuthentication(authentication);
-            apiKeyService.logApiKeyUsageToRedis(merchant, apiKey, request, response.getStatus());
+            String path = request.getRequestURI();
+            String method = request.getMethod();
+            String ip = apiKeyService.getClientIpAddress(request);
+            String requestHeader = request.getHeader("User-Agent");
+
+            apiKeyService.logApiKeyUsageToRedis(merchant, apiKey, path, method, ip, requestHeader, response.getStatus());
         }
 
         filterChain.doFilter(request, response);
