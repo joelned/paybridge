@@ -31,8 +31,6 @@ import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
-import org.springframework.security.web.util.matcher.RequestMatcher;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -40,10 +38,9 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import java.util.Arrays;
 
 @Configuration
-@EnableWebSecurity(debug = true)
+@EnableWebSecurity
 @EnableMethodSecurity
 public class SecurityConfig {
-
 
     @Autowired
     private RsaKeyProperties rsaKeyProperties;
@@ -65,13 +62,17 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/merchants").permitAll()
                         .requestMatchers("/api/v1/auth/**").permitAll()
                         .anyRequest().authenticated())
-                .addFilterBefore(new CookieAuthenticationFilter(
-                        matcher(),
-                        jwtDecoder(),
-                        converter()
-                ), UsernamePasswordAuthenticationFilter.class)
-                .addFilterBefore(new ApiKeyAuthenticationFilter(merchantRepository, apiKeyService),
-                        UsernamePasswordAuthenticationFilter.class)
+                // API Key filter runs FIRST - checks for x-api-key header
+                .addFilterBefore(
+                        new ApiKeyAuthenticationFilter(merchantRepository, apiKeyService),
+                        UsernamePasswordAuthenticationFilter.class
+                )
+                // Cookie JWT filter runs SECOND - checks for jwt cookie
+                .addFilterBefore(
+                        new CookieAuthenticationFilter(jwtDecoder(), jwtAuthenticationConverter()),
+                        UsernamePasswordAuthenticationFilter.class
+                )
+                // OAuth2 Resource Server for fallback JWT processing
                 .oauth2ResourceServer(oauth -> oauth
                         .jwt(Customizer.withDefaults()));
 
@@ -79,25 +80,26 @@ public class SecurityConfig {
     }
 
     @Bean
-    AuthenticationManager authenticationManager(AuthenticationConfiguration configuration) throws Exception{
+    AuthenticationManager authenticationManager(AuthenticationConfiguration configuration) throws Exception {
         return configuration.getAuthenticationManager();
     }
 
     @Bean
-    JwtDecoder jwtDecoder(){
+    JwtDecoder jwtDecoder() {
         return NimbusJwtDecoder.withPublicKey(rsaKeyProperties.publicKey()).build();
     }
 
     @Bean
-    PasswordEncoder passwordEncoder(){
+    PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
     @Bean
-    JwtEncoder jwtEncoder(){
-        JWK jwk = new RSAKey.Builder(rsaKeyProperties.publicKey()).privateKey(rsaKeyProperties.privateKey()).build();
+    JwtEncoder jwtEncoder() {
+        JWK jwk = new RSAKey.Builder(rsaKeyProperties.publicKey())
+                .privateKey(rsaKeyProperties.privateKey())
+                .build();
         JWKSource<SecurityContext> jwkSource = new ImmutableJWKSet<>(new JWKSet(jwk));
-
         return new NimbusJwtEncoder(jwkSource);
     }
 
@@ -118,7 +120,8 @@ public class SecurityConfig {
         configuration.setAllowedHeaders(Arrays.asList(
                 "Authorization",
                 "Content-Type",
-                "X-Requested-With"
+                "X-Requested-With",
+                "x-api-key"  // Allow API key header
         ));
 
         configuration.setExposedHeaders(Arrays.asList(
@@ -126,7 +129,6 @@ public class SecurityConfig {
         ));
 
         configuration.setAllowCredentials(true);
-
         configuration.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
@@ -136,15 +138,7 @@ public class SecurityConfig {
     }
 
     @Bean
-    public RequestMatcher matcher(){
-        return PathPatternRequestMatcher.withDefaults().matcher("/**");
-    }
-
-    @Bean
-    public JwtAuthenticationConverter converter(){
+    public JwtAuthenticationConverter jwtAuthenticationConverter() {
         return new JwtAuthenticationConverter();
     }
-
-
-
 }
