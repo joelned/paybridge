@@ -1,0 +1,265 @@
+package com.paybridge.integration;
+
+import com.paybridge.Models.DTOs.LoginRequest;
+import com.paybridge.Models.DTOs.MerchantRegistrationRequest;
+import com.paybridge.Models.DTOs.VerifyEmailRequest;
+import com.paybridge.Models.Entities.Merchant;
+import com.paybridge.Models.Entities.Users;
+import com.paybridge.Security.SecurityConfig;
+import org.junit.jupiter.api.Test;
+import org.springframework.context.annotation.Import;
+import org.springframework.http.MediaType;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.web.servlet.MvcResult;
+
+import jakarta.servlet.http.Cookie;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+
+/**
+ * Integration tests for API Key functionality including generation, retrieval, and usage
+ */
+public class ApiKeyIntegrationTest extends BaseIntegrationTest {
+    @Test
+    void getApiKey_WithValidAuthentication_ReturnsApiKeys() throws Exception {
+        // 1. Register, verify, and login
+        String email = "apikey@example.com";
+        String password = "Password123";
+        Cookie jwtCookie = registerVerifyAndLogin(email, password);
+
+        // 2. Get API keys
+        MvcResult result = mockMvc.perform(get("/api/v1/get-apikey")
+                        .cookie(jwtCookie))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.api_key_test").exists())
+                .andExpect(jsonPath("$.api_key_live").exists())
+                .andExpect(jsonPath("$.isTestMode").value(true))
+                .andExpect(jsonPath("$.activeApiKey").exists())
+                .andReturn();
+
+        // 3. Verify API keys format
+        String responseBody = result.getResponse().getContentAsString();
+        assertTrue(responseBody.contains("pk_test_"));
+        assertTrue(responseBody.contains("pk_live_"));
+
+        // 4. Verify in database
+        Merchant merchant = merchantRepository.findByEmail(email);
+        assertNotNull(merchant);
+        assertNotNull(merchant.getApiKeyTest());
+        assertNotNull(merchant.getApiKeyLive());
+        assertTrue(merchant.getApiKeyTest().startsWith("pk_test_"));
+        assertTrue(merchant.getApiKeyLive().startsWith("pk_live_"));
+    }
+
+    @Test
+    void getApiKey_WithoutAuthentication_ShouldReturn401() throws Exception {
+        mockMvc.perform(get("/api/v1/get-apikey"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void getApiKey_WithInvalidJwt_ShouldReturn401() throws Exception {
+        Cookie invalidJwt = new Cookie("jwt", "invalid.jwt.token");
+
+        mockMvc.perform(get("/api/v1/get-apikey")
+                        .cookie(invalidJwt))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void apiKeyAuthentication_ValidTestKey_ShouldAuthenticate() throws Exception {
+        String email = "apiauth@example.com";
+
+        // 1. Register + verify merchant
+        registerAndVerifyMerchant(email, "Password123");
+
+        // 2. Ensure the merchant is refreshed from DB
+        Merchant merchant = merchantRepository.findByEmail(email);
+        assertNotNull(merchant, "Merchant should exist after verification");
+        assertNotNull(merchant.getApiKeyTest(), "Test API key should not be null");
+
+        // Just to see what you’re actually testing
+        System.out.println("🔑 Test key: " + merchant.getApiKeyTest());
+
+        // 3. Perform the secured request with the test key
+        mockMvc.perform(get("/api/v1/get-apikey")
+                        .header("x-api-key", merchant.getApiKeyTest()))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.api_key_test").exists());
+    }
+
+    @Test
+    void apiKeyAuthentication_ValidLiveKey_ShouldAuthenticate() throws Exception {
+        // 1. Register and verify merchant
+        String email = "apilive@example.com";
+        registerAndVerifyMerchant(email, "Password123");
+
+        // 2. Get the live API key
+        Merchant merchant = merchantRepository.findByEmail(email);
+        String liveApiKey = merchant.getApiKeyLive();
+
+        // 3. Make a request with the live API key
+        mockMvc.perform(get("/api/v1/get-apikey")
+                        .header("x-api-key", liveApiKey))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.api_key_live").exists());
+    }
+
+    @Test
+    void apiKeyAuthentication_InvalidKey_ShouldNotAuthenticate() throws Exception {
+        mockMvc.perform(get("/api/v1/get-apikey")
+                        .header("x-api-key", "pk_test_invalid_key_12345"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void apiKeyAuthentication_EmptyKey_ShouldNotAuthenticate() throws Exception {
+        mockMvc.perform(get("/api/v1/get-apikey")
+                        .header("x-api-key", ""))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void apiKeyAuthentication_MalformedKey_ShouldNotAuthenticate() throws Exception {
+        mockMvc.perform(get("/api/v1/get-apikey")
+                        .header("x-api-key", "not-a-valid-format"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void apiKey_UniquePerMerchant() throws Exception {
+        // 1. Register first merchant
+        String email1 = "merchant1@example.com";
+        registerAndVerifyMerchant(email1, "Password123");
+        Merchant merchant1 = merchantRepository.findByEmail(email1);
+
+        // 2. Register second merchant
+        String email2 = "merchant2@example.com";
+        registerAndVerifyMerchant(email2, "Password123");
+        Merchant merchant2 = merchantRepository.findByEmail(email2);
+
+        // 3. Verify different API keys
+        assertNotEquals(merchant1.getApiKeyTest(), merchant2.getApiKeyTest());
+        assertNotEquals(merchant1.getApiKeyLive(), merchant2.getApiKeyLive());
+    }
+
+    @Test
+    void apiKey_TestModeFlag_CorrectlySet() throws Exception {
+        // Register and verify merchant
+        String email = "testmode@example.com";
+        registerAndVerifyMerchant(email, "Password123");
+
+        // Get merchant and verify test mode is true by default
+        Merchant merchant = merchantRepository.findByEmail(email);
+        assertTrue(merchant.isTestMode());
+
+        // Active key should be test key
+        assertEquals(merchant.getApiKeyTest(), merchant.getActiveKey());
+    }
+
+    @Test
+    void apiKey_Format_CorrectPrefix() throws Exception {
+        // Register and verify
+        String email = "format@example.com";
+        registerAndVerifyMerchant(email, "Password123");
+
+        Merchant merchant = merchantRepository.findByEmail(email);
+
+        // Test key should start with pk_test_
+        assertTrue(merchant.getApiKeyTest().startsWith("pk_test_"));
+
+        // Live key should start with pk_live_
+        assertTrue(merchant.getApiKeyLive().startsWith("pk_live_"));
+
+        // Keys should be long enough (at least 40 characters)
+        assertTrue(merchant.getApiKeyTest().length() > 40);
+        assertTrue(merchant.getApiKeyLive().length() > 40);
+    }
+
+    @Test
+    void apiKey_GeneratedOnEmailVerification() throws Exception {
+        // 1. Register (don't verify yet)
+        MerchantRegistrationRequest request = createRegistrationRequest();
+        request.setEmail("beforeverify@example.com");
+
+        mockMvc.perform(post("/api/v1/merchants")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(toJson(request)))
+                .andExpect(status().isCreated());
+
+        // 2. Check API keys before verification (should be null)
+        Merchant merchantBeforeVerify = merchantRepository.findByEmail("beforeverify@example.com");
+        assertNull(merchantBeforeVerify.getApiKeyTest());
+        assertNull(merchantBeforeVerify.getApiKeyLive());
+
+        // 3. Verify email
+        Users user = userRepository.findByEmail("beforeverify@example.com");
+        VerifyEmailRequest verifyRequest = new VerifyEmailRequest("beforeverify@example.com",
+                user.getVerificationCode());
+
+        mockMvc.perform(post("/api/v1/auth/verify-email")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(toJson(verifyRequest)))
+                .andExpect(status().isOk());
+
+        // 4. Check API keys after verification (should exist)
+        Merchant merchantAfterVerify = merchantRepository.findByEmail("beforeverify@example.com");
+        assertNotNull(merchantAfterVerify.getApiKeyTest());
+        assertNotNull(merchantAfterVerify.getApiKeyLive());
+    }
+
+    // Helper methods
+    private void registerAndVerifyMerchant(String email, String password) throws Exception {
+        MerchantRegistrationRequest request = createRegistrationRequest();
+        request.setEmail(email);
+        request.setPassword(password);
+
+        mockMvc.perform(post("/api/v1/merchants")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(toJson(request)))
+                .andExpect(status().isCreated());
+
+        Users user = userRepository.findByEmail(email);
+        VerifyEmailRequest verifyRequest = new VerifyEmailRequest(email, user.getVerificationCode());
+
+        mockMvc.perform(post("/api/v1/auth/verify-email")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(toJson(verifyRequest)))
+                .andExpect(status().isOk());
+    }
+
+    private Cookie registerVerifyAndLogin(String email, String password) throws Exception {
+        registerAndVerifyMerchant(email, password);
+
+        LoginRequest loginRequest = new LoginRequest(email, password);
+        MvcResult result = mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(toJson(loginRequest)))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        String setCookieHeader = result.getResponse().getHeader("Set-Cookie");
+        assertNotNull(setCookieHeader);
+
+        // Extract JWT value from Set-Cookie header
+        String jwtValue = setCookieHeader.split(";")[0].split("=")[1];
+        return new Cookie("jwt", jwtValue);
+    }
+
+    private MerchantRegistrationRequest createRegistrationRequest() {
+        MerchantRegistrationRequest request = new MerchantRegistrationRequest();
+        request.setBusinessName("Test Business");
+        request.setEmail("test" + System.currentTimeMillis() + "@example.com");
+        request.setPassword("Password123");
+        request.setBusinessType("ECOMMERCE");
+        request.setBusinessCountry("US");
+        request.setWebsiteUrl("https://example.com");
+        return request;
+    }
+
+}

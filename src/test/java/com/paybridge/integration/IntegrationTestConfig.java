@@ -16,43 +16,6 @@ import org.springframework.mail.javamail.JavaMailSender;
 public class IntegrationTestConfig {
 
 
-    @Bean
-    @Primary
-    public JavaMailSender javaMailSender() {
-        // Return a mock that does nothing for tests
-        return new org.springframework.mail.javamail.JavaMailSenderImpl() {
-            @Override
-            public void send(org.springframework.mail.SimpleMailMessage simpleMessage) {
-                // Do nothing - this is a test
-            }
-
-            @Override
-            public void send(org.springframework.mail.SimpleMailMessage... simpleMessages) {
-                // Do nothing - this is a test
-            }
-
-            @Override
-            public void send(org.springframework.mail.javamail.MimeMessagePreparator mimeMessagePreparator) {
-                // Do nothing - this is a test
-            }
-
-            @Override
-            public void send(org.springframework.mail.javamail.MimeMessagePreparator... mimeMessagePreparators) {
-                // Do nothing - this is a test
-            }
-
-            @Override
-            public void send(jakarta.mail.internet.MimeMessage mimeMessage) {
-                // Do nothing - this is a test
-            }
-
-            @Override
-            public void send(jakarta.mail.internet.MimeMessage... mimeMessages) {
-                // Do nothing - this is a test
-            }
-        };
-    }
-
     /**
      * Use a mock Redis connection that connects to nothing
      * Tests will run without actual Redis

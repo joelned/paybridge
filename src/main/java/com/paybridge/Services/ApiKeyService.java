@@ -159,7 +159,7 @@ public class ApiKeyService {
         }
     }
 
-    private Long convertToLong(Object value) {
+    public Long convertToLong(Object value) {
         if (value == null) {
             return null;
         }
