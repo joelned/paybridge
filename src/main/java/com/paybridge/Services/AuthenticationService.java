@@ -43,13 +43,8 @@ public class AuthenticationService {
     }
     public Merchant getMerchantFromAuthentication(Authentication authentication){
         if (authentication == null) {
-            System.out.println("❌ Authentication is null");
             return null;
         }
-
-        System.out.println("✅ Authentication class: " + authentication.getClass().getName());
-        System.out.println("✅ Authentication name: " + authentication.getName());
-        System.out.println("✅ Authentication principal: " + authentication.getPrincipal());
 
         String email = authentication.getName();
         Users user = userRepository.findByEmail(email);
