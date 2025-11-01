@@ -1,6 +1,7 @@
 package com.paybridge.Filters;
 
 import com.paybridge.Models.Entities.Merchant;
+import com.paybridge.Models.Enums.MerchantStatus;
 import com.paybridge.Repositories.MerchantRepository;
 import com.paybridge.Services.ApiKeyService;
 import jakarta.servlet.FilterChain;
@@ -65,7 +66,8 @@ public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
         if (merchantOpt.isPresent()) {
             Merchant merchant = merchantOpt.get();
 
-            if (!merchantRepository.hasMerchantEnabledUser(merchant.getId())) {
+            if (!merchantRepository.hasMerchantEnabledUser(merchant.getId()) ||
+            merchant.getStatus() == MerchantStatus.SUSPENDED || merchant.getStatus() == MerchantStatus.INACTIVE) {
                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                 response.setContentType("application/json");
                 response.getWriter().write(

@@ -163,7 +163,7 @@ public class ApiKeyService {
             return true;
         } catch(Exception ex){
             logger.error("Failed to check rate limit, allowing request", ex);
-            return true;
+            return false;
         }
     }
 
