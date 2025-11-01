@@ -25,7 +25,7 @@ public class ApiKeyIntegrationTest extends BaseIntegrationTest {
     void getApiKey_WithValidAuthentication_ReturnsApiKeys() throws Exception {
         // 1. Register, verify, and login
         String email = "apikey@example.com";
-        String password = "Password123";
+        String password = "Password123$";
         Cookie jwtCookie = registerVerifyAndLogin(email, password);
 
         // 2. Get API keys
@@ -83,12 +83,12 @@ public class ApiKeyIntegrationTest extends BaseIntegrationTest {
     void apiKey_UniquePerMerchant() throws Exception {
         // 1. Register first merchant
         String email1 = "merchant1@example.com";
-        registerAndVerifyMerchant(email1, "Password123");
+        registerAndVerifyMerchant(email1, "Password123$");
         Merchant merchant1 = merchantRepository.findByEmail(email1);
 
         // 2. Register second merchant
         String email2 = "merchant2@example.com";
-        registerAndVerifyMerchant(email2, "Password123");
+        registerAndVerifyMerchant(email2, "Password123$");
         Merchant merchant2 = merchantRepository.findByEmail(email2);
 
         // 3. Verify different API keys
@@ -100,7 +100,7 @@ public class ApiKeyIntegrationTest extends BaseIntegrationTest {
     void apiKey_TestModeFlag_CorrectlySet() throws Exception {
         // Register and verify merchant
         String email = "testmode@example.com";
-        registerAndVerifyMerchant(email, "Password123");
+        registerAndVerifyMerchant(email, "Password123$");
 
         // Get merchant and verify test mode is true by default
         Merchant merchant = merchantRepository.findByEmail(email);
@@ -114,7 +114,7 @@ public class ApiKeyIntegrationTest extends BaseIntegrationTest {
     void apiKey_Format_CorrectPrefix() throws Exception {
         // Register and verify
         String email = "format@example.com";
-        registerAndVerifyMerchant(email, "Password123");
+        registerAndVerifyMerchant(email, "Password123$");
 
         Merchant merchant = merchantRepository.findByEmail(email);
 
@@ -164,7 +164,7 @@ public class ApiKeyIntegrationTest extends BaseIntegrationTest {
     @Test
     void apiKey_DisabledUser_ShouldNotAuthenticate() throws Exception {
         String email = "disabled@example.com";
-        registerAndVerifyMerchant(email, "Password123");
+        registerAndVerifyMerchant(email, "Password123$");
         Merchant merchant = merchantRepository.findByEmail(email);
 
         Users merchantUser= userRepository.findByMerchant(merchant);
@@ -229,7 +229,7 @@ public class ApiKeyIntegrationTest extends BaseIntegrationTest {
         MerchantRegistrationRequest request = new MerchantRegistrationRequest();
         request.setBusinessName("Test Business");
         request.setEmail("test" + System.currentTimeMillis() + "@example.com");
-        request.setPassword("Password123");
+        request.setPassword("Password123$");
         request.setBusinessType("ECOMMERCE");
         request.setBusinessCountry("US");
         request.setWebsiteUrl("https://example.com");

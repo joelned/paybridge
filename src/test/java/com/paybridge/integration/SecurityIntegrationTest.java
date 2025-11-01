@@ -32,7 +32,7 @@ public class SecurityIntegrationTest extends BaseIntegrationTest {
     @Test
     void security_AuthEndpoints_AccessibleWithoutAuth() throws Exception {
         // Auth endpoints should be public
-        LoginRequest loginRequest = new LoginRequest("test@example.com", "password");
+        LoginRequest loginRequest = new LoginRequest("test@example.com", "Password123$");
 
         mockMvc.perform(post("/api/v1/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -51,7 +51,7 @@ public class SecurityIntegrationTest extends BaseIntegrationTest {
     void security_ProtectedEndpoint_WithValidJWT_ReturnsSuccess() throws Exception {
         // 1. Register, verify, and login
         String email = "protected@example.com";
-        Cookie jwtCookie = registerVerifyAndLogin(email, "Password123");
+        Cookie jwtCookie = registerVerifyAndLogin(email, "Password123$");
 
         // 2. Access protected endpoint with JWT
         mockMvc.perform(get("/api/v1/get-apikey")
@@ -81,7 +81,7 @@ public class SecurityIntegrationTest extends BaseIntegrationTest {
         // Test that both auth mechanisms are configured
         // JWT auth should work
         String email = "both@example.com";
-        Cookie jwtCookie = registerVerifyAndLogin(email, "Password123");
+        Cookie jwtCookie = registerVerifyAndLogin(email, "Password123$");
 
         mockMvc.perform(get("/api/v1/get-apikey")
                         .cookie(jwtCookie))
@@ -119,7 +119,7 @@ public class SecurityIntegrationTest extends BaseIntegrationTest {
     void security_PasswordEncryption_NotStoredInPlaintext() throws Exception {
         // 1. Register merchant
         String email = "encryption@example.com";
-        String plainPassword = "Password123";
+        String plainPassword = "Password123$";
 
         MerchantRegistrationRequest request = createRegistrationRequest();
         request.setEmail(email);
@@ -140,9 +140,9 @@ public class SecurityIntegrationTest extends BaseIntegrationTest {
     void security_JWTCookie_HttpOnlySet() throws Exception {
         // 1. Login
         String email = "cookie@example.com";
-        registerAndVerifyMerchant(email, "Password123");
+        registerAndVerifyMerchant(email, "Password123$");
 
-        LoginRequest loginRequest = new LoginRequest(email, "Password123");
+        LoginRequest loginRequest = new LoginRequest(email, "Password123$");
         MvcResult result = mockMvc.perform(post("/api/v1/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(toJson(loginRequest)))
@@ -161,10 +161,10 @@ public class SecurityIntegrationTest extends BaseIntegrationTest {
     void security_SensitiveDataNotExposed_InLoginResponse() throws Exception {
         // 1. Register and login
         String email = "sensitive@example.com";
-        Cookie jwtCookie = registerVerifyAndLogin(email, "Password123");
+        Cookie jwtCookie = registerVerifyAndLogin(email, "Password123$");
 
         // 2. Verify token not in response body
-        LoginRequest loginRequest = new LoginRequest(email, "Password123");
+        LoginRequest loginRequest = new LoginRequest(email, "Password123$");
         MvcResult result = mockMvc.perform(post("/api/v1/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(toJson(loginRequest)))
@@ -209,10 +209,10 @@ public class SecurityIntegrationTest extends BaseIntegrationTest {
         String email = "multiauth@example.com";
 
         // 1. Register and verify
-        registerAndVerifyMerchant(email, "Password123");
+        registerAndVerifyMerchant(email, "Password123$");
 
         // 2. Test JWT auth
-        LoginRequest loginRequest = new LoginRequest(email, "Password123");
+        LoginRequest loginRequest = new LoginRequest(email, "Password123$");
         MvcResult loginResult = mockMvc.perform(post("/api/v1/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(toJson(loginRequest)))
@@ -273,7 +273,7 @@ public class SecurityIntegrationTest extends BaseIntegrationTest {
         MerchantRegistrationRequest request = new MerchantRegistrationRequest();
         request.setBusinessName("Test Business");
         request.setEmail("test" + System.currentTimeMillis() + "@example.com");
-        request.setPassword("Password123");
+        request.setPassword("Password123$");
         request.setBusinessType("ECOMMERCE");
         request.setBusinessCountry("US");
         request.setWebsiteUrl("https://example.com");

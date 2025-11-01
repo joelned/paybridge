@@ -22,7 +22,7 @@ class MerchantRegistrationIntegrationTest extends BaseIntegrationTest {
         MerchantRegistrationRequest request = new MerchantRegistrationRequest(
                 "Test Business",
                 "merchant@example.com",
-                "Password123",
+                "Password123$",
                 "ECOMMERCE",
                 "US",
                 "https://example.com"
@@ -66,7 +66,7 @@ class MerchantRegistrationIntegrationTest extends BaseIntegrationTest {
         MerchantRegistrationRequest firstRequest = new MerchantRegistrationRequest();
         firstRequest.setBusinessName("First Business");
         firstRequest.setEmail("duplicate@example.com");
-        firstRequest.setPassword("Password123");
+        firstRequest.setPassword("Password123$$");
         firstRequest.setBusinessType("ECOMMERCE");
         firstRequest.setBusinessCountry("US");
         firstRequest.setWebsiteUrl("https://example.com");
@@ -80,7 +80,7 @@ class MerchantRegistrationIntegrationTest extends BaseIntegrationTest {
         MerchantRegistrationRequest secondRequest = new MerchantRegistrationRequest();
         secondRequest.setBusinessName("Second Business");
         secondRequest.setEmail("duplicate@example.com"); // Same email
-        secondRequest.setPassword("Password123");
+        secondRequest.setPassword("Password123$$");
         secondRequest.setBusinessType("SAAS");
         secondRequest.setBusinessCountry("UK");
         secondRequest.setWebsiteUrl("https://example2.com");
@@ -99,7 +99,7 @@ class MerchantRegistrationIntegrationTest extends BaseIntegrationTest {
         MerchantRegistrationRequest request = new MerchantRegistrationRequest(
                 "Test Business",
                 "invalid-email",
-                "Password123",
+                "Password123$$",
                 "ECOMMERCE",
                 "US",
                 "https://example.com"
@@ -151,7 +151,7 @@ class MerchantRegistrationIntegrationTest extends BaseIntegrationTest {
         MerchantRegistrationRequest request = new MerchantRegistrationRequest(
                 "",
                 "merchant@example.com",
-                "Password123",
+                "Password123$$",
                 "ECOMMERCE",
                 "US",
                 "https://example.com"
@@ -170,7 +170,7 @@ class MerchantRegistrationIntegrationTest extends BaseIntegrationTest {
         MerchantRegistrationRequest request = new MerchantRegistrationRequest(
                 "Test Business",
                 "verify@example.com",
-                "Password123",
+                "Password123$",
                 "ECOMMERCE",
                 "US",
                 "https://example.com"
