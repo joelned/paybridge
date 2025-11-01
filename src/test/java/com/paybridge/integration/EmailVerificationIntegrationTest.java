@@ -215,7 +215,7 @@ public class EmailVerificationIntegrationTest extends BaseIntegrationTest {
         MerchantRegistrationRequest registrationRequest = new MerchantRegistrationRequest();
         registrationRequest.setBusinessName("Test Business");
         registrationRequest.setEmail("resend@example.com");
-        registrationRequest.setPassword("Password123");
+        registrationRequest.setPassword("Password123$");
         registrationRequest.setBusinessType("ECOMMERCE");
         registrationRequest.setBusinessCountry("US");
         registrationRequest.setWebsiteUrl("https://example.com");
@@ -232,7 +232,7 @@ public class EmailVerificationIntegrationTest extends BaseIntegrationTest {
         Users user = userRepository.findByEmail("resend@example.com");
         if (user != null) {
             // Set last verification request to be old enough to bypass cooldown
-            user.setLastVerificationRequestAt(java.time.LocalDateTime.now().minusMinutes(2));
+            user.setLastVerificationRequestAt(java.time.LocalDateTime.now().minusMinutes(6));
             userRepository.save(user);
         }
 
@@ -329,7 +329,7 @@ public class EmailVerificationIntegrationTest extends BaseIntegrationTest {
         MerchantRegistrationRequest request = new MerchantRegistrationRequest();
         request.setBusinessName("Test Business");
         request.setEmail("test" + System.currentTimeMillis() + "@example.com");
-        request.setPassword("Password123");
+        request.setPassword("Password123$");
         request.setBusinessType("ECOMMERCE");
         request.setBusinessCountry("US");
         request.setWebsiteUrl("https://example.com");
