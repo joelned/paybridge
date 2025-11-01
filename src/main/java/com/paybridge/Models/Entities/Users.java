@@ -3,8 +3,10 @@ package com.paybridge.Models.Entities;
 import com.paybridge.Models.Enums.UserType;
 import jakarta.persistence.*;
 
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.Random;
+import java.security.MessageDigest;
 
 @Entity
 @Table(name = "users")
@@ -47,9 +49,13 @@ public class Users {
     // --- Verification Logic ---
 
     public boolean isVerificationCodeValid(String code) {
-        return verificationCode != null &&
-                verificationCode.equals(code) &&
-                verificationCodeExpiresAt != null &&
+        if (verificationCode == null || code == null) return false;
+
+        // Constant-time comparison
+        return MessageDigest.isEqual(
+                verificationCode.getBytes(StandardCharsets.UTF_8),
+                code.getBytes(StandardCharsets.UTF_8)
+        ) && verificationCodeExpiresAt != null &&
                 LocalDateTime.now().isBefore(verificationCodeExpiresAt);
     }
 
@@ -74,7 +80,7 @@ public class Users {
 
     public boolean canResendVerification() {
         return lastVerificationRequestAt == null ||
-                LocalDateTime.now().isAfter(lastVerificationRequestAt.plusMinutes(1));
+                LocalDateTime.now().isAfter(lastVerificationRequestAt.plusMinutes(5));
     }
 
     // --- Getters and Setters ---
