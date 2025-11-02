@@ -9,6 +9,8 @@ import com.paybridge.Models.Entities.ProviderConfig;
 import com.paybridge.Repositories.MerchantRepository;
 import com.paybridge.Repositories.ProviderRepository;
 import com.paybridge.Repositories.ProviderConfigRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,6 +21,8 @@ import java.util.Optional;
 
 @Service
 public class ProviderService {
+
+    private static final Logger log = LoggerFactory.getLogger(ProviderService.class);
 
     @Autowired
     private VaultService vaultService;
@@ -46,16 +50,22 @@ public class ProviderService {
                                             Long merchantId,
                                             boolean testConnection) {
 
-        Provider provider = providerRepository
-                .findByName(providerConfiguration.getName());
-
-        if(provider == null){
-            throw new RuntimeException("Provider does not exist");
+        // 1. Validate input
+        if (!providerConfiguration.isValid()) {
+            throw new IllegalArgumentException("Invalid provider configuration");
         }
 
+        // 2. Find provider by name
+        Provider provider = providerRepository
+                .findByName(providerConfiguration.getName())
+                .orElseThrow(() -> new RuntimeException("Provider not found: " +
+                        providerConfiguration.getName()));
+
+        // 3. Validate required fields for specific provider
         validateProviderConfig(providerConfiguration.getName(),
                 providerConfiguration.getConfig());
 
+        // 4. Test connection if requested
         if (testConnection) {
             ConnectionTestResult testResult = testProviderConnection(
                     providerConfiguration.getName(),
@@ -66,6 +76,9 @@ public class ProviderService {
                 throw new RuntimeException("Provider connection test failed: " +
                         testResult.getMessage());
             }
+
+            log.info("Provider connection test successful for {} (merchant: {})",
+                    providerConfiguration.getName(), merchantId);
         }
 
         // 5. Store credentials in Vault
@@ -75,33 +88,42 @@ public class ProviderService {
                     merchantId,
                     providerConfiguration.getConfig()
             );
+
+            log.info("Stored provider config in Vault: {} for merchant {}",
+                    providerConfiguration.getName(), merchantId);
         } catch (Exception e) {
-            throw new RuntimeException("Failed to store credentials in Vault", e);
+            log.error("Failed to store credentials in Vault", e);
+            throw new RuntimeException("Failed to store credentials in Vault: " + e.getMessage(), e);
         }
 
-        // 6. Store metadata in database
+        // 6. Find merchant
+        Merchant merchant = merchantRepository.findById(merchantId)
+                .orElseThrow(() -> new RuntimeException("Merchant not found with ID: " + merchantId));
+
+        // 7. Store metadata in database (NO sensitive data)
         Optional<ProviderConfig> existingConfig = providerConfigRepository
                 .findByProviderIdAndMerchantId(provider.getId(), merchantId);
 
-        ProviderConfig config = null;
+        ProviderConfig config;
         if (existingConfig.isPresent()) {
             config = existingConfig.get();
             config.setEnabled(true);
+            log.info("Updated existing provider config: {} for merchant {}",
+                    provider.getName(), merchantId);
         } else {
-            Optional<Merchant> merchant = merchantRepository.findById(merchantId);
-            if(merchant.isPresent()){
-                config = new ProviderConfig();
-                config.setProvider(provider);
-                config.setMerchant(merchant.get());
-                config.setCreatedAt(LocalDateTime.now());
-                config.setEnabled(false);
-            }
+            config = new ProviderConfig();
+            config.setProvider(provider);
+            config.setMerchant(merchant);
+            config.setCreatedAt(LocalDateTime.now());
+            config.setEnabled(true);
+            log.info("Created new provider config: {} for merchant {}",
+                    provider.getName(), merchantId);
         }
 
-
-        assert config != null;
+        // Set vault path reference
         config.setVaultPath(buildVaultReference(providerConfiguration.getName(), merchantId));
 
+        // Update last verified timestamp if connection was tested
         if (testConnection) {
             config.setLastVerifiedAt(LocalDateTime.now());
         }
@@ -112,12 +134,14 @@ public class ProviderService {
     /**
      * Test existing provider configuration
      */
+    @Transactional(readOnly = true)
     public ConnectionTestResult testExistingProviderConfig(Long configId, Long merchantId) {
         ProviderConfig config = providerConfigRepository.findById(configId)
                 .orElseThrow(() -> new RuntimeException("Configuration not found"));
 
         // Verify ownership
         if (!config.getMerchant().getId().equals(merchantId)) {
+            log.warn("Unauthorized access attempt to config {} by merchant {}", configId, merchantId);
             throw new SecurityException("Unauthorized access to provider configuration");
         }
 
@@ -139,6 +163,11 @@ public class ProviderService {
         if (result.isSuccess()) {
             config.setLastVerifiedAt(LocalDateTime.now());
             providerConfigRepository.save(config);
+            log.info("Provider connection test passed for {} (duration: {}ms)",
+                    config.getProvider().getName(), duration);
+        } else {
+            log.warn("Provider connection test failed for {}: {}",
+                    config.getProvider().getName(), result.getMessage());
         }
 
         return result.withDuration(duration);
@@ -155,37 +184,56 @@ public class ProviderService {
             case "flutterwave":
                 return flutterwaveConnectionTester.testConnection(credentials);
             case "paypal":
-                // Implement PayPal tester similarly
                 return ConnectionTestResult.success("PayPal testing not yet implemented");
             default:
                 throw new IllegalArgumentException("Unsupported provider: " + providerName);
         }
     }
 
+    /**
+     * Validate provider-specific required fields
+     */
     private void validateProviderConfig(String providerName, Map<String, Object> config) {
         switch (providerName.toLowerCase()) {
             case "stripe":
                 requireFields(config, "secretKey");
                 break;
             case "flutterwave":
-                requireFields(config, "clientId", "clientSecret", "encryptionKey");
+                requireFields(config, "clientSecret", "clientId", "encryptionKey");
+                break;
+            case "paypal":
+                requireFields(config, "clientId", "clientSecret");
                 break;
             default:
                 throw new IllegalArgumentException("Unsupported provider: " + providerName);
         }
     }
 
+    /**
+     * Require specific fields in configuration
+     */
     private void requireFields(Map<String, Object> config, String... fields) {
         for (String field : fields) {
             if (!config.containsKey(field) || config.get(field) == null) {
                 throw new IllegalArgumentException("Missing required field: " + field);
             }
+
+            // Check if value is empty string
+            Object value = config.get(field);
+            if (value instanceof String && ((String) value).trim().isEmpty()) {
+                throw new IllegalArgumentException("Field cannot be empty: " + field);
+            }
         }
     }
 
-    private String buildVaultReference(String providerName, Long userId) {
-        return String.format("vault://providers/%s/user-%d",
+
+
+    /**
+     * Build Vault reference path
+     */
+    private String buildVaultReference(String providerName, Long merchantId) {
+        return String.format("vault://providers/%s/merchant-%d",
                 providerName.toLowerCase(),
-                userId);
+                merchantId);
     }
 }
