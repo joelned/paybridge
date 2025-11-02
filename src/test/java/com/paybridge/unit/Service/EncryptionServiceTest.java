@@ -1,7 +1,6 @@
 package com.paybridge.unit.Service;
 
 import com.paybridge.Configs.EncryptionException;
-import com.paybridge.Services.EncryptionService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;

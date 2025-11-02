@@ -25,9 +25,11 @@ public class ProviderConfig {
     @Column(name = "is_enabled", nullable = false)
     private Boolean isEnabled = false;
 
-    @Column(columnDefinition = "jsonb")
-    @Convert(converter = MapToJsonConverter.class)
-    private Map<String, Object> config; // API keys, webhook secrets, etc.
+    @Column(name = "last_verified_at")
+    private LocalDateTime lastVerifiedAt;
+
+    @Column(name = "vault_path")
+    private String vaultPath;
 
     @CreationTimestamp
     @Column(name = "created_at")
@@ -41,6 +43,21 @@ public class ProviderConfig {
         this.id = id;
     }
 
+    public LocalDateTime getLastVerifiedAt() {
+        return lastVerifiedAt;
+    }
+
+    public void setLastVerifiedAt(LocalDateTime lastVerifiedAt) {
+        this.lastVerifiedAt = lastVerifiedAt;
+    }
+
+    public String getVaultPath() {
+        return vaultPath;
+    }
+
+    public void setVaultPath(String vaultPath) {
+        this.vaultPath = vaultPath;
+    }
     public Merchant getMerchant() {
         return merchant;
     }
@@ -63,14 +80,6 @@ public class ProviderConfig {
 
     public void setEnabled(Boolean enabled) {
         isEnabled = enabled;
-    }
-
-    public Map<String, Object> getConfig() {
-        return config;
-    }
-
-    public void setConfig(Map<String, Object> config) {
-        this.config = config;
     }
 
     public LocalDateTime getCreatedAt() {

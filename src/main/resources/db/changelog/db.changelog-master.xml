@@ -1361,4 +1361,19 @@
             <column name="is_test_mode" type="BOOLEAN"/>
         </addColumn>
     </changeSet>
+
+    <changeSet id="49" author="joel">
+        <addColumn tableName="provider_configs">
+            <column name="vault_path" type="VARCHAR(255)"/>
+            <column name="last_verified_at" type="TIMESTAMP"/>
+        </addColumn>
+    </changeSet>
+
+    <changeSet id="50" author="joel">
+        <dropColumn tableName="provider_configs">
+            <column name="config" type="JSONB"/>
+        </dropColumn>
+    </changeSet>
+
+
 </databaseChangeLog>
