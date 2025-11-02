@@ -9,8 +9,6 @@ import com.paybridge.Services.ProviderService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
@@ -30,11 +28,12 @@ public class ProviderController {
     @PostMapping("/configure")
     public ResponseEntity<Map<String, Object>> configureProvider(
             @RequestBody @Valid ProviderConfiguration providerConfiguration,
-            @RequestParam(defaultValue = "false") boolean testConnection,
+            @RequestParam(defaultValue = "true") boolean testConnection,
             Authentication authentication) {
 
         try {
             Merchant merchant = authenticationService.getMerchantFromAuthentication(authentication);
+
             ProviderConfig config = providerService.configureProvider(
                     providerConfiguration,
                     merchant.getId(),
@@ -56,6 +55,12 @@ public class ProviderController {
             response.put("message", e.getMessage());
             return ResponseEntity.badRequest().body(response);
 
+        } catch (SecurityException e) {
+            Map<String, Object> response = new HashMap<>();
+            response.put("status", "error");
+            response.put("message", "Unauthorized");
+            return ResponseEntity.status(403).body(response);
+
         } catch (Exception e) {
             Map<String, Object> response = new HashMap<>();
             response.put("status", "error");
@@ -67,14 +72,14 @@ public class ProviderController {
     @PostMapping("/test/{configId}")
     public ResponseEntity<Map<String, Object>> testProviderConnection(
             @PathVariable Long configId,
-            @AuthenticationPrincipal UserDetails userDetails) {
+            Authentication authentication) {
 
         try {
-            Long userId = getUserIdFromUserDetails(userDetails);
+            Merchant merchant = authenticationService.getMerchantFromAuthentication(authentication);
 
             ConnectionTestResult result = providerService.testExistingProviderConfig(
                     configId,
-                    userId
+                    merchant.getId()
             );
 
             Map<String, Object> response = new HashMap<>();
@@ -100,10 +105,5 @@ public class ProviderController {
             response.put("message", "Test failed: " + e.getMessage());
             return ResponseEntity.internalServerError().body(response);
         }
-    }
-
-    private Long getUserIdFromUserDetails(UserDetails userDetails) {
-        // Implement based on your User entity
-        return 1L; // Placeholder
     }
 }
