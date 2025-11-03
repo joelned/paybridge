@@ -43,25 +43,58 @@ Client Apps → PayBridge API → Payment Providers
 
 ## Technology Stack
 
-- **Backend Framework**: Spring Boot 3.x
+- **Backend Framework**: Spring Boot 3.5.6
 - **Security**: Spring Security 6 + JWT + RSA Encryption
-- **Database**: PostgreSQL with Hibernate/JPA
+- **Database**: PostgreSQL with Hibernate/JPA + Liquibase migrations
 - **Caching**: Redis for rate limiting and analytics
 - **Messaging**: RabbitMQ for async processing
 - **Email**: Spring Mail for verification and notifications
+- **Payment Providers**: Stripe, Flutterwave integration
+- **Secret Management**: HashiCorp Vault integration
+- **Testing**: JUnit 5, Testcontainers, Spring Boot Test
+- **Build Tool**: Maven 3.x
 
 
 ## Project Structure
 
 ```
 src/main/java/com/paybridge/
-├── Configs/           # Configuration classes
+├── Configs/           # Configuration classes (Redis, CORS, Async, etc.)
 ├── Controllers/       # REST API endpoints
+│   ├── AuthController.java
+│   ├── MerchantController.java
+│   └── ProviderController.java
 ├── Filters/          # Security filters
+│   ├── ApiKeyAuthenticationFilter.java
+│   └── CookieAuthenticationFilter.java
 ├── Models/           # Entities and DTOs
+│   ├── DTOs/         # Data Transfer Objects
+│   ├── Entities/     # JPA Entities
+│   └── Enums/        # Application enums
 ├── Repositories/     # Data access layer
 ├── Security/         # Security configuration
 └── Services/         # Business logic
+    ├── ApiKeyService.java
+    ├── AuthenticationService.java
+    ├── EmailService.java
+    ├── MerchantService.java
+    ├── ProviderService.java
+    ├── TokenService.java
+    ├── VaultService.java
+    └── VerificationService.java
+
+src/main/resources/
+├── certs/            # RSA key pairs
+├── db/changelog/     # Liquibase migrations
+└── application.properties
+
+src/test/
+├── java/com/paybridge/
+│   ├── integration/  # Integration tests
+│   └── unit/         # Unit tests
+└── resources/
+    ├── test-keys/    # Test RSA keys
+    └── application-test.properties
 ```
 
 ## Getting Started
@@ -176,15 +209,38 @@ Content-Type: application/json
 }
 ```
 
-### 3. API Key Authentication
+### 3. Login
 
-```java
-// Make authenticated requests with API key
+```bash
+# Login with verified credentials
+POST /api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "merchant@acme.com",
+  "password": "SecurePass123"
+}
+```
+
+Response sets secure HTTP-only cookie with JWT token.
+
+### 4. Get API Keys
+
+```bash
+# Get API keys (requires authentication)
+GET /api/v1/get-apikey
+Cookie: jwt=<jwt-token>
+```
+
+### 5. API Key Authentication
+
+```bash
+# Make authenticated requests with API key
 GET /api/v1/payments
 X-API-Key: pk_test_abc123...
 ```
 
-### 4. Check Rate Limits
+### 6. Check Rate Limits
 
 ```java
 // Get current usage statistics
@@ -342,29 +398,100 @@ The project uses Liquibase for database migrations. Add new changesets to `db/ch
 
 ### Testing
 
+PayBridge includes comprehensive test coverage with both unit and integration tests:
+
+#### Test Structure
+- **Unit Tests**: Service layer testing with mocked dependencies
+- **Integration Tests**: Full application context testing with Testcontainers
+- **Security Tests**: Authentication and authorization testing
+- **Rate Limiting Tests**: Redis-based rate limiting validation
+
+#### Running Tests
+
 ```bash
-# Run unit tests
+# Run all tests
 ./mvnw test
 
-# Run integration tests
+# Run only unit tests
+./mvnw test -Dtest="**/unit/**"
+
+# Run only integration tests
+./mvnw test -Dtest="**/integration/**"
+
+# Run with coverage
+./mvnw test jacoco:report
+
+# Run integration tests with Testcontainers
 ./mvnw verify
 ```
+
+#### Test Configuration
+
+Tests use H2 in-memory database and embedded Redis for fast execution:
+
+```properties
+# application-test.properties
+spring.datasource.url=jdbc:h2:mem:testdb
+spring.jpa.hibernate.ddl-auto=create-drop
+spring.redis.host=localhost
+spring.redis.port=6370
+```
+
+## Additional Features
+
+### 🔒 Vault Integration
+
+Secure secret management with HashiCorp Vault:
+
+```java
+@Service
+public class VaultService {
+    public void storeProviderCredentials(String merchantId, String provider, Map<String, String> credentials) {
+        String path = String.format("secret/merchants/%s/providers/%s", merchantId, provider);
+        vaultTemplate.write(path, credentials);
+    }
+}
+```
+
+### 📧 Email Verification System
+
+- Automated email verification with 6-digit codes
+- Code expiration and rate limiting
+- Resend verification functionality
+- HTML email templates
+
+### 🔄 Provider Integration
+
+- **Stripe**: Full payment processing integration
+- **Flutterwave**: African payment gateway support
+- Connection testing and validation
+- Provider-specific configuration management
+
+### 📊 Comprehensive Logging
+
+- Method execution timing with AOP
+- Request/response logging
+- Security event auditing
+- Performance monitoring
 
 ## Production Considerations
 
 ### Security Best Practices
 
-- Rotate RSA key pairs regularly
+- Rotate RSA key pairs regularly (stored in `src/main/resources/certs/`)
 - Monitor API usage patterns for anomalies
 - Implement IP whitelisting for sensitive operations
 - Use HTTPS in production environments
+- Secure cookie configuration (HttpOnly, Secure, SameSite)
+- Vault integration for sensitive data storage
 
 ### Performance Optimization
 
-- Configure connection pooling for database and Redis
-- Implement caching for frequently accessed merchant data
-- Use database indexing for query optimization
-- Monitor Redis memory usage and configure eviction policies
+- Connection pooling configured for PostgreSQL and Redis
+- Async processing with ThreadPoolTaskExecutor
+- Redis caching for frequently accessed data
+- Database indexing for query optimization
+- Method-level performance monitoring
 
 ### Scaling Strategies
 
@@ -372,6 +499,57 @@ The project uses Liquibase for database migrations. Add new changesets to `db/ch
 - Database read replicas for reporting queries
 - Redis cluster for distributed caching
 - Message queue partitioning for high throughput
+- Testcontainers for consistent testing environments
+
+## API Endpoints
+
+### Public Endpoints
+- `POST /api/v1/merchants` - Merchant registration
+- `POST /api/v1/auth/verify-email` - Email verification
+- `POST /api/v1/auth/resend-verification` - Resend verification code
+- `POST /api/v1/auth/login` - Merchant login
+
+### Protected Endpoints (JWT Required)
+- `GET /api/v1/get-apikey` - Get API keys
+- `POST /api/v1/providers/test-connection` - Test provider connection
+- `GET /api/v1/merchants/profile` - Get merchant profile
+
+### API Key Protected Endpoints
+- `GET /api/v1/payments` - List payments
+- `POST /api/v1/payments` - Create payment
+- `GET /api/v1/usage-stats` - Get usage statistics
+
+## Environment Variables
+
+```bash
+# Database Configuration
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=paybridge
+DB_USER=admin
+DB_PASSWORD=your_password
+
+# Redis Configuration
+REDIS_HOST=localhost
+REDIS_PORT=6379
+
+# RSA Keys
+RSA_PRIVATE_KEY=classpath:certs/privatekey.pem
+RSA_PUBLIC_KEY=classpath:certs/publickey.pem
+
+# Email Configuration
+SPRING_MAIL_USERNAME=your-email@gmail.com
+SPRING_MAIL_PASSWORD=your-app-password
+
+# Vault Configuration (Optional)
+SPRING_CLOUD_VAULT_HOST=localhost
+SPRING_CLOUD_VAULT_PORT=8200
+SPRING_CLOUD_VAULT_TOKEN=your-vault-token
+
+# Provider API Keys
+STRIPE_SECRET_KEY=sk_test_...
+FLUTTERWAVE_SECRET_KEY=FLWSECK_TEST-...
+```
 
 ## Support and Contributing
 
@@ -380,7 +558,8 @@ For issues, feature requests, or contributions:
 1. Check existing issues and documentation
 2. Create detailed bug reports with reproduction steps
 3. Follow the code style and testing guidelines
-4. Submit pull requests with clear descriptions
+4. Ensure all tests pass before submitting PRs
+5. Submit pull requests with clear descriptions
 
 ## Conclusion
 
