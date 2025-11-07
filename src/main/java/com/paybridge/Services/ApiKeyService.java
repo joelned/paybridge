@@ -16,11 +16,19 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.security.SecureRandom;
+import java.security.MessageDigest;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 
+/**
+ * Service class for managing API keys and their usage, implementing rate limiting,
+ * logging usage statistics, and persisting logs to the database.
+ * This class supports operations for both test and live API keys, and integrates with
+ * Redis for real-time data storage and processing.
+ */
 @Service
 public class ApiKeyService {
 
@@ -40,6 +48,7 @@ public class ApiKeyService {
 
     private static final String REDIS_COUNT_KEY = "apikey:%s:count:%s:%s";
     private static final String REDIS_LOG_KEY = "apikey:%s:logs";
+    private static final String REDIS_LOG_KEYS_SET = "apikey:logs:keys";
 
     private static final int HOURLY_LIMIT = 1000;
     private static final int DAILY_LIMIT = 10000;
@@ -47,33 +56,70 @@ public class ApiKeyService {
     private static final String TEST_PREFIX = "pk_test_";
     private static final String LIVE_PREFIX = "pk_live_";
 
-    public String generateApiKey(boolean isTestMode){
+    public String generateApiKey(boolean isTestMode) {
         SecureRandom secureRandom = new SecureRandom();
         byte[] bytes = new byte[32];
 
         secureRandom.nextBytes(bytes);
         String key = Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
 
-        return (isTestMode ? TEST_PREFIX : LIVE_PREFIX ) + key;
+        return (isTestMode ? TEST_PREFIX : LIVE_PREFIX) + key;
     }
 
-    public boolean isTestMode(String apiKey){
+    public boolean isTestMode(String apiKey) {
         return apiKey != null && apiKey.startsWith(TEST_PREFIX);
     }
 
     @Transactional
-    public void regenerateApiKey(Long merchantId, boolean regenerateTest, boolean regenerateLive){
+    public void regenerateApiKey(Long merchantId, boolean regenerateTest, boolean regenerateLive) {
         Merchant merchant = merchantRepository.findById(merchantId)
-                .orElseThrow(()-> new IllegalArgumentException("Merchant not found"));
+                .orElseThrow(() -> new IllegalArgumentException("Merchant not found"));
 
-        if(regenerateTest){
-            merchant.setApiKeyTest(generateApiKey(true));
+        if (regenerateTest) {
+            String newTestKey = generateApiKey(true);
+            merchant.setApiKeyTest(newTestKey);
+            merchant.setApiKeyTestHash(hashApiKey(newTestKey));
         }
 
-        if(regenerateLive){
-            merchant.setApiKeyLive(generateApiKey(false));
+        if (regenerateLive) {
+            String newLiveKey = generateApiKey(false);
+            merchant.setApiKeyLive(newLiveKey);
+            merchant.setApiKeyLiveHash(hashApiKey(newLiveKey));
         }
         merchantRepository.save(merchant);
+    }
+
+    /**
+     * Find Merchant by presented API key using hashed lookup. Performs lazy backfill of hash columns
+     * if only plaintext columns are populated (Option B rollout phase).
+     */
+    @Transactional(readOnly = false)
+    public Optional<Merchant> findMerchantByApiKey(String apiKey) {
+        if (apiKey == null || apiKey.isEmpty()) {
+            return Optional.empty();
+        }
+        String apiKeyHash = hashApiKey(apiKey);
+        Optional<Merchant> byHash = merchantRepository.findByApiKeyHash(apiKeyHash);
+        if (byHash.isPresent()) {
+            return byHash;
+        }
+        // Fallback: look up by plaintext (legacy) and backfill hash columns
+        Optional<Merchant> legacy = merchantRepository.findByApiKeyTestOrApiKeyLive(apiKey);
+        if (legacy.isPresent()) {
+            Merchant m = legacy.get();
+            try {
+                if (apiKey.equals(m.getApiKeyTest()) && (m.getApiKeyTestHash() == null || m.getApiKeyTestHash().isEmpty())) {
+                    m.setApiKeyTestHash(apiKeyHash);
+                }
+                if (apiKey.equals(m.getApiKeyLive()) && (m.getApiKeyLiveHash() == null || m.getApiKeyLiveHash().isEmpty())) {
+                    m.setApiKeyLiveHash(apiKeyHash);
+                }
+                merchantRepository.save(m);
+            } catch (Exception e) {
+                logger.warn("Failed to backfill API key hash for merchant {}", m.getId(), e);
+            }
+        }
+        return legacy;
     }
 
     @Async
@@ -94,16 +140,18 @@ public class ApiKeyService {
         }
     }
 
-    private void incrementUsageCounter(String apiKey){
+    private void incrementUsageCounter(String apiKey) {
         LocalDateTime now = LocalDateTime.now();
 
-        String hourlyKey = String.format(REDIS_COUNT_KEY, apiKey, "hourly", now.format
+        String apiKeyHash = hashApiKey(apiKey);
+
+        String hourlyKey = String.format(REDIS_COUNT_KEY, apiKeyHash, "hourly", now.format
                 (DateTimeFormatter.ofPattern("yyyy-MM-dd-HH")));
 
         redisTemplate.opsForValue().increment(hourlyKey);
         redisTemplate.expire(hourlyKey, Duration.ofHours(2));
 
-        String dailyKey = String.format(REDIS_COUNT_KEY, apiKey, "daily", now.format(
+        String dailyKey = String.format(REDIS_COUNT_KEY, apiKeyHash, "daily", now.format(
                 DateTimeFormatter.ofPattern("yyyy-MM-dd")
         ));
 
@@ -111,9 +159,9 @@ public class ApiKeyService {
         redisTemplate.expire(dailyKey, Duration.ofDays(2));
     }
 
-    private void storeDetailedLog(Merchant merchant, String apiKey,String requestURI,
+    private void storeDetailedLog(Merchant merchant, String apiKey, String requestURI,
                                   String httpMethod, String clientIp, String requestHeader,
-                                  Integer responseStatus){
+                                  Integer responseStatus) {
         try {
             Map<String, Object> logData = new HashMap<>();
             logData.put("merchantId", merchant.getId());
@@ -124,9 +172,16 @@ public class ApiKeyService {
             logData.put("userAgent", requestHeader);
             logData.put("timestamp", LocalDateTime.now().toString());
 
-            String logKey = String.format(REDIS_LOG_KEY, apiKey);
+            String apiKeyHash = hashApiKey(apiKey);
+            String logKey = String.format(REDIS_LOG_KEY, apiKeyHash);
             redisTemplate.opsForList().rightPush(logKey, logData);
             redisTemplate.expire(logKey, Duration.ofDays(7));
+            try {
+                // Track this log list key in a Redis Set to avoid KEYS/SCAN across the keyspace
+                redisTemplate.opsForSet().add(REDIS_LOG_KEYS_SET, logKey);
+            } catch (Exception trackEx) {
+                logger.warn("Failed to track log key {} in set {}", logKey, REDIS_LOG_KEYS_SET, trackEx);
+            }
 
             logger.debug("Stored log to Redis key: {}", logKey);
         } catch (Exception e) {
@@ -134,36 +189,38 @@ public class ApiKeyService {
         }
     }
 
-    public boolean checkRateLimit(String apiKey){
-        try{
+    public boolean checkRateLimit(String apiKey) {
+        try {
             LocalDateTime now = LocalDateTime.now();
 
-            String hourlyKey = String.format(REDIS_COUNT_KEY, apiKey, "hourly", now.format(DateTimeFormatter.ofPattern(
+            String apiKeyHash = hashApiKey(apiKey);
+
+            String hourlyKey = String.format(REDIS_COUNT_KEY, apiKeyHash, "hourly", now.format(DateTimeFormatter.ofPattern(
                     "yyyy-MM-dd-HH"
             )));
 
             Long hourlyCount = convertToLong(redisTemplate.opsForValue().get(hourlyKey));
 
-            if(hourlyCount != null && hourlyCount > HOURLY_LIMIT){
+            if (hourlyCount != null && hourlyCount > HOURLY_LIMIT) {
                 logger.warn("Hourly limit exceeded for api key {}", maskApiKey(apiKey));
                 return false;
             }
 
-            String dailyKey = String.format(REDIS_COUNT_KEY, apiKey, "daily", now.format(DateTimeFormatter.ofPattern(
+            String dailyKey = String.format(REDIS_COUNT_KEY, apiKeyHash, "daily", now.format(DateTimeFormatter.ofPattern(
                     "yyyy-MM-dd"
             )));
 
             Long dailyCount = convertToLong(redisTemplate.opsForValue().get(dailyKey));
 
-            if(dailyCount != null && dailyCount > DAILY_LIMIT){
+            if (dailyCount != null && dailyCount > DAILY_LIMIT) {
                 logger.warn("Daily limit exceeded for api key {}", maskApiKey(apiKey));
                 return false;
             }
 
             return true;
-        } catch(Exception ex){
-            logger.error("Failed to check rate limit, allowing request", ex);
-            return false;
+        } catch (Exception ex) {
+            logger.error("Failed to check rate limit, defaulting to allow request for availability", ex);
+            return true;
         }
     }
 
@@ -183,36 +240,36 @@ public class ApiKeyService {
         return null;
     }
 
-    public Map<String, Object> getRealTimeStatistics(String apiKey){
+    public Map<String, Object> getRealTimeStatistics(String apiKey) {
         LocalDateTime now = LocalDateTime.now();
         Map<String, Object> stats = new HashMap<>();
 
-        try{
-            String hourlyKey = String.format(REDIS_COUNT_KEY, apiKey, "hourly", now.format(DateTimeFormatter.ofPattern(
+        try {
+            String apiKeyHash = hashApiKey(apiKey);
+
+            String hourlyKey = String.format(REDIS_COUNT_KEY, apiKeyHash, "hourly", now.format(DateTimeFormatter.ofPattern(
                     "yyyy-MM-dd-HH"
             )));
 
-            // FIX: Changed from Integer to Long
-            Long hourlyCount = (Long) redisTemplate.opsForValue().get(hourlyKey);
+            Long hourlyCount = convertToLong(redisTemplate.opsForValue().get(hourlyKey));
             Long hourlyRemaining = hourlyCount != null ? HOURLY_LIMIT - hourlyCount : HOURLY_LIMIT;
 
             stats.put("hourlyCount", hourlyCount != null ? hourlyCount : 0);
             stats.put("hourlyLimit", HOURLY_LIMIT);
             stats.put("hourlyRemaining", hourlyRemaining);
 
-            String dailyKey = String.format(REDIS_COUNT_KEY, apiKey, "daily", now.format(DateTimeFormatter.ofPattern(
+            String dailyKey = String.format(REDIS_COUNT_KEY, apiKeyHash, "daily", now.format(DateTimeFormatter.ofPattern(
                     "yyyy-MM-dd"
             )));
 
-            // FIX: Changed from Integer to Long
-            Long dailyCount = (Long) redisTemplate.opsForValue().get(dailyKey);
+            Long dailyCount = convertToLong(redisTemplate.opsForValue().get(dailyKey));
             Long dailyRemaining = dailyCount != null ? DAILY_LIMIT - dailyCount : DAILY_LIMIT;
 
             stats.put("dailyCount", dailyCount != null ? dailyCount : 0);
             stats.put("dailyLimit", DAILY_LIMIT);
             stats.put("dailyRemaining", dailyRemaining);
 
-        }catch (Exception ex){
+        } catch (Exception ex) {
             logger.error("Failed to fetch usage statistics ", ex);
             stats.put("error", "Failed to fetch statistics");
         }
@@ -225,9 +282,15 @@ public class ApiKeyService {
         logger.info("Starting scheduled job: persisting Redis logs to database");
 
         try {
-            Set<String> logKeys = redisTemplate.keys("apikey:*:logs");
+            Set<Object> logKeyMembers = redisTemplate.opsForSet().members(REDIS_LOG_KEYS_SET);
+            Set<String> logKeys = new HashSet<>();
+            if (logKeyMembers != null) {
+                for (Object member : logKeyMembers) {
+                    if (member != null) logKeys.add(member.toString());
+                }
+            }
 
-            if (logKeys == null || logKeys.isEmpty()) {
+            if (logKeys.isEmpty()) {
                 logger.debug("No logs found in Redis to persist");
                 return;
             }
@@ -284,6 +347,11 @@ public class ApiKeyService {
                     }
 
                     redisTemplate.delete(logKey);
+                    try {
+                        redisTemplate.opsForSet().remove(REDIS_LOG_KEYS_SET, logKey);
+                    } catch (Exception e) {
+                        logger.warn("Failed to remove log key {} from tracking set {}", logKey, REDIS_LOG_KEYS_SET, e);
+                    }
                     logger.debug("Deleted Redis key after processing: {}", logKey);
 
                 } catch (Exception e) {
@@ -298,16 +366,16 @@ public class ApiKeyService {
         }
     }
 
-    private String maskApiKey(String apiKey){
-        if(apiKey == null || apiKey.length() < 16){
+    private String maskApiKey(String apiKey) {
+        if (apiKey == null || apiKey.length() < 16) {
             return "***";
         }
-        String prefix = apiKey.substring(0,11);
+        String prefix = apiKey.substring(0, 11);
         String suffix = apiKey.substring(apiKey.length() - 3);
         return prefix + "..." + suffix;
     }
 
-    public String getClientIpAddress(HttpServletRequest request){
+    public String getClientIpAddress(HttpServletRequest request) {
         String XForwardedFor = request.getHeader("X-Forwarded-For");
 
         if (XForwardedFor != null && !XForwardedFor.isEmpty()) {
@@ -315,5 +383,21 @@ public class ApiKeyService {
         }
 
         return request.getRemoteAddr();
+    }
+
+    private String hashApiKey(String apiKey) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(apiKey.getBytes(StandardCharsets.UTF_8));
+            StringBuilder sb = new StringBuilder(hash.length * 2);
+            for (byte b : hash) {
+                sb.append(String.format("%02x", b));
+            }
+            return sb.toString();
+        } catch (Exception e) {
+            // In the unlikely event hashing fails, fall back to masked api key to avoid using raw key
+            logger.warn("Failed to hash API key, falling back to masked representation");
+            return maskApiKey(apiKey);
+        }
     }
 }
