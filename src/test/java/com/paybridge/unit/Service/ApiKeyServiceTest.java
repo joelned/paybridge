@@ -18,6 +18,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
@@ -45,6 +47,11 @@ class ApiKeyServiceTest {
     void setUp() {
         MockitoAnnotations.openMocks(this);
         when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+        // Mock list and set operations to avoid NPEs during logging paths
+        org.springframework.data.redis.core.ListOperations<String, Object> listOps = mock(org.springframework.data.redis.core.ListOperations.class);
+        org.springframework.data.redis.core.SetOperations<String, Object> setOps = mock(org.springframework.data.redis.core.SetOperations.class);
+        when(redisTemplate.opsForList()).thenReturn(listOps);
+        when(redisTemplate.opsForSet()).thenReturn(setOps);
     }
 
     // ---------- API Key generation ----------
@@ -198,9 +205,10 @@ class ApiKeyServiceTest {
     void checkRateLimit_ShouldAllowWhenBelowLimit() {
         String apiKey = "pk_test_example";
 
-        // Mock the Redis keys that are actually used by your implementation
-        String hourlyKey = "apikey:" + apiKey + ":count:hourly:" + getCurrentHourlySuffix();
-        String dailyKey = "apikey:" + apiKey + ":count:daily:" + getCurrentDailySuffix();
+        // Mock the Redis keys that are actually used by the implementation (hash-based)
+        String apiKeyHash = sha256(apiKey);
+        String hourlyKey = "apikey:" + apiKeyHash + ":count:hourly:" + getCurrentHourlySuffix();
+        String dailyKey = "apikey:" + apiKeyHash + ":count:daily:" + getCurrentDailySuffix();
 
         when(valueOperations.get(hourlyKey)).thenReturn(100L);
         when(valueOperations.get(dailyKey)).thenReturn(500L);
@@ -240,7 +248,7 @@ class ApiKeyServiceTest {
         // Should not throw exception, should fail open (allow request)
         assertDoesNotThrow(() -> {
             boolean result = apiKeyService.checkRateLimit(apiKey);
-            assertFalse(result, "Should allow request when Redis fails");
+            assertTrue(result, "Should allow request when Redis fails");
         });
     }
 
@@ -438,5 +446,19 @@ class ApiKeyServiceTest {
         LocalDate today = LocalDate.now();
         return String.format("%d-%02d-%02d",
                 today.getYear(), today.getMonthValue(), today.getDayOfMonth());
+    }
+
+    private String sha256(String input) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(input.getBytes(StandardCharsets.UTF_8));
+            StringBuilder sb = new StringBuilder(hash.length * 2);
+            for (byte b : hash) {
+                sb.append(String.format("%02x", b));
+            }
+            return sb.toString();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 }
