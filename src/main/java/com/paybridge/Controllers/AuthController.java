@@ -72,9 +72,10 @@ public class AuthController {
             return ResponseEntity.status(400).body(errorResponse);
         }
         merchant.setTestMode(true);
-        merchant.setApiKeyTest(apiKeyService.generateApiKey(true));
-        merchant.setApiKeyLive(apiKeyService.generateApiKey(false));
+        // Persist testMode flag change first to avoid overwriting keys set in a separate transaction
         merchantRepository.save(merchant);
+        // Generate both test and live API keys and persist their hashes as part of remediation
+        apiKeyService.regenerateApiKey(merchant.getId(), true, true);
 
         return ResponseEntity.status(status).body(response);
     }
