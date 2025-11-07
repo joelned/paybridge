@@ -9,6 +9,27 @@
     <!-- CHANGESET 1: CREATE CORE TABLES -->
     <!-- ========================================== -->
 
+    <!-- ========================================== -->
+    <!-- CHANGESET 9999: ADD HASHED API KEY COLUMNS (Option B rollout) -->
+    <!-- ========================================== -->
+    <changeSet id="9999-add-api-key-test-hash" author="security-audit">
+        <addColumn tableName="merchants">
+            <column name="api_key_test_hash" type="VARCHAR(128)"/>
+        </addColumn>
+        <createIndex tableName="merchants" indexName="idx_merchants_api_key_test_hash">
+            <column name="api_key_test_hash"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="10000-add-api-key-live-hash" author="security-audit">
+        <addColumn tableName="merchants">
+            <column name="api_key_live_hash" type="VARCHAR(128)"/>
+        </addColumn>
+        <createIndex tableName="merchants" indexName="idx_merchants_api_key_live_hash">
+            <column name="api_key_live_hash"/>
+        </createIndex>
+    </changeSet>
+
     <changeSet id="1" author="paybridge">
         <comment>Create merchants table</comment>
         <createTable tableName="merchants">
