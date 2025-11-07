@@ -78,8 +78,7 @@ public class CookieAuthenticationFilter extends OncePerRequestFilter {
 
         // Don't filter public endpoints
         return path.startsWith("/api/v1/auth/") ||
-                path.equals("/api/v1/merchants") ||
-                path.equals("/");
+                path.equals("/api/v1/merchants");
     }
 
     /**
