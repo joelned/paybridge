@@ -55,6 +55,13 @@ public class Merchant {
     @Column(name="api_key_live")
     private String apiKeyLive;
 
+    // New hashed-api-key columns (Option B rollout)
+    @Column(name = "api_key_test_hash")
+    private String apiKeyTestHash;
+
+    @Column(name = "api_key_live_hash")
+    private String apiKeyLiveHash;
+
     @Column(name="test_mode")
     private boolean testMode = true;
 
@@ -62,6 +69,10 @@ public class Merchant {
         return testMode ? apiKeyTest : apiKeyLive;
     }
 
+    public String getApiKeyTestHash() { return apiKeyTestHash; }
+    public void setApiKeyTestHash(String apiKeyTestHash) { this.apiKeyTestHash = apiKeyTestHash; }
+    public String getApiKeyLiveHash() { return apiKeyLiveHash; }
+    public void setApiKeyLiveHash(String apiKeyLiveHash) { this.apiKeyLiveHash = apiKeyLiveHash; }
 
 
     // Relationships
