@@ -16,6 +16,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.Collections;
 import java.util.Optional;
 
@@ -53,20 +54,21 @@ public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
         if (!apiKeyService.checkRateLimit(apiKey)) {
             response.setStatus(429);
             response.setContentType("application/json");
-            response.getWriter().write(
-                    "{\"error\":\"Rate limit exceeded\", \"message\":\"You have exceeded your API rate limit. " +
-                            "Please try again later.\"}"
-            );
+            try (PrintWriter writer = response.getWriter()) {
+                writer.write(
+                        "{\"error\":\"Rate limit exceeded\", \"message\":\"You have exceeded your API rate limit. " +
+                                "Please try again later.\"}"
+                );
+            }
             return;
         }
-
-        // Find merchant by API key
-        Optional<Merchant> merchantOpt = merchantRepository.findByApiKeyTestOrApiKeyLive(apiKey);
+        // Find merchant by API key (hashed lookup with legacy fallback)
+        Optional<Merchant> merchantOpt = apiKeyService.findMerchantByApiKey(apiKey);
 
         if (merchantOpt.isPresent()) {
             Merchant merchant = merchantOpt.get();
 
-            if (!merchantRepository.hasMerchantEnabledUser(merchant.getId()) ||
+            if (!merchantRepository.hasMerchantEnabledUser(merchant.getId()) || merchant.getStatus() != null ||
             merchant.getStatus() == MerchantStatus.SUSPENDED || merchant.getStatus() == MerchantStatus.INACTIVE) {
                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                 response.setContentType("application/json");
@@ -95,12 +97,11 @@ public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
             String ip = apiKeyService.getClientIpAddress(request);
             String userAgent = request.getHeader("User-Agent");
 
-            // Note: We log with 0 status here; the actual status will be logged later
-            // This is a limitation of the current design - consider using a response wrapper
             apiKeyService.logApiKeyUsageToRedis(merchant, apiKey, path, method, ip, userAgent, 0);
         }
-        // If API key is invalid, don't set authentication - let the request proceed
-        // It will be rejected by Spring Security if it requires authentication
+        else{
+            SecurityContextHolder.clearContext();
+        }
 
         filterChain.doFilter(request, response);
     }
