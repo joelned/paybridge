@@ -1,6 +1,7 @@
 package com.paybridge.Services;
 
 import com.paybridge.Configs.FlutterwaveConnectionTester;
+import com.paybridge.Configs.PaystackConnectionTester;
 import com.paybridge.Configs.StripeConnectionTester;
 import com.paybridge.Models.DTOs.ProviderConfiguration;
 import com.paybridge.Models.Entities.Merchant;
@@ -42,6 +43,8 @@ public class ProviderService {
     @Autowired
     private FlutterwaveConnectionTester flutterwaveConnectionTester;
 
+    @Autowired
+    private PaystackConnectionTester paystackConnectionTester;
     /**
      * Configure provider with connection testing
      */
@@ -154,7 +157,7 @@ public class ProviderService {
         // Test connection
         long startTime = System.currentTimeMillis();
         ConnectionTestResult result = testProviderConnection(
-                config.getProvider().getName(),
+                config.getProvider().getName().toLowerCase(),
                 credentials
         );
         long duration = System.currentTimeMillis() - startTime;
@@ -183,8 +186,8 @@ public class ProviderService {
                 return stripeConnectionTester.testConnection(credentials);
             case "flutterwave":
                 return flutterwaveConnectionTester.testConnection(credentials);
-            case "paypal":
-                return ConnectionTestResult.success("PayPal testing not yet implemented");
+            case "paystack":
+                return paystackConnectionTester.testConnection(credentials);
             default:
                 throw new IllegalArgumentException("Unsupported provider: " + providerName);
         }
@@ -195,14 +198,11 @@ public class ProviderService {
      */
     private void validateProviderConfig(String providerName, Map<String, Object> config) {
         switch (providerName.toLowerCase()) {
-            case "stripe":
+            case "stripe", "paystack":
                 requireFields(config, "secretKey");
                 break;
             case "flutterwave":
                 requireFields(config, "clientSecret", "clientId", "encryptionKey");
-                break;
-            case "paypal":
-                requireFields(config, "clientId", "clientSecret");
                 break;
             default:
                 throw new IllegalArgumentException("Unsupported provider: " + providerName);
