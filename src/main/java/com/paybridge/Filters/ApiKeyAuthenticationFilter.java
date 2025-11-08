@@ -1,13 +1,16 @@
 package com.paybridge.Filters;
 
 import com.paybridge.Models.Entities.Merchant;
+import com.paybridge.Models.Entities.Users;
 import com.paybridge.Models.Enums.MerchantStatus;
 import com.paybridge.Repositories.MerchantRepository;
+import com.paybridge.Repositories.UserRepository;
 import com.paybridge.Services.ApiKeyService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -26,6 +29,9 @@ import java.util.Optional;
  */
 @Component
 public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
+
+    @Autowired
+    private UserRepository userRepository;
 
     private static final String API_KEY_HEADER = "x-api-key";
 
@@ -67,9 +73,8 @@ public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
 
         if (merchantOpt.isPresent()) {
             Merchant merchant = merchantOpt.get();
-
-            if (!merchantRepository.hasMerchantEnabledUser(merchant.getId()) || merchant.getStatus() != null ||
-            merchant.getStatus() == MerchantStatus.SUSPENDED || merchant.getStatus() == MerchantStatus.INACTIVE) {
+            if (!merchantRepository.hasMerchantEnabledUser(merchant.getId()) ||
+                    merchant.getStatus() == MerchantStatus.SUSPENDED) {
                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                 response.setContentType("application/json");
                 response.getWriter().write(
