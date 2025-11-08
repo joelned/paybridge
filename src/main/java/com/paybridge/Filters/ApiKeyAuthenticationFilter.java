@@ -1,5 +1,6 @@
 package com.paybridge.Filters;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.paybridge.Models.Entities.Merchant;
 import com.paybridge.Models.Entities.Users;
 import com.paybridge.Models.Enums.MerchantStatus;
@@ -11,6 +12,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -19,8 +21,9 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -59,13 +62,13 @@ public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
         // Check rate limit
         if (!apiKeyService.checkRateLimit(apiKey)) {
             response.setStatus(429);
-            response.setContentType("application/json");
-            try (PrintWriter writer = response.getWriter()) {
-                writer.write(
-                        "{\"error\":\"Rate limit exceeded\", \"message\":\"You have exceeded your API rate limit. " +
-                                "Please try again later.\"}"
-                );
-            }
+            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+
+            Map<String, String> errorResponseMessage = new HashMap<>();
+            errorResponseMessage.put("status", "error");
+            errorResponseMessage.put("message", "Rate limit exceeded");
+
+            response.getWriter().write(new ObjectMapper().writeValueAsString(errorResponseMessage));
             return;
         }
         // Find merchant by API key (hashed lookup with legacy fallback)
@@ -73,14 +76,18 @@ public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
 
         if (merchantOpt.isPresent()) {
             Merchant merchant = merchantOpt.get();
-            if (!merchantRepository.hasMerchantEnabledUser(merchant.getId()) ||
+            if (merchant.getStatus() != null || !merchantRepository.hasMerchantEnabledUser(merchant.getId()) ||
                     merchant.getStatus() == MerchantStatus.SUSPENDED) {
+
                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                response.setContentType("application/json");
-                response.getWriter().write(
-                        "{\"error\":\"Account disabled\", \"message\":\"This account has been disabled. " +
-                                "Please contact support.\"}"
-                );
+                response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+
+                Map<String, String> errorResponseMessage = new HashMap<>();
+
+                errorResponseMessage.put("message", "Account has been disabled. Please contact support");
+                errorResponseMessage.put("status", "error");
+
+                response.getWriter().write(new ObjectMapper().writeValueAsString(errorResponseMessage));
                 return;
             }
             // Create authentication token
