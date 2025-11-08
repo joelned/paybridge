@@ -1,6 +1,5 @@
 package com.paybridge.Services;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.paybridge.Models.Entities.ApiKeyUsage;
 import com.paybridge.Models.Entities.Merchant;
 import com.paybridge.Repositories.ApiKeyUsageRepository;
@@ -40,9 +39,6 @@ public class ApiKeyService {
 
     @Autowired
     private RedisTemplate<String, Object> redisTemplate;
-
-    @Autowired
-    private ObjectMapper objectMapper;
 
     private final Logger logger = LoggerFactory.getLogger(ApiKeyService.class);
 
@@ -93,7 +89,7 @@ public class ApiKeyService {
      * Find Merchant by presented API key using hashed lookup. Performs lazy backfill of hash columns
      * if only plaintext columns are populated (Option B rollout phase).
      */
-    @Transactional(readOnly = false)
+    @Transactional
     public Optional<Merchant> findMerchantByApiKey(String apiKey) {
         if (apiKey == null || apiKey.isEmpty()) {
             return Optional.empty();

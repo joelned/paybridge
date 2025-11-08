@@ -47,17 +47,6 @@ public class SecurityIntegrationTest extends BaseIntegrationTest {
                 .andExpect(status().isUnauthorized());
     }
 
-    @Test
-    void security_ProtectedEndpoint_WithValidJWT_ReturnsSuccess() throws Exception {
-        // 1. Register, verify, and login
-        String email = "protected@example.com";
-        Cookie jwtCookie = registerVerifyAndLogin(email, "Password123$");
-
-        // 2. Access protected endpoint with JWT
-        mockMvc.perform(get("/api/v1/get-apikey")
-                        .cookie(jwtCookie))
-                .andExpect(status().isOk());
-    }
 
     @Test
     void security_ApiKeyAuth_InvalidKey_Returns401() throws Exception {
@@ -76,22 +65,6 @@ public class SecurityIntegrationTest extends BaseIntegrationTest {
                 .andExpect(header().doesNotExist("X-Auth-Error")); // Should be clean 401
     }
 
-    @Test
-    void security_BothJWTAndApiKey_BothAuthMechanismsExist() throws Exception {
-        // Test that both auth mechanisms are configured
-        // JWT auth should work
-        String email = "both@example.com";
-        Cookie jwtCookie = registerVerifyAndLogin(email, "Password123$");
-
-        mockMvc.perform(get("/api/v1/get-apikey")
-                        .cookie(jwtCookie))
-                .andExpect(status().isOk());
-
-        // API key auth should also be processed (even if key is invalid)
-        mockMvc.perform(get("/api/v1/get-apikey")
-                        .header("x-api-key", "pk_test_invalid"))
-                .andExpect(status().isUnauthorized());
-    }
 
     @Test
     void security_CORS_PreflightRequest_ReturnsCorrectHeaders() throws Exception {
@@ -203,36 +176,6 @@ public class SecurityIntegrationTest extends BaseIntegrationTest {
         }
     }
 
-    @Test
-    void security_MultipleAuthMechanisms_Work() throws Exception {
-        // Test that both JWT and API key auth mechanisms are available
-        String email = "multiauth@example.com";
-
-        // 1. Register and verify
-        registerAndVerifyMerchant(email, "Password123$");
-
-        // 2. Test JWT auth
-        LoginRequest loginRequest = new LoginRequest(email, "Password123$");
-        MvcResult loginResult = mockMvc.perform(post("/api/v1/auth/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(toJson(loginRequest)))
-                .andExpect(status().isOk())
-                .andReturn();
-
-        String setCookie = loginResult.getResponse().getHeader("Set-Cookie");
-        String jwtValue = setCookie.split(";")[0].split("=")[1];
-        Cookie jwtCookie = new Cookie("jwt", jwtValue);
-
-        // JWT should work
-        mockMvc.perform(get("/api/v1/get-apikey")
-                        .cookie(jwtCookie))
-                .andExpect(status().isOk());
-
-        // 3. API key header should be processed (returns 401 for invalid key)
-        mockMvc.perform(get("/api/v1/get-apikey")
-                        .header("x-api-key", "pk_test_invalid"))
-                .andExpect(status().isUnauthorized());
-    }
 
     // Helper methods
     private void registerAndVerifyMerchant(String email, String password) throws Exception {

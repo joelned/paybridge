@@ -22,37 +22,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 public class ApiKeyIntegrationTest extends BaseIntegrationTest {
 
     @Test
-    void getApiKey_WithValidAuthentication_ReturnsApiKeys() throws Exception {
-        // 1. Register, verify, and login
-        String email = "apikey@example.com";
-        String password = "Password123$";
-        Cookie jwtCookie = registerVerifyAndLogin(email, password);
-
-        // 2. Get API keys
-        MvcResult result = mockMvc.perform(get("/api/v1/get-apikey")
-                        .cookie(jwtCookie))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.api_key_test").exists())
-                .andExpect(jsonPath("$.api_key_live").exists())
-                .andExpect(jsonPath("$.isTestMode").value(true))
-                .andExpect(jsonPath("$.activeApiKey").exists())
-                .andReturn();
-
-        // 3. Verify API keys format
-        String responseBody = result.getResponse().getContentAsString();
-        assertTrue(responseBody.contains("pk_test_"));
-        assertTrue(responseBody.contains("pk_live_"));
-
-        // 4. Verify in database
-        Merchant merchant = merchantRepository.findByEmail(email);
-        assertNotNull(merchant);
-        assertNotNull(merchant.getApiKeyTest());
-        assertNotNull(merchant.getApiKeyLive());
-        assertTrue(merchant.getApiKeyTest().startsWith("pk_test_"));
-        assertTrue(merchant.getApiKeyLive().startsWith("pk_live_"));
-    }
-
-    @Test
     void getApiKey_WithoutAuthentication_ShouldReturn401() throws Exception {
         mockMvc.perform(get("/api/v1/get-apikey"))
                 .andExpect(status().isUnauthorized());

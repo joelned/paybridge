@@ -3,6 +3,8 @@ package com.paybridge.Controllers;
 import com.paybridge.Models.DTOs.ProviderConfiguration;
 import com.paybridge.Models.Entities.Merchant;
 import com.paybridge.Models.Entities.ProviderConfig;
+import com.paybridge.Models.Enums.MerchantStatus;
+import com.paybridge.Repositories.MerchantRepository;
 import com.paybridge.Services.AuthenticationService;
 import com.paybridge.Services.ConnectionTestResult;
 import com.paybridge.Services.ProviderService;
@@ -24,6 +26,9 @@ public class ProviderController {
 
     @Autowired
     private AuthenticationService authenticationService;
+
+    @Autowired
+    private MerchantRepository merchantRepository;
 
     @PostMapping("/configure")
     public ResponseEntity<Map<String, Object>> configureProvider(
@@ -47,6 +52,8 @@ public class ProviderController {
             response.put("provider", config.getProvider().getDisplayName());
             response.put("tested", testConnection);
 
+            merchant.setStatus(MerchantStatus.ACTIVE);
+            merchantRepository.save(merchant);
             return ResponseEntity.ok(response);
 
         } catch (IllegalArgumentException e) {
@@ -64,7 +71,7 @@ public class ProviderController {
         } catch (Exception e) {
             Map<String, Object> response = new HashMap<>();
             response.put("status", "error");
-            response.put("message", "Failed to configure provider: " + e.getMessage());
+            response.put("message", "Failed to configure provider");
             return ResponseEntity.internalServerError().body(response);
         }
     }
@@ -89,6 +96,9 @@ public class ProviderController {
             response.put("durationMs", result.getTestDurationMs());
             response.put("metadata", result.getMetadata());
 
+            merchant.setStatus(MerchantStatus.ACTIVE);
+            merchantRepository.save(merchant);
+
             return result.isSuccess()
                     ? ResponseEntity.ok(response)
                     : ResponseEntity.badRequest().body(response);
@@ -102,7 +112,7 @@ public class ProviderController {
         } catch (Exception e) {
             Map<String, Object> response = new HashMap<>();
             response.put("status", "error");
-            response.put("message", "Test failed: " + e.getMessage());
+            response.put("message", "Test failed");
             return ResponseEntity.internalServerError().body(response);
         }
     }
