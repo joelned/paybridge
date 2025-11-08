@@ -20,6 +20,7 @@ import org.springframework.security.web.authentication.WebAuthenticationDetailsS
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
+import javax.print.attribute.standard.Media;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
@@ -76,7 +77,7 @@ public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
 
         if (merchantOpt.isPresent()) {
             Merchant merchant = merchantOpt.get();
-            if (merchant.getStatus() != null || !merchantRepository.hasMerchantEnabledUser(merchant.getId()) ||
+            if (!merchantRepository.hasMerchantEnabledUser(merchant.getId()) ||
                     merchant.getStatus() == MerchantStatus.SUSPENDED) {
 
                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
@@ -89,6 +90,18 @@ public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
 
                 response.getWriter().write(new ObjectMapper().writeValueAsString(errorResponseMessage));
                 return;
+            }
+            if(merchant.getStatus() != null || merchant.getStatus() == MerchantStatus.PENDING_PROVIDER_SETUP){
+                response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+                Map<String, String> errorResponseMessage = new HashMap<>();
+
+                errorResponseMessage.put("message", "Please configure at least one provider to use api key");
+                errorResponseMessage.put("status", "error");
+
+                response.getWriter().write(new ObjectMapper().writeValueAsString(errorResponseMessage));
+                return;
+
             }
             // Create authentication token
             UsernamePasswordAuthenticationToken authentication =
