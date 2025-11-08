@@ -75,7 +75,6 @@ public class FlutterwaveConnectionTester {
                         .withMetadata("tokenType", safeToString(tokenResponse.getTokenType()))
                         .withMetadata("expiresIn", String.valueOf(tokenResponse.getExpiresIn()))
                         .withMetadata("scope", safeToString(tokenResponse.getScope()))
-                        .withMetadata("environment", inferEnvironment(clientId))
                         .withMetadata("validatedAt", Instant.now().toString());
 
             } else {
@@ -124,20 +123,6 @@ public class FlutterwaveConnectionTester {
         return "Authentication failed with status: " + e.getStatusCode();
     }
 
-    /**
-     * Infer environment from client ID pattern
-     */
-    private String inferEnvironment(String clientId) {
-        if (clientId == null) return "unknown";
-
-        if (clientId.toLowerCase().contains("test")) {
-            return "test";
-        } else if (clientId.toLowerCase().contains("live")) {
-            return "live";
-        } else {
-            return "unknown";
-        }
-    }
 
     /**
      * Mask token for secure logging (show first and last 4 chars only)
@@ -156,68 +141,8 @@ public class FlutterwaveConnectionTester {
         return value != null ? value : "unknown";
     }
 
-    /**
-     * Enhanced debugging method to log raw response
-     */
-    public ConnectionTestResult testConnectionWithDebug(Map<String, Object> credentials) {
-        String clientId = (String) credentials.get("clientId");
-        String clientSecret = (String) credentials.get("clientSecret");
 
-        try {
-            // Prepare request
-            MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
-            body.add("client_id", clientId);
-            body.add("client_secret", clientSecret);
-            body.add("grant_type", "client_credentials");
-
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-
-            HttpEntity<MultiValueMap<String, String>> entity = new HttpEntity<>(body, headers);
-
-            // First, get raw response as String to see what's actually returned
-            ResponseEntity<String> rawResponse = restTemplate.exchange(
-                    FLUTTERWAVE_TOKEN_URL,
-                    HttpMethod.POST,
-                    entity,
-                    String.class
-            );
-
-            logger.debug("Raw Flutterwave response: {}", rawResponse.getBody());
-
-            // Now parse as TokenResponse
-            ResponseEntity<TokenResponse> response = restTemplate.exchange(
-                    FLUTTERWAVE_TOKEN_URL,
-                    HttpMethod.POST,
-                    entity,
-                    TokenResponse.class
-            );
-
-            if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
-                TokenResponse tokenResponse = response.getBody();
-
-                if (tokenResponse.getAccessToken() == null) {
-                    logger.error("Flutterwave response missing access_token. Full response: {}", rawResponse.getBody());
-                    return ConnectionTestResult.failure("Authentication succeeded but access token is missing");
-                }
-
-                return ConnectionTestResult.success("Flutterwave credentials are valid")
-                        .withMetadata("accessToken", maskToken(tokenResponse.getAccessToken()))
-                        .withMetadata("tokenType", safeToString(tokenResponse.getTokenType()))
-                        .withMetadata("expiresIn", String.valueOf(tokenResponse.getExpiresIn()))
-                        .withMetadata("scope", safeToString(tokenResponse.getScope()));
-
-            } else {
-                return ConnectionTestResult.failure("Unexpected response: " + response.getStatusCode());
-            }
-
-        } catch (Exception e) {
-            logger.error("Debug connection test failed", e);
-            return ConnectionTestResult.failure("Debug test failed: " + e.getMessage());
-        }
-    }
-
-    /**
+    /*
      * Token Response DTO with better null safety
      */
     public static class TokenResponse {
