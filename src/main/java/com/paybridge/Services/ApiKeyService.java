@@ -272,7 +272,7 @@ public class ApiKeyService {
         return stats;
     }
 
-    @Scheduled(fixedRate = 300000)
+    @Scheduled(fixedRate = 600000)
     @Transactional
     public void persistLogsToDatabase() {
         logger.info("Starting scheduled job: persisting Redis logs to database");
