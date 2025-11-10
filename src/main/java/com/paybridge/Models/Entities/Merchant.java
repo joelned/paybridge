@@ -1,6 +1,7 @@
 package com.paybridge.Models.Entities;
 
 import com.paybridge.Models.Enums.MerchantStatus;
+import com.stripe.model.Customer;
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
@@ -75,9 +76,6 @@ public class Merchant {
     public void setApiKeyLiveHash(String apiKeyLiveHash) { this.apiKeyLiveHash = apiKeyLiveHash; }
 
 
-    // Relationships
-    @OneToMany(mappedBy = "merchant", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<Customer> customers = new ArrayList<>();
 
     @OneToMany(mappedBy = "merchant", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Payment> payments = new ArrayList<>();
@@ -194,14 +192,9 @@ public class Merchant {
         return updatedAt;
     }
 
-    public List<Customer> getCustomers() {
-        return customers;
-    }
-
     public List<Payment> getPayments() {
         return payments;
     }
-
 
     public void setBusinessName(String businessName) {
         this.businessName = businessName;
@@ -222,10 +215,6 @@ public class Merchant {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
-    }
-
-    public void setCustomers(List<Customer> customers) {
-        this.customers = customers;
     }
 
     public void setPayments(List<Payment> payments) {

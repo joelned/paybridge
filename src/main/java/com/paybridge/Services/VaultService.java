@@ -44,8 +44,8 @@ public class VaultService {
             }
             return (Map<String, Object>) response.getData().get("data");
 
-        }catch (Exception ex){
-            throw new RuntimeException("Failed to retrieve provider configuration from Vault", ex);
+        } catch (Exception ex) {
+            throw new RuntimeException("Provider configuration not found in Vault", ex);
         }
     }
 

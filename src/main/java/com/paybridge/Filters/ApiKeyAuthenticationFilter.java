@@ -2,7 +2,6 @@ package com.paybridge.Filters;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.paybridge.Models.Entities.Merchant;
-import com.paybridge.Models.Entities.Users;
 import com.paybridge.Models.Enums.MerchantStatus;
 import com.paybridge.Repositories.MerchantRepository;
 import com.paybridge.Repositories.UserRepository;
@@ -20,7 +19,6 @@ import org.springframework.security.web.authentication.WebAuthenticationDetailsS
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-import javax.print.attribute.standard.Media;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
@@ -91,7 +89,7 @@ public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
                 response.getWriter().write(new ObjectMapper().writeValueAsString(errorResponseMessage));
                 return;
             }
-            if(merchant.getStatus() != null || merchant.getStatus() == MerchantStatus.PENDING_PROVIDER_SETUP){
+            if(merchant.getStatus() == MerchantStatus.PENDING_PROVIDER_SETUP){
                 response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
                 response.setContentType(MediaType.APPLICATION_JSON_VALUE);
                 Map<String, String> errorResponseMessage = new HashMap<>();
@@ -127,7 +125,6 @@ public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
         else{
             SecurityContextHolder.clearContext();
         }
-
         filterChain.doFilter(request, response);
     }
 

@@ -1,11 +1,9 @@
 package com.paybridge.Models.Entities;
 
-import com.paybridge.Services.MapToJsonConverter;
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
-import java.util.Map;
 
 @Entity
 @Table(name = "provider_configs")
@@ -74,7 +72,7 @@ public class ProviderConfig {
         this.provider = provider;
     }
 
-    public Boolean getEnabled() {
+    public Boolean isEnabled() {
         return isEnabled;
     }
 

@@ -41,7 +41,6 @@ public class CookieAuthenticationFilter extends OncePerRequestFilter {
             filterChain.doFilter(request, response);
             return;
         }
-
         try {
             String token = getJwtFromCookie(request);
 
@@ -52,23 +51,18 @@ public class CookieAuthenticationFilter extends OncePerRequestFilter {
                 // Convert JWT to Authentication
                 Authentication authentication = jwtAuthenticationConverter.convert(jwt);
 
-                if (authentication != null) {
-                    // Set authentication in context
-                    SecurityContextHolder.getContext().setAuthentication(authentication);
-                }
+                SecurityContextHolder.getContext().setAuthentication(authentication);
             }
         } catch (JwtException e) {
-            // Log JWT validation failure but don't stop the filter chain
             logger.debug("JWT validation failed: " + e.getMessage());
+
             // Clear any partial authentication
             SecurityContextHolder.clearContext();
         } catch (Exception e) {
-            // Log unexpected errors
             logger.error("Error processing JWT from cookie: " + e.getMessage(), e);
             SecurityContextHolder.clearContext();
         }
-
-        // Always continue the filter chain
+        //Continue the filter chain
         filterChain.doFilter(request, response);
     }
 
@@ -76,7 +70,6 @@ public class CookieAuthenticationFilter extends OncePerRequestFilter {
     protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
         String path = request.getRequestURI();
 
-        // Don't filter public endpoints
         return path.startsWith("/api/v1/auth/") ||
                 path.equals("/api/v1/merchants");
     }

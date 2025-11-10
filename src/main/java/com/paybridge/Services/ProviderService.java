@@ -80,8 +80,6 @@ public class ProviderService {
                         testResult.getMessage());
             }
 
-            log.info("Provider connection test successful for {} (merchant: {})",
-                    providerConfiguration.getName(), merchantId);
         }
 
         // 5. Store credentials in Vault
