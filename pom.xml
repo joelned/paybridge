@@ -6,7 +6,7 @@
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
 		<version>3.5.6</version>
-		<relativePath/> <!-- lookup parent from repository -->
+		<relativePath/> <!-- lookup parent from a repository -->
 	</parent>
 	<groupId>com.paybridge</groupId>
 	<artifactId>paybridge</artifactId>
@@ -104,12 +104,6 @@
             <version>32.0.1-jre</version>
         </dependency>
 
-        <dependency>
-            <groupId>com.stripe</groupId>
-            <artifactId>stripe-java</artifactId>
-            <version>24.16.0</version>
-        </dependency>
-
         <!-- For Flutterwave (HTTP Client) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -133,11 +127,6 @@
 			<groupId>org.liquibase</groupId>
 			<artifactId>liquibase-core</artifactId>
 		</dependency>
-
-        <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-databind</artifactId>
-        </dependency>
 
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
