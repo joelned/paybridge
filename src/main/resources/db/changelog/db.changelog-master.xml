@@ -287,4 +287,50 @@
             <column name="enabled" value="true"/>
         </insert>
     </changeSet>
+
+    <changeSet id="009-create-customer-table" author="paybridge">
+        <createTable tableName="customers">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="merchant_id" type="BIGINT">
+                <constraints nullable="false"
+                             foreignKeyName="fk_merchant_customer"
+                             references="merchants(id)"/>
+            </column>
+            <column name="external_customer_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="full_name" type="VARCHAR(50)"/>
+            <column name="email" type="VARCHAR(50)"/>
+            <column name="phone" type="VARCHAR(18)"/>
+        </createTable>
+    </changeSet>
+
+
+    <changeSet id="010-create-idempotency-key-table" author="paybridge">
+       <createTable tableName="idempotency_keys">
+           <column name="id" type="INT" autoIncrement="true">
+               <constraints primaryKey="true" nullable="false"/>
+           </column>
+           <column name="idempotency_key" type="VARCHAR(255)">
+               <constraints nullable="false"/>
+           </column>
+           <column name="customer_id" type="BIGINT">
+               <constraints nullable="false"
+                            foreignKeyName="fk_customer_idempotency_key"
+                            references="customers(id)"/>
+
+           </column>
+           <column name="request_hash" type="TEXT">
+               <constraints nullable="false"/>
+           </column>
+           <column name="response" type="TEXT"/>
+           <column name="status" type="VARCHAR(20)" defaultValue="processing">
+               <constraints nullable="false"/>
+           </column>
+           <column name="created_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP"/>
+       </createTable>
+    </changeSet>
+
 </databaseChangeLog>
