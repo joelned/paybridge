@@ -1,6 +1,7 @@
 package com.paybridge.Configs;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.paybridge.Interfaces.ConnectionTester;
 import com.paybridge.Services.ConnectionTestResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,7 +17,7 @@ import java.time.Instant;
 import java.util.Map;
 
 @Component
-public class FlutterwaveConnectionTester {
+public class FlutterwaveConnectionTester implements ConnectionTester {
 
     private static final Logger logger = LoggerFactory.getLogger(FlutterwaveConnectionTester.class);
     private static final String FLUTTERWAVE_TOKEN_URL = "https://idp.flutterwave.com/realms/flutterwave/protocol/openid-connect/token";
@@ -27,6 +28,7 @@ public class FlutterwaveConnectionTester {
     /**
      * Test Flutterwave API connection using OAuth2 client credentials flow
      */
+    @Override
     public ConnectionTestResult testConnection(Map<String, Object> credentials) {
         String clientId = (String) credentials.get("clientId");
         String clientSecret = (String) credentials.get("clientSecret");

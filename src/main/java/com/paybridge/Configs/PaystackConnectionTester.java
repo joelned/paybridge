@@ -1,5 +1,6 @@
 package com.paybridge.Configs;
 
+import com.paybridge.Interfaces.ConnectionTester;
 import com.paybridge.Services.ConnectionTestResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -11,13 +12,14 @@ import org.springframework.web.client.RestTemplate;
 import java.util.Map;
 
 @Component
-public class PaystackConnectionTester {
+public class PaystackConnectionTester implements ConnectionTester {
     private static final Logger logger = LoggerFactory.getLogger(PaystackConnectionTester.class);
     private static final String PAYSTACK_TOKEN_URL = "https://api.paystack.co/";
 
     @Autowired
     private RestTemplate restTemplate;
 
+    @Override
     public ConnectionTestResult testConnection(Map<String, Object> credentials) {
        String secretKey = (String) credentials.get("secretKey");
        if(secretKey == null || secretKey.isEmpty()){

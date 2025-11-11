@@ -1,5 +1,6 @@
 package com.paybridge.Configs;
 
+import com.paybridge.Interfaces.ConnectionTester;
 import com.paybridge.Services.ConnectionTestResult;
 import com.stripe.Stripe;
 import com.stripe.StripeClient;
@@ -15,7 +16,7 @@ import org.springframework.stereotype.Component;
 import java.util.Map;
 
 @Component
-public class StripeConnectionTester {
+public class StripeConnectionTester implements ConnectionTester {
 
     private static final Logger logger = LoggerFactory.getLogger(StripeConnectionTester.class);
 
