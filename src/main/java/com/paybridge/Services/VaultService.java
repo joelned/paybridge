@@ -20,7 +20,7 @@ public class VaultService {
 
     private static final String PROVIDER_PATH_PREFIX = "secret/data/paybridge/providers";
 
-    public void storeProviderConfig(String providerName, Long merchantId, Map<String, Object> config){
+    public void saveProviderConfig (String providerName, Long merchantId, Map<String, Object> config){
         String path = buildProviderPath(providerName, merchantId);
 
         try{
@@ -49,7 +49,7 @@ public class VaultService {
         }
     }
 
-    public void deleteProviderConfig(String providerName, Long merchantId){
+    public void removeProviderConfig(String providerName, Long merchantId){
         String path = buildProviderPath(providerName, merchantId);
 
         try{
@@ -60,7 +60,7 @@ public class VaultService {
         }
     }
 
-    public boolean configExists(String providerName, Long merchantId){
+    public boolean providerConfigExists (String providerName, Long merchantId){
         String path = buildProviderPath(providerName, merchantId);
 
         try{
@@ -72,11 +72,11 @@ public class VaultService {
         }
     }
 
-    public void updateProviderConfigField(String providerName, Long userId,
-                                          String fieldName, Object fieldValue) {
+    public void updateProviderConfigProperty (String providerName, Long userId,
+                                             String fieldName, Object fieldValue) {
         Map<String, Object> currentConfig = getProviderConfig(providerName, userId);
         currentConfig.put(fieldName, fieldValue);
-        storeProviderConfig(providerName, userId, currentConfig);
+        saveProviderConfig(providerName, userId, currentConfig);
     }
 
     private String buildProviderPath(String providerName, Long merchantId){
