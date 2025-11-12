@@ -26,7 +26,7 @@ public class ProviderService {
     private static final Logger log = LoggerFactory.getLogger(ProviderService.class);
 
     @Autowired
-    private VaultService vaultService;
+    private CredentialStorageService credentialStorageService;
 
     @Autowired
     private MerchantRepository merchantRepository;
@@ -45,6 +45,7 @@ public class ProviderService {
 
     @Autowired
     private PaystackConnectionTester paystackConnectionTester;
+
     /**
      * Configure provider with connection testing
      */
@@ -84,7 +85,7 @@ public class ProviderService {
 
         // 5. Store credentials in Vault
         try {
-            vaultService.storeProviderConfig(
+            credentialStorageService.saveProviderConfig(
                     providerConfiguration.getName(),
                     merchantId,
                     providerConfiguration.getConfig()
@@ -147,7 +148,7 @@ public class ProviderService {
         }
 
         // Get credentials from Vault
-        Map<String, Object> credentials = vaultService.getProviderConfig(
+        Map<String, Object> credentials = credentialStorageService.getProviderConfig(
                 config.getProvider().getName(),
                 merchantId
         );
@@ -179,16 +180,12 @@ public class ProviderService {
      */
     private ConnectionTestResult testProviderConnection(String providerName,
                                                         Map<String, Object> credentials) {
-        switch (providerName.toLowerCase()) {
-            case "stripe":
-                return stripeConnectionTester.testConnection(credentials);
-            case "flutterwave":
-                return flutterwaveConnectionTester.testConnection(credentials);
-            case "paystack":
-                return paystackConnectionTester.testConnection(credentials);
-            default:
-                throw new IllegalArgumentException("Unsupported provider: " + providerName);
-        }
+        return switch (providerName.toLowerCase()) {
+            case "stripe" -> stripeConnectionTester.testConnection(credentials);
+            case "flutterwave" -> flutterwaveConnectionTester.testConnection(credentials);
+            case "paystack" -> paystackConnectionTester.testConnection(credentials);
+            default -> throw new IllegalArgumentException("Unsupported provider: " + providerName);
+        };
     }
 
     /**
