@@ -1,7 +1,6 @@
 package com.paybridge.Services;
 
 import com.paybridge.Models.DTOs.LoginRequest;
-import com.paybridge.Models.DTOs.LoginResponse;
 import com.paybridge.Models.Entities.Merchant;
 import com.paybridge.Models.Entities.Users;
 import com.paybridge.Repositories.UserRepository;
@@ -29,7 +28,7 @@ public class AuthenticationService {
         this.tokenService = tokenService;
     }
 
-    public LoginResponse login(LoginRequest request) {
+    public String login(LoginRequest request) {
         Users user = userRepository.findByEmail(request.getEmail());
         if (user != null && !user.isEmailVerified()) {
             throw new RuntimeException("Please verify your email before logging in");
@@ -38,8 +37,7 @@ public class AuthenticationService {
                 request.getEmail(), request.getPassword()
         ));
 
-        String jwtToken = tokenService.generateToken(authentication);
-        return new LoginResponse(jwtToken, request.getEmail(), authentication.getAuthorities().toString(), "1 hour");
+        return tokenService.generateToken(authentication);
     }
     public Merchant getMerchantFromAuthentication(Authentication authentication){
         if (authentication == null) {
