@@ -10,8 +10,8 @@ import com.paybridge.Models.Entities.ProviderConfig;
 import com.paybridge.Repositories.MerchantRepository;
 import com.paybridge.Repositories.ProviderRepository;
 import com.paybridge.Repositories.ProviderConfigRepository;
+import com.paybridge.Services.CredentialStorageService;
 import com.paybridge.Services.ProviderService;
-import com.paybridge.Services.VaultService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -33,7 +33,7 @@ import static org.mockito.Mockito.*;
 class ProviderServiceTest {
 
     @Mock
-    private VaultService vaultService;
+    private CredentialStorageService credentialStorageService;
 
     @Mock
     private MerchantRepository merchantRepository;
@@ -107,7 +107,7 @@ class ProviderServiceTest {
         assertTrue(result.getVaultPath().contains("stripe"));
         assertTrue(result.getVaultPath().contains(MERCHANT_ID.toString()));
 
-        verify(vaultService).storeProviderConfig(eq(PROVIDER_NAME), eq(MERCHANT_ID), eq(validConfig.getConfig()));
+        verify(credentialStorageService).saveProviderConfig(eq(PROVIDER_NAME), eq(MERCHANT_ID), eq(validConfig.getConfig()));
         verify(providerConfigRepository).save(any(ProviderConfig.class));
         verify(stripeConnectionTester).testConnection(validConfig.getConfig());
     }
@@ -146,7 +146,7 @@ class ProviderServiceTest {
         assertEquals(flutterwaveProvider, result.getProvider());
         assertTrue(result.getVaultPath().contains("flutterwave"));
 
-        verify(vaultService).storeProviderConfig(eq("flutterwave"), eq(MERCHANT_ID), eq(flutterwaveConfig));
+        verify(credentialStorageService).saveProviderConfig(eq("flutterwave"), eq(MERCHANT_ID), eq(flutterwaveConfig));
         verify(flutterwaveConnectionTester).testConnection(flutterwaveConfig);
     }
 
@@ -182,7 +182,7 @@ class ProviderServiceTest {
         assertEquals(paystackProvider, result.getProvider());
         assertTrue(result.getVaultPath().contains("paystack"));
 
-        verify(vaultService).storeProviderConfig(eq("paystack"), eq(MERCHANT_ID), eq(paystackConfig));
+        verify(credentialStorageService).saveProviderConfig(eq("paystack"), eq(MERCHANT_ID), eq(paystackConfig));
         verify(paystackConnectionTester).testConnection(paystackConfig);
     }
 
@@ -213,7 +213,7 @@ class ProviderServiceTest {
         assertEquals(CONFIG_ID, result.getId());
         assertNotNull(result.getLastVerifiedAt());
 
-        verify(vaultService).storeProviderConfig(eq(PROVIDER_NAME), eq(MERCHANT_ID), eq(validConfig.getConfig()));
+        verify(credentialStorageService).saveProviderConfig(eq(PROVIDER_NAME), eq(MERCHANT_ID), eq(validConfig.getConfig()));
         verify(providerConfigRepository).save(existingConfig);
     }
 
@@ -233,7 +233,7 @@ class ProviderServiceTest {
         assertNotNull(result);
         assertNull(result.getLastVerifiedAt()); // Should not set lastVerified when testConnection = false
 
-        verify(vaultService).storeProviderConfig(eq(PROVIDER_NAME), eq(MERCHANT_ID), eq(validConfig.getConfig()));
+        verify(credentialStorageService).saveProviderConfig(eq(PROVIDER_NAME), eq(MERCHANT_ID), eq(validConfig.getConfig()));
         verifyNoInteractions(stripeConnectionTester);
     }
 
@@ -251,7 +251,7 @@ class ProviderServiceTest {
 
         assertTrue(exception.getMessage().contains("Provider connection test failed"));
         assertTrue(exception.getMessage().contains("Invalid API key"));
-        verify(vaultService, never()).storeProviderConfig(any(), any(), any());
+        verify(credentialStorageService, never()).saveProviderConfig(any(), any(), any());
         verify(providerConfigRepository, never()).save(any());
     }
 
@@ -303,7 +303,7 @@ class ProviderServiceTest {
         when(stripeConnectionTester.testConnection(any())).thenReturn(successResult);
 
         doThrow(new RuntimeException("Vault unreachable"))
-                .when(vaultService).storeProviderConfig(any(), any(), any());
+                .when(credentialStorageService).saveProviderConfig(any(), any(), any());
 
         // When & Then
         RuntimeException exception = assertThrows(RuntimeException.class,
@@ -411,7 +411,7 @@ class ProviderServiceTest {
         credentials.put("secretKey", "sk_test_123456789");
 
         when(providerConfigRepository.findById(CONFIG_ID)).thenReturn(Optional.of(config));
-        when(vaultService.getProviderConfig(PROVIDER_NAME, MERCHANT_ID)).thenReturn(credentials);
+        when(credentialStorageService.getProviderConfig(PROVIDER_NAME, MERCHANT_ID)).thenReturn(credentials);
 
         ConnectionTestResult successResult = ConnectionTestResult.success("Stripe test connection successful");
         when(stripeConnectionTester.testConnection(credentials)).thenReturn(successResult);
@@ -446,7 +446,7 @@ class ProviderServiceTest {
                 () -> providerService.testExistingProviderConfig(CONFIG_ID, MERCHANT_ID));
 
         assertEquals("Unauthorized access to provider configuration", exception.getMessage());
-        verify(vaultService, never()).getProviderConfig(any(), any());
+        verify(credentialStorageService, never()).getProviderConfig(any(), any());
     }
 
     @Test
@@ -461,7 +461,7 @@ class ProviderServiceTest {
         credentials.put("secretKey", "sk_test_123456789");
 
         when(providerConfigRepository.findById(CONFIG_ID)).thenReturn(Optional.of(config));
-        when(vaultService.getProviderConfig(PROVIDER_NAME, MERCHANT_ID)).thenReturn(credentials);
+        when(credentialStorageService.getProviderConfig(PROVIDER_NAME, MERCHANT_ID)).thenReturn(credentials);
 
         ConnectionTestResult failureResult = ConnectionTestResult.failure("Invalid credentials");
         when(stripeConnectionTester.testConnection(credentials)).thenReturn(failureResult);
@@ -498,7 +498,7 @@ class ProviderServiceTest {
         config.setMerchant(testMerchant);
 
         when(providerConfigRepository.findById(CONFIG_ID)).thenReturn(Optional.of(config));
-        when(vaultService.getProviderConfig(PROVIDER_NAME, MERCHANT_ID))
+        when(credentialStorageService.getProviderConfig(PROVIDER_NAME, MERCHANT_ID))
                 .thenThrow(new RuntimeException("Provider configuration not found in Vault"));
 
         // When & Then
@@ -526,7 +526,7 @@ class ProviderServiceTest {
         credentials.put("encryptionKey", "encrypt_123");
 
         when(providerConfigRepository.findById(CONFIG_ID)).thenReturn(Optional.of(config));
-        when(vaultService.getProviderConfig("flutterwave", MERCHANT_ID)).thenReturn(credentials);
+        when(credentialStorageService.getProviderConfig("flutterwave", MERCHANT_ID)).thenReturn(credentials);
 
         ConnectionTestResult successResult = ConnectionTestResult.success("Flutterwave credentials are valid");
         when(flutterwaveConnectionTester.testConnection(credentials)).thenReturn(successResult);
@@ -559,7 +559,7 @@ class ProviderServiceTest {
         credentials.put("secretKey", "sk_test_paystack_123");
 
         when(providerConfigRepository.findById(CONFIG_ID)).thenReturn(Optional.of(config));
-        when(vaultService.getProviderConfig("paystack", MERCHANT_ID)).thenReturn(credentials);
+        when(credentialStorageService.getProviderConfig("paystack", MERCHANT_ID)).thenReturn(credentials);
 
         ConnectionTestResult successResult = ConnectionTestResult.success("Paystack configuration test successful");
         when(paystackConnectionTester.testConnection(credentials)).thenReturn(successResult);

@@ -1,11 +1,11 @@
 package com.paybridge.unit.Service;
 
-import com.paybridge.Models.DTOs.VerifyEmailResponse;
+import com.paybridge.Models.DTOs.ApiResponse;
 import com.paybridge.Models.Entities.Merchant;
 import com.paybridge.Models.Entities.Users;
 import com.paybridge.Models.Enums.UserType;
 import com.paybridge.Repositories.UserRepository;
-import com.paybridge.Services.EmailService;
+import com.paybridge.Services.EmailProvider;
 import com.paybridge.Services.TokenService;
 import com.paybridge.Services.VerificationService;
 import org.junit.jupiter.api.BeforeEach;
@@ -29,7 +29,7 @@ class VerificationServiceTest {
     private UserRepository userRepository;
 
     @Mock
-    private EmailService emailService;
+    private EmailProvider emailProvider;
 
     @Mock
     private TokenService tokenService;
@@ -75,11 +75,11 @@ class VerificationServiceTest {
         when(userRepository.save(any(Users.class))).thenReturn(unverifiedUser);
 
         // Act
-        VerifyEmailResponse response = verificationService.verifyEmail(validEmail, validCode);
+        ApiResponse<String> response = verificationService.verifyEmail(validEmail, validCode);
 
         // Assert
         assertTrue(response.isSuccess());
-        assertEquals("Email verified successfully", response.getMessage());
+        assertEquals("Email verified successfully", response.getData());
         verify(userRepository, times(1)).save(unverifiedUser);
         assertTrue(unverifiedUser.isEmailVerified());
         assertNull(unverifiedUser.getVerificationCode());
@@ -91,11 +91,11 @@ class VerificationServiceTest {
         when(userRepository.findByEmail(validEmail)).thenReturn(null);
 
         // Act
-        VerifyEmailResponse response = verificationService.verifyEmail(validEmail, validCode);
+        ApiResponse<String> response = verificationService.verifyEmail(validEmail, validCode);
 
         // Assert
         assertFalse(response.isSuccess());
-        assertEquals("No account found with this email", response.getMessage());
+        assertEquals("No account found with this email", response.getError());
         verify(userRepository, never()).save(any(Users.class));
     }
 
@@ -105,11 +105,11 @@ class VerificationServiceTest {
         when(userRepository.findByEmail("verified@example.com")).thenReturn(verifiedUser);
 
         // Act
-        VerifyEmailResponse response = verificationService.verifyEmail("verified@example.com", validCode);
+        ApiResponse<String> response = verificationService.verifyEmail("verified@example.com", validCode);
 
         // Assert
         assertFalse(response.isSuccess());
-        assertEquals("Email is already verified", response.getMessage());
+        assertEquals("Email is already verified", response.getError());
         verify(userRepository, never()).save(any(Users.class));
     }
 
@@ -120,11 +120,11 @@ class VerificationServiceTest {
         when(userRepository.findByEmail(validEmail)).thenReturn(unverifiedUser);
 
         // Act
-        VerifyEmailResponse response = verificationService.verifyEmail(validEmail, validCode);
+        ApiResponse<String> response = verificationService.verifyEmail(validEmail, validCode);
 
         // Assert
         assertFalse(response.isSuccess());
-        assertEquals("Too many verification attempts. Please request a new code.", response.getMessage());
+        assertEquals("Too many verification attempts. Please request a new code.", response.getError());
         verify(userRepository, never()).save(any(Users.class));
     }
 
@@ -135,11 +135,11 @@ class VerificationServiceTest {
         when(userRepository.save(any(Users.class))).thenReturn(unverifiedUser);
 
         // Act
-        VerifyEmailResponse response = verificationService.verifyEmail(validEmail, invalidCode);
+        ApiResponse<String> response = verificationService.verifyEmail(validEmail, invalidCode);
 
         // Assert
         assertFalse(response.isSuccess());
-        assertEquals("Invalid verification code", response.getMessage());
+        assertEquals("Invalid verification code", response.getError());
         verify(userRepository, times(1)).save(unverifiedUser);
         assertEquals(1, unverifiedUser.getVerificationAttempts());
     }
@@ -152,11 +152,11 @@ class VerificationServiceTest {
         when(userRepository.save(any(Users.class))).thenReturn(unverifiedUser);
 
         // Act
-        VerifyEmailResponse response = verificationService.verifyEmail(validEmail, validCode);
+        ApiResponse<String> response = verificationService.verifyEmail(validEmail, validCode);
 
         // Assert
         assertFalse(response.isSuccess());
-        assertEquals("Verification code has expired. Please request a new one.", response.getMessage());
+        assertEquals("Verification code has expired. Please request a new one.", response.getError());
         verify(userRepository, times(1)).save(unverifiedUser);
     }
 
@@ -167,11 +167,11 @@ class VerificationServiceTest {
         when(userRepository.findByEmail(validEmail)).thenReturn(unverifiedUser);
 
         // Act
-        VerifyEmailResponse response = verificationService.verifyEmail(validEmail, validCode);
+        ApiResponse<String> response = verificationService.verifyEmail(validEmail, validCode);
 
         // Assert
         assertFalse(response.isSuccess());
-        assertEquals("Invalid verification code", response.getMessage());
+        assertEquals("Invalid verification code", response.getError());
     }
 
     @Test
@@ -185,7 +185,7 @@ class VerificationServiceTest {
 
         // Assert
         verify(userRepository, times(1)).save(unverifiedUser);
-        verify(emailService, times(1)).sendVerificationEmail(
+        verify(emailProvider, times(1)).sendVerificationEmail(
                 eq(validEmail),
                 anyString(), // new verification code
                 eq("Test Business")
@@ -205,7 +205,7 @@ class VerificationServiceTest {
 
         assertEquals("No account found with this email", exception.getMessage());
         verify(userRepository, never()).save(any(Users.class));
-        verify(emailService, never()).sendVerificationEmail(anyString(), anyString(), anyString());
+        verify(emailProvider, never()).sendVerificationEmail(anyString(), anyString(), anyString());
     }
 
     @Test
@@ -219,7 +219,7 @@ class VerificationServiceTest {
 
         assertEquals("Email is already verified", exception.getMessage());
         verify(userRepository, never()).save(any(Users.class));
-        verify(emailService, never()).sendVerificationEmail(anyString(), anyString(), anyString());
+        verify(emailProvider, never()).sendVerificationEmail(anyString(), anyString(), anyString());
     }
 
     @Test
@@ -234,7 +234,7 @@ class VerificationServiceTest {
 
         assertEquals("Please wait before requesting another verification code", exception.getMessage());
         verify(userRepository, never()).save(any(Users.class));
-        verify(emailService, never()).sendVerificationEmail(anyString(), anyString(), anyString());
+        verify(emailProvider, never()).sendVerificationEmail(anyString(), anyString(), anyString());
     }
 
     @Test
@@ -254,7 +254,7 @@ class VerificationServiceTest {
         verificationService.resendVerificationCode("admin@example.com");
 
         // Assert
-        verify(emailService, times(1)).sendVerificationEmail(
+        verify(emailProvider, times(1)).sendVerificationEmail(
                 eq("admin@example.com"),
                 anyString(),
                 eq(null) // businessName should be null
@@ -269,20 +269,20 @@ class VerificationServiceTest {
 
         // Act - First 4 failed attempts
         for (int i = 0; i < 4; i++) {
-            VerifyEmailResponse response = verificationService.verifyEmail(validEmail, invalidCode);
+            ApiResponse<String> response = verificationService.verifyEmail(validEmail, invalidCode);
             assertFalse(response.isSuccess());
-            assertEquals("Invalid verification code", response.getMessage());
+            assertEquals("Invalid verification code", response.getError());
         }
 
         // Verify attempts count
         assertEquals(4, unverifiedUser.getVerificationAttempts());
 
         // Act - Fifth attempt with correct code should succeed
-        VerifyEmailResponse successResponse = verificationService.verifyEmail(validEmail, validCode);
+        ApiResponse<String> successResponse = verificationService.verifyEmail(validEmail, validCode);
 
         // Assert
         assertTrue(successResponse.isSuccess());
-        assertEquals("Email verified successfully", successResponse.getMessage());
+        assertEquals("Email verified successfully", successResponse.getData());
         assertTrue(unverifiedUser.isEmailVerified());
     }
 
@@ -294,11 +294,11 @@ class VerificationServiceTest {
         // Note: No save() should be called because we block before saving
 
         // Act - This would be the 6th attempt, but it should be blocked
-        VerifyEmailResponse response = verificationService.verifyEmail(validEmail, invalidCode);
+        ApiResponse<String> response = verificationService.verifyEmail(validEmail, invalidCode);
 
         // Assert
         assertFalse(response.isSuccess());
-        assertEquals("Too many verification attempts. Please request a new code.", response.getMessage());
+        assertEquals("Too many verification attempts. Please request a new code.", response.getError());
 
         // Verify that save was NOT called because we blocked early
         verify(userRepository, never()).save(any(Users.class));

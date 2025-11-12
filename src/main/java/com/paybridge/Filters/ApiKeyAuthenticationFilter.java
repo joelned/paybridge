@@ -89,18 +89,18 @@ public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
                 response.getWriter().write(new ObjectMapper().writeValueAsString(errorResponseMessage));
                 return;
             }
-            if(merchant.getStatus() == MerchantStatus.PENDING_PROVIDER_SETUP){
-                response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-                response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-                Map<String, String> errorResponseMessage = new HashMap<>();
-
-                errorResponseMessage.put("message", "Please configure at least one provider to use api key");
-                errorResponseMessage.put("status", "error");
-
-                response.getWriter().write(new ObjectMapper().writeValueAsString(errorResponseMessage));
-                return;
-
-            }
+//            if(merchant.getStatus() == MerchantStatus.PENDING_PROVIDER_SETUP){
+//                response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+//                response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+//                Map<String, String> errorResponseMessage = new HashMap<>();
+//
+//                errorResponseMessage.put("message", "Please configure at least one provider to use api key");
+//                errorResponseMessage.put("status", "error");
+//
+//                response.getWriter().write(new ObjectMapper().writeValueAsString(errorResponseMessage));
+//                return;
+//
+//            }
             // Create authentication token
             UsernamePasswordAuthenticationToken authentication =
                     new UsernamePasswordAuthenticationToken(

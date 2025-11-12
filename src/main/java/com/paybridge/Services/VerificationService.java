@@ -23,7 +23,7 @@ public class VerificationService {
     public ApiResponse<String> verifyEmail(String email, String code) {
         Users user = userRepository.findByEmail(email);
         if (user == null) {
-            return ApiResponse.error("No account found with this mail");
+            return ApiResponse.error("No account found with this email");
         }
 
         if (user.isEmailVerified()) {
@@ -31,7 +31,7 @@ public class VerificationService {
         }
 
         if (user.getVerificationAttempts() >= 5) {
-            return ApiResponse.error("Too many requests. Please request a new code");
+            return ApiResponse.error("Too many verification attempts. Please request a new code.");
         }
 
         // Validate code
@@ -41,7 +41,7 @@ public class VerificationService {
 
             if (user.getVerificationCodeExpiresAt() != null &&
                     java.time.LocalDateTime.now().isAfter(user.getVerificationCodeExpiresAt())) {
-                return ApiResponse.error("Verification code expired. Please request a new one");
+                return ApiResponse.error("Verification code has expired. Please request a new one.");
             }
             return ApiResponse.error("Invalid verification code");
         }

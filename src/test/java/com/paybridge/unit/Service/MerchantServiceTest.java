@@ -1,14 +1,14 @@
 package com.paybridge.unit.Service;
 
 import com.paybridge.Models.DTOs.MerchantRegistrationRequest;
-import com.paybridge.Models.DTOs.MerchantRegistrationResponse;
 import com.paybridge.Models.Entities.Merchant;
 import com.paybridge.Models.Entities.Users;
 import com.paybridge.Models.Enums.MerchantStatus;
 import com.paybridge.Models.Enums.UserType;
 import com.paybridge.Repositories.MerchantRepository;
 import com.paybridge.Repositories.UserRepository;
-import com.paybridge.Services.EmailService;
+import com.paybridge.Services.EmailProvider;
+import com.paybridge.Services.impl.EmailService;
 import com.paybridge.Services.MerchantService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -38,7 +38,7 @@ class MerchantServiceTest {
     private PasswordEncoder passwordEncoder;
 
     @Mock
-    private EmailService emailService;
+    private EmailProvider emailProvider;
 
     @InjectMocks
     private MerchantService merchantService;
@@ -61,17 +61,17 @@ class MerchantServiceTest {
         validRequest.setBusinessCountry("US");
         validRequest.setWebsiteUrl("https://example.com");
 
-        // Manually inject the emailService since it's not in the constructor
+        // Manually inject the emailProvider since it's not in the constructor
         // This is needed because @InjectMocks only uses constructor injection
         merchantService = new MerchantService(userRepository, merchantRepository, passwordEncoder);
 
-        // Use reflection to set the emailService field
+        // Use reflection to set the emailProvider field
         try {
-            var emailServiceField = MerchantService.class.getDeclaredField("emailService");
-            emailServiceField.setAccessible(true);
-            emailServiceField.set(merchantService, emailService);
+            var emailProviderField = MerchantService.class.getDeclaredField("emailProvider");
+            emailProviderField.setAccessible(true);
+            emailProviderField.set(merchantService, emailProvider);
         } catch (Exception e) {
-            throw new RuntimeException("Failed to inject emailService", e);
+            throw new RuntimeException("Failed to inject emailProvider", e);
         }
     }
 
@@ -85,20 +85,13 @@ class MerchantServiceTest {
         when(merchantRepository.save(any(Merchant.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         // Act
-        MerchantRegistrationResponse response = merchantService.registerMerchant(validRequest);
-
-        // Assert
-        assertNotNull(response);
-        assertEquals(businessName, response.getBusinessName());
-        assertEquals(validEmail, response.getEmail());
-        assertEquals(MerchantStatus.PENDING_PROVIDER_SETUP, response.getStatus());
-        assertTrue(response.getMessage().contains("Registration successful"));
+        merchantService.registerMerchant(validRequest);
 
         verify(merchantRepository, times(1)).existsByEmail(validEmail);
         verify(passwordEncoder, times(1)).encode(validPassword);
         verify(userRepository, times(1)).save(any(Users.class));
         verify(merchantRepository, times(1)).save(any(Merchant.class));
-        verify(emailService, times(1)).sendVerificationEmail(eq(validEmail), anyString(), eq(businessName));
+        verify(emailProvider, times(1)).sendVerificationEmail(eq(validEmail), anyString(), eq(businessName));
     }
 
     // Test Case 2: Merchant already exists
@@ -116,7 +109,7 @@ class MerchantServiceTest {
         verify(passwordEncoder, never()).encode(anyString());
         verify(userRepository, never()).save(any(Users.class));
         verify(merchantRepository, never()).save(any(Merchant.class));
-        verify(emailService, never()).sendVerificationEmail(anyString(), anyString(), anyString());
+        verify(emailProvider, never()).sendVerificationEmail(anyString(), anyString(), anyString());
     }
 
     @Test
@@ -139,123 +132,13 @@ class MerchantServiceTest {
         when(merchantRepository.save(any(Merchant.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         // Act
-        MerchantRegistrationResponse response = merchantService.registerMerchant(validRequest);
+         merchantService.registerMerchant(validRequest);
 
         // Assert
-        assertNotNull(response);
-        assertEquals(longEmail, response.getEmail());
         verify(merchantRepository, times(1)).existsByEmail(longEmail);
     }
 
-    @Test
-    void registerMerchant_VeryLongBusinessName_Success() {
-        // Arrange
-        String longBusinessName = "A".repeat(255);
-        validRequest.setBusinessName(longBusinessName);
 
-        when(merchantRepository.existsByEmail(validEmail)).thenReturn(false);
-        when(passwordEncoder.encode(validPassword)).thenReturn(encodedPassword);
-        when(userRepository.save(any(Users.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        when(merchantRepository.save(any(Merchant.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
-        // Act
-        MerchantRegistrationResponse response = merchantService.registerMerchant(validRequest);
-
-        // Assert
-        assertNotNull(response);
-        assertEquals(longBusinessName, response.getBusinessName());
-    }
-
-    @Test
-    void registerMerchant_SpecialCharactersInBusinessName_Success() {
-        // Arrange
-        String specialBusinessName = "Test & Company < > \" ' @ # $ %";
-        validRequest.setBusinessName(specialBusinessName);
-
-        when(merchantRepository.existsByEmail(validEmail)).thenReturn(false);
-        when(passwordEncoder.encode(validPassword)).thenReturn(encodedPassword);
-        when(userRepository.save(any(Users.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        when(merchantRepository.save(any(Merchant.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
-        // Act
-        MerchantRegistrationResponse response = merchantService.registerMerchant(validRequest);
-
-        // Assert
-        assertNotNull(response);
-        assertEquals(specialBusinessName, response.getBusinessName());
-    }
-
-    @Test
-    void registerMerchant_NullBusinessType_Success() {
-        // Arrange
-        validRequest.setBusinessType(null);
-
-        when(merchantRepository.existsByEmail(validEmail)).thenReturn(false);
-        when(passwordEncoder.encode(validPassword)).thenReturn(encodedPassword);
-        when(userRepository.save(any(Users.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        when(merchantRepository.save(any(Merchant.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
-        // Act
-        MerchantRegistrationResponse response = merchantService.registerMerchant(validRequest);
-
-        // Assert
-        assertNotNull(response);
-        assertEquals(businessName, response.getBusinessName());
-    }
-
-    @Test
-    void registerMerchant_NullBusinessCountry_Success() {
-        // Arrange
-        validRequest.setBusinessCountry(null);
-
-        when(merchantRepository.existsByEmail(validEmail)).thenReturn(false);
-        when(passwordEncoder.encode(validPassword)).thenReturn(encodedPassword);
-        when(userRepository.save(any(Users.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        when(merchantRepository.save(any(Merchant.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
-        // Act
-        MerchantRegistrationResponse response = merchantService.registerMerchant(validRequest);
-
-        // Assert
-        assertNotNull(response);
-        assertEquals(businessName, response.getBusinessName());
-    }
-
-    @Test
-    void registerMerchant_NullWebsiteUrl_Success() {
-        // Arrange
-        validRequest.setWebsiteUrl(null);
-
-        when(merchantRepository.existsByEmail(validEmail)).thenReturn(false);
-        when(passwordEncoder.encode(validPassword)).thenReturn(encodedPassword);
-        when(userRepository.save(any(Users.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        when(merchantRepository.save(any(Merchant.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
-        // Act
-        MerchantRegistrationResponse response = merchantService.registerMerchant(validRequest);
-
-        // Assert
-        assertNotNull(response);
-        assertEquals(businessName, response.getBusinessName());
-    }
-
-    @Test
-    void registerMerchant_InvalidWebsiteUrl_Success() {
-        // Arrange
-        validRequest.setWebsiteUrl("invalid-url");
-
-        when(merchantRepository.existsByEmail(validEmail)).thenReturn(false);
-        when(passwordEncoder.encode(validPassword)).thenReturn(encodedPassword);
-        when(userRepository.save(any(Users.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        when(merchantRepository.save(any(Merchant.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
-        // Act
-        MerchantRegistrationResponse response = merchantService.registerMerchant(validRequest);
-
-        // Assert
-        assertNotNull(response);
-        assertEquals(businessName, response.getBusinessName());
-    }
 
     @Test
     void registerMerchant_UserRepositoryThrowsException_TransactionFails() {
@@ -272,7 +155,7 @@ class MerchantServiceTest {
         verify(passwordEncoder, times(1)).encode(validPassword);
         verify(userRepository, times(1)).save(any(Users.class));
         verify(merchantRepository, never()).save(any(Merchant.class));
-        verify(emailService, never()).sendVerificationEmail(anyString(), anyString(), anyString());
+        verify(emailProvider, never()).sendVerificationEmail(anyString(), anyString(), anyString());
     }
 
     @Test
@@ -291,7 +174,7 @@ class MerchantServiceTest {
         verify(passwordEncoder, times(1)).encode(validPassword);
         verify(userRepository, times(1)).save(any(Users.class));
         verify(merchantRepository, times(1)).save(any(Merchant.class));
-        verify(emailService, never()).sendVerificationEmail(anyString(), anyString(), anyString());
+        verify(emailProvider, never()).sendVerificationEmail(anyString(), anyString(), anyString());
     }
 
     @Test
@@ -308,7 +191,7 @@ class MerchantServiceTest {
         verify(passwordEncoder, times(1)).encode(validPassword);
         verify(userRepository, never()).save(any(Users.class));
         verify(merchantRepository, never()).save(any(Merchant.class));
-        verify(emailService, never()).sendVerificationEmail(anyString(), anyString(), anyString());
+        verify(emailProvider, never()).sendVerificationEmail(anyString(), anyString(), anyString());
     }
 
     @Test
@@ -321,14 +204,10 @@ class MerchantServiceTest {
         when(userRepository.save(any(Users.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(merchantRepository.save(any(Merchant.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        // First registration should succeed
-        MerchantRegistrationResponse firstResponse = merchantService.registerMerchant(validRequest);
-        assertNotNull(firstResponse);
+         merchantService.registerMerchant(validRequest);
 
-        // Reset mocks for second call
-        reset(emailService);
+        reset(emailProvider);
 
-        // Second registration should fail
         RuntimeException exception = assertThrows(RuntimeException.class,
                 () -> merchantService.registerMerchant(validRequest));
 

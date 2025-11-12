@@ -5,7 +5,7 @@ import com.paybridge.Models.DTOs.VerifyEmailRequest;
 import com.paybridge.Models.DTOs.ResendVerificationRequest;
 import com.paybridge.Models.Entities.Users;
 import com.paybridge.Repositories.UserRepository;
-import com.paybridge.Services.EmailService;
+import com.paybridge.Services.EmailProvider;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,11 +26,11 @@ public class EmailVerificationIntegrationTest extends BaseIntegrationTest {
     private UserRepository userRepository;
 
     @MockitoBean
-    private EmailService emailService;
+    private EmailProvider emailProvider;
 
     @BeforeEach
     void setUp() {
-        doNothing().when(emailService).sendVerificationEmail(anyString(), anyString(), anyString());
+        doNothing().when(emailProvider).sendVerificationEmail(anyString(), anyString(), anyString());
     }
 
 
@@ -226,7 +226,7 @@ public class EmailVerificationIntegrationTest extends BaseIntegrationTest {
                 .andExpect(status().isCreated());
 
         // Verify email was sent during registration
-        verify(emailService, times(1)).sendVerificationEmail(eq("resend@example.com"), anyString(), anyString());
+        verify(emailProvider, times(1)).sendVerificationEmail(eq("resend@example.com"), anyString(), anyString());
 
         // Manually update the user to bypass the cooldown
         Users user = userRepository.findByEmail("resend@example.com");
@@ -248,7 +248,7 @@ public class EmailVerificationIntegrationTest extends BaseIntegrationTest {
                 .andExpect(jsonPath("$.message").value("Verification code sent successfully"));
 
         // Verify email was sent again
-        verify(emailService, times(2)).sendVerificationEmail(eq("resend@example.com"), anyString(), anyString());
+        verify(emailProvider, times(2)).sendVerificationEmail(eq("resend@example.com"), anyString(), anyString());
     }
 
     @Test

@@ -5,8 +5,10 @@ import com.paybridge.Models.DTOs.MerchantRegistrationRequest;
 import com.paybridge.Models.DTOs.VerifyEmailRequest;
 import com.paybridge.Models.Entities.Merchant;
 import com.paybridge.Models.Entities.Users;
+import com.paybridge.Services.EmailProvider;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MvcResult;
 
 import jakarta.servlet.http.Cookie;
@@ -21,29 +23,32 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  */
 public class ApiKeyIntegrationTest extends BaseIntegrationTest {
 
+    @MockitoBean
+    private EmailProvider emailProvider;
+
     @Test
     void getApiKey_WithoutAuthentication_ShouldReturn401() throws Exception {
-        mockMvc.perform(get("/api/v1/get-apikey"))
+        mockMvc.perform(get("/api/v1/test-controller"))
                 .andExpect(status().isUnauthorized());
     }
 
     @Test
     void apiKeyAuthentication_InvalidKey_ShouldNotAuthenticate() throws Exception {
-        mockMvc.perform(get("/api/v1/get-apikey")
+        mockMvc.perform(get("/api/v1/test-controller")
                         .header("x-api-key", "pk_test_invalid_key_12345"))
                 .andExpect(status().isUnauthorized());
     }
 
     @Test
     void apiKeyAuthentication_EmptyKey_ShouldNotAuthenticate() throws Exception {
-        mockMvc.perform(get("/api/v1/get-apikey")
+        mockMvc.perform(get("/api/v1/test-controller")
                         .header("x-api-key", ""))
                 .andExpect(status().isUnauthorized());
     }
 
     @Test
     void apiKeyAuthentication_MalformedKey_ShouldNotAuthenticate() throws Exception {
-        mockMvc.perform(get("/api/v1/get-apikey")
+        mockMvc.perform(get("/api/v1/test-controller")
                         .header("x-api-key", "not-a-valid-format"))
                 .andExpect(status().isUnauthorized());
     }

@@ -1,0 +1,93 @@
+2025-11-10 13:13:02,145 INFO o.a.j.u.JMeterUtils: Setting Locale to en_EN
+2025-11-10 13:13:02,159 INFO o.a.j.JMeter: Loading user properties from: /opt/homebrew/Cellar/jmeter/5.6.3/libexec/bin/user.properties
+2025-11-10 13:13:02,160 INFO o.a.j.JMeter: Loading system properties from: /opt/homebrew/Cellar/jmeter/5.6.3/libexec/bin/system.properties
+2025-11-10 13:13:02,162 INFO o.a.j.JMeter: Copyright (c) 1998-2024 The Apache Software Foundation
+2025-11-10 13:13:02,162 INFO o.a.j.JMeter: Version 5.6.3
+2025-11-10 13:13:02,162 INFO o.a.j.JMeter: java.version=21.0.9
+2025-11-10 13:13:02,163 INFO o.a.j.JMeter: java.vm.name=OpenJDK 64-Bit Server VM
+2025-11-10 13:13:02,163 INFO o.a.j.JMeter: os.name=Mac OS X
+2025-11-10 13:13:02,163 INFO o.a.j.JMeter: os.arch=aarch64
+2025-11-10 13:13:02,163 INFO o.a.j.JMeter: os.version=15.5
+2025-11-10 13:13:02,163 INFO o.a.j.JMeter: file.encoding=UTF-8
+2025-11-10 13:13:02,163 INFO o.a.j.JMeter: java.awt.headless=null
+2025-11-10 13:13:02,163 INFO o.a.j.JMeter: Max memory     =1073741824
+2025-11-10 13:13:02,163 INFO o.a.j.JMeter: Available Processors =10
+2025-11-10 13:13:02,168 INFO o.a.j.JMeter: Default Locale=English (EN)
+2025-11-10 13:13:02,168 INFO o.a.j.JMeter: JMeter  Locale=English (EN)
+2025-11-10 13:13:02,168 INFO o.a.j.JMeter: JMeterHome=/opt/homebrew/Cellar/jmeter/5.6.3/libexec
+2025-11-10 13:13:02,168 INFO o.a.j.JMeter: user.dir  =/Users/admin/Documents/MyPrograms/paybridge
+2025-11-10 13:13:02,168 INFO o.a.j.JMeter: PWD       =/Users/admin/Documents/MyPrograms/paybridge
+2025-11-10 13:13:02,170 INFO o.a.j.JMeter: IP: 192.168.106.134 Name: admins-MacBook-Pro.local FullName: 192.168.106.134
+2025-11-10 13:13:02,177 INFO o.a.j.JMeter: Loaded icon properties from org/apache/jmeter/images/icon.properties
+2025-11-10 13:13:03,231 INFO o.a.j.JMeterGuiLauncher: Setting LAF to: com.github.weisj.darklaf.DarkLaf:com.github.weisj.darklaf.theme.DarculaTheme
+2025-11-10 13:13:04,265 INFO o.a.j.r.ClassFinder: Will scan jar /opt/homebrew/Cellar/jmeter/5.6.3/libexec/lib/ext/jmeter-plugins-manager-1.9.jar with filter ExtendsClassFilter [parents=[interface org.apache.jmeter.gui.action.Command], inner=false, contains=null, notContains=null]. Consider exposing JMeter plugins via META-INF/services, and add JMeter-Skip-Class-Scanning=true manifest attribute so JMeter can skip classfile scanning
+2025-11-10 13:13:04,330 INFO o.a.j.r.ClassFinder: Will scan jar /opt/homebrew/Cellar/jmeter/5.6.3/libexec/lib/ext/jmeter-plugins-manager-1.9.jar with filter ExtendsClassFilter [parents=[interface org.apache.jmeter.gui.plugin.MenuCreator], inner=false, contains=null, notContains=null]. Consider exposing JMeter plugins via META-INF/services, and add JMeter-Skip-Class-Scanning=true manifest attribute so JMeter can skip classfile scanning
+2025-11-10 13:13:04,390 INFO o.j.r.JARSourceHTTP: Requesting https://jmeter-plugins.org/repo/?installID=mac_os_x-8f99c8e72d5b84f5b7b16ca98b7fe2e1-gui
+2025-11-10 13:13:10,217 INFO o.j.r.PluginManager: Plugins Status: [jpgc-plugins-manager=1.9, jmeter-core=5.6.3, jmeter-ftp=5.6.3, jmeter-http=5.6.3, jmeter-jdbc=5.6.3, jmeter-jms=5.6.3, jmeter-junit=5.6.3, jmeter-java=5.6.3, jmeter-ldap=5.6.3, jmeter-mail=5.6.3, jmeter-mongodb=5.6.3, jmeter-native=5.6.3, jmeter-tcp=5.6.3, jmeter-components=5.6.3]
+2025-11-10 13:13:10,218 INFO o.j.r.PluginManagerMenuItem: Plugins Manager has upgrades: [jpgc-plugins-manager]
+2025-11-10 13:21:46,013 INFO o.a.j.p.h.s.HTTPSamplerBase: Parser for text/html is org.apache.jmeter.protocol.http.parser.LagartoBasedHtmlParser
+2025-11-10 13:21:46,014 INFO o.a.j.p.h.s.HTTPSamplerBase: Parser for application/xhtml+xml is org.apache.jmeter.protocol.http.parser.LagartoBasedHtmlParser
+2025-11-10 13:21:46,014 INFO o.a.j.p.h.s.HTTPSamplerBase: Parser for application/xml is org.apache.jmeter.protocol.http.parser.LagartoBasedHtmlParser
+2025-11-10 13:21:46,014 INFO o.a.j.p.h.s.HTTPSamplerBase: Parser for text/xml is org.apache.jmeter.protocol.http.parser.LagartoBasedHtmlParser
+2025-11-10 13:21:46,014 INFO o.a.j.p.h.s.HTTPSamplerBase: Parser for text/vnd.wap.wml is org.apache.jmeter.protocol.http.parser.RegexpHTMLParser
+2025-11-10 13:21:46,014 INFO o.a.j.p.h.s.HTTPSamplerBase: Parser for text/css is org.apache.jmeter.protocol.http.parser.CssParser
+2025-11-10 13:30:15,417 INFO o.a.j.s.SampleResult: Note: Sample TimeStamps are START times
+2025-11-10 13:30:15,418 INFO o.a.j.s.SampleResult: sampleresult.default.encoding is set to UTF-8
+2025-11-10 13:30:15,418 INFO o.a.j.s.SampleResult: sampleresult.useNanoTime=true
+2025-11-10 13:30:15,418 INFO o.a.j.s.SampleResult: sampleresult.nanoThreadSleep=5000
+2025-11-10 13:30:15,482 INFO o.a.j.r.ClassFinder: Will scan jar /opt/homebrew/Cellar/jmeter/5.6.3/libexec/lib/ext/jmeter-plugins-manager-1.9.jar with filter ExtendsClassFilter [parents=[interface org.apache.jmeter.visualizers.ResultRenderer], inner=false, contains=null, notContains=null]. Consider exposing JMeter plugins via META-INF/services, and add JMeter-Skip-Class-Scanning=true manifest attribute so JMeter can skip classfile scanning
+2025-11-10 13:30:15,493 INFO o.a.j.r.ClassFinder: Will scan jar /opt/homebrew/Cellar/jmeter/5.6.3/libexec/lib/ext/jmeter-plugins-manager-1.9.jar with filter ExtendsClassFilter [parents=[interface org.apache.jmeter.visualizers.RequestView], inner=false, contains=null, notContains=null]. Consider exposing JMeter plugins via META-INF/services, and add JMeter-Skip-Class-Scanning=true manifest attribute so JMeter can skip classfile scanning
+2025-11-10 13:34:14,705 INFO o.a.j.e.StandardJMeterEngine: Running the test!
+2025-11-10 13:34:14,706 INFO o.a.j.s.SampleEvent: List of sample_variables: []
+2025-11-10 13:34:14,707 INFO o.a.j.s.SampleEvent: List of sample_variables: []
+2025-11-10 13:34:14,708 INFO o.a.j.e.u.CompoundVariable: Note: Function class names must contain the string: '.functions.'
+2025-11-10 13:34:14,708 INFO o.a.j.e.u.CompoundVariable: Note: Function class names must not contain the string: '.gui.'
+2025-11-10 13:34:14,745 INFO o.a.j.r.ClassFinder: Will scan jar /opt/homebrew/Cellar/jmeter/5.6.3/libexec/lib/ext/jmeter-plugins-manager-1.9.jar with filter ExtendsClassFilter [parents=[interface org.apache.jmeter.functions.Function], inner=false, contains=null, notContains=null]. Consider exposing JMeter plugins via META-INF/services, and add JMeter-Skip-Class-Scanning=true manifest attribute so JMeter can skip classfile scanning
+2025-11-10 13:34:14,750 INFO o.a.j.g.u.JMeterMenuBar: setRunning(true, *local*)
+2025-11-10 13:34:14,782 INFO o.a.j.e.StandardJMeterEngine: Starting ThreadGroup: 1 : Payment API Load Test
+2025-11-10 13:34:14,782 INFO o.a.j.e.StandardJMeterEngine: Starting 10 threads for group Payment API Load Test.
+2025-11-10 13:34:14,782 INFO o.a.j.e.StandardJMeterEngine: Thread will continue on error
+2025-11-10 13:34:14,782 INFO o.a.j.t.ThreadGroup: Starting thread group... number=1 threads=10 ramp-up=5 delayedStart=false
+2025-11-10 13:34:14,784 INFO o.a.j.t.JMeterThread: Thread started: Payment API Load Test 1-1
+2025-11-10 13:34:14,785 INFO o.a.j.t.ThreadGroup: Started thread group number 1
+2025-11-10 13:34:14,785 INFO o.a.j.e.StandardJMeterEngine: All thread groups have been started
+2025-11-10 13:34:15,285 INFO o.a.j.t.JMeterThread: Thread started: Payment API Load Test 1-2
+2025-11-10 13:34:15,789 INFO o.a.j.t.JMeterThread: Thread started: Payment API Load Test 1-3
+2025-11-10 13:34:15,801 INFO o.a.j.p.h.s.HTTPHCAbstractImpl: Local host = admins-MacBook-Pro.local
+2025-11-10 13:34:15,809 INFO o.a.j.p.h.s.HTTPHC4Impl: HTTP request retry count = 0
+2025-11-10 13:34:16,288 INFO o.a.j.t.JMeterThread: Thread started: Payment API Load Test 1-4
+2025-11-10 13:34:16,788 INFO o.a.j.t.JMeterThread: Thread started: Payment API Load Test 1-5
+2025-11-10 13:34:16,875 INFO o.a.j.u.JsseSSLManager: Using default SSL protocol: TLS
+2025-11-10 13:34:16,875 INFO o.a.j.u.JsseSSLManager: SSL session context: per-thread
+2025-11-10 13:34:17,289 INFO o.a.j.t.JMeterThread: Thread started: Payment API Load Test 1-6
+2025-11-10 13:34:17,788 INFO o.a.j.t.JMeterThread: Thread started: Payment API Load Test 1-7
+2025-11-10 13:34:18,288 INFO o.a.j.t.JMeterThread: Thread started: Payment API Load Test 1-8
+2025-11-10 13:34:18,788 INFO o.a.j.t.JMeterThread: Thread started: Payment API Load Test 1-9
+2025-11-10 13:34:19,288 INFO o.a.j.t.JMeterThread: Thread started: Payment API Load Test 1-10
+2025-11-10 13:34:19,968 INFO o.a.j.t.JMeterThread: Thread is done: Payment API Load Test 1-1
+2025-11-10 13:34:19,968 INFO o.a.j.t.JMeterThread: Thread finished: Payment API Load Test 1-1
+2025-11-10 13:34:20,420 INFO o.a.j.t.JMeterThread: Thread is done: Payment API Load Test 1-2
+2025-11-10 13:34:20,420 INFO o.a.j.t.JMeterThread: Thread finished: Payment API Load Test 1-2
+2025-11-10 13:34:20,919 INFO o.a.j.t.JMeterThread: Thread is done: Payment API Load Test 1-3
+2025-11-10 13:34:20,919 INFO o.a.j.t.JMeterThread: Thread finished: Payment API Load Test 1-3
+2025-11-10 13:34:21,402 INFO o.a.j.t.JMeterThread: Thread is done: Payment API Load Test 1-4
+2025-11-10 13:34:21,403 INFO o.a.j.t.JMeterThread: Thread finished: Payment API Load Test 1-4
+2025-11-10 13:34:21,926 INFO o.a.j.t.JMeterThread: Thread is done: Payment API Load Test 1-5
+2025-11-10 13:34:21,926 INFO o.a.j.t.JMeterThread: Thread finished: Payment API Load Test 1-5
+2025-11-10 13:34:22,406 INFO o.a.j.t.JMeterThread: Thread is done: Payment API Load Test 1-6
+2025-11-10 13:34:22,407 INFO o.a.j.t.JMeterThread: Thread finished: Payment API Load Test 1-6
+2025-11-10 13:34:22,956 INFO o.a.j.t.JMeterThread: Thread is done: Payment API Load Test 1-7
+2025-11-10 13:34:22,958 INFO o.a.j.t.JMeterThread: Thread finished: Payment API Load Test 1-7
+2025-11-10 13:34:23,437 INFO o.a.j.t.JMeterThread: Thread is done: Payment API Load Test 1-8
+2025-11-10 13:34:23,438 INFO o.a.j.t.JMeterThread: Thread finished: Payment API Load Test 1-8
+2025-11-10 13:34:24,001 INFO o.a.j.t.JMeterThread: Thread is done: Payment API Load Test 1-9
+2025-11-10 13:34:24,002 INFO o.a.j.t.JMeterThread: Thread finished: Payment API Load Test 1-9
+2025-11-10 13:34:24,480 INFO o.a.j.t.JMeterThread: Thread is done: Payment API Load Test 1-10
+2025-11-10 13:34:24,480 INFO o.a.j.t.JMeterThread: Thread finished: Payment API Load Test 1-10
+2025-11-10 13:34:24,480 INFO o.a.j.e.StandardJMeterEngine: Notifying test listeners of end of test
+2025-11-10 13:34:24,482 INFO o.a.j.s.FileServer: Default base='/Users/admin/Documents/MyPrograms/paybridge'
+2025-11-10 13:34:24,482 INFO o.a.j.g.u.JMeterMenuBar: setRunning(false, *local*)
+2025-11-10 13:36:57,520 INFO o.a.j.s.FileServer: Set new base='/Users/admin/Documents/MyPrograms/paybridge'
+2025-11-10 13:36:57,636 INFO o.a.j.s.SaveService: Testplan (JMX) version: 2.2. Testlog (JTL) version: 2.2
+2025-11-10 13:36:57,640 INFO o.a.j.s.SaveService: Using SaveService properties version 5.0
+2025-11-10 13:36:57,641 INFO o.a.j.s.SaveService: Using SaveService properties file encoding UTF-8

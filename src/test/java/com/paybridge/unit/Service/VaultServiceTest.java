@@ -1,7 +1,7 @@
 package com.paybridge.unit.Service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.paybridge.Services.VaultService;
+import com.paybridge.Services.impl.VaultService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -51,7 +51,7 @@ class VaultServiceTest {
         vaultData.put("data", testConfig);
 
         // When
-        vaultService.storeProviderConfig(PROVIDER_NAME, MERCHANT_ID, testConfig);
+        vaultService.saveProviderConfig(PROVIDER_NAME, MERCHANT_ID, testConfig);
 
         // Then
         verify(vaultTemplate).write(eq(EXPECTED_PATH), eq(vaultData));
@@ -68,7 +68,7 @@ class VaultServiceTest {
 
         // When & Then
         RuntimeException exception = assertThrows(RuntimeException.class,
-                () -> vaultService.storeProviderConfig(PROVIDER_NAME, MERCHANT_ID, testConfig));
+                () -> vaultService.saveProviderConfig(PROVIDER_NAME, MERCHANT_ID, testConfig));
 
         assertEquals("Failed to store provider config in Vault", exception.getMessage());
         assertTrue(exception.getCause().getMessage().contains("Vault unavailable"));
@@ -135,30 +135,30 @@ class VaultServiceTest {
     }
 
     @Test
-    void deleteProviderConfig_Success() {
+    void removeProviderConfig_Success() {
         // When
-        vaultService.deleteProviderConfig(PROVIDER_NAME, MERCHANT_ID);
+        vaultService.removeProviderConfig(PROVIDER_NAME, MERCHANT_ID);
 
         // Then
         verify(vaultTemplate).delete(eq(EXPECTED_PATH));
     }
 
     @Test
-    void deleteProviderConfig_ExceptionThrown() {
+    void removeProviderConfig_ExceptionThrown() {
         // Given
         doThrow(new RuntimeException("Delete failed"))
                 .when(vaultTemplate).delete(eq(EXPECTED_PATH));
 
         // When & Then
         RuntimeException exception = assertThrows(RuntimeException.class,
-                () -> vaultService.deleteProviderConfig(PROVIDER_NAME, MERCHANT_ID));
+                () -> vaultService.removeProviderConfig(PROVIDER_NAME, MERCHANT_ID));
 
         assertEquals("Failed to delete provider configuration from Vault", exception.getMessage());
         assertTrue(exception.getCause().getMessage().contains("Delete failed"));
     }
 
     @Test
-    void configExists_True() {
+    void providerConfigExists_True() {
         // Given
         Map<String, Object> responseData = new HashMap<>();
         responseData.put("data", testConfig);
@@ -168,53 +168,53 @@ class VaultServiceTest {
         when(vaultTemplate.read(eq(EXPECTED_PATH), eq(Map.class))).thenReturn(mockResponse);
 
         // When
-        boolean exists = vaultService.configExists(PROVIDER_NAME, MERCHANT_ID);
+        boolean exists = vaultService.providerConfigExists(PROVIDER_NAME, MERCHANT_ID);
 
         // Then
         assertTrue(exists);
     }
 
     @Test
-    void configExists_FalseWhenResponseNull() {
+    void providerConfigExists_FalseWhenResponseNull() {
         // Given
         when(vaultTemplate.read(eq(EXPECTED_PATH), eq(Map.class))).thenReturn(null);
 
         // When
-        boolean exists = vaultService.configExists(PROVIDER_NAME, MERCHANT_ID);
+        boolean exists = vaultService.providerConfigExists(PROVIDER_NAME, MERCHANT_ID);
 
         // Then
         assertFalse(exists);
     }
 
     @Test
-    void configExists_FalseWhenDataNull() {
+    void providerConfigExists_FalseWhenDataNull() {
         // Given
         VaultResponseSupport<Map> mockResponse = mock(VaultResponseSupport.class);
         when(mockResponse.getData()).thenReturn(null);
         when(vaultTemplate.read(eq(EXPECTED_PATH), eq(Map.class))).thenReturn(mockResponse);
 
         // When
-        boolean exists = vaultService.configExists(PROVIDER_NAME, MERCHANT_ID);
+        boolean exists = vaultService.providerConfigExists(PROVIDER_NAME, MERCHANT_ID);
 
         // Then
         assertFalse(exists);
     }
 
     @Test
-    void configExists_ReturnsFalseOnException() {
+    void providerConfigExists_ReturnsFalseOnException() {
         // Given
         when(vaultTemplate.read(eq(EXPECTED_PATH), eq(Map.class)))
                 .thenThrow(new RuntimeException("Any exception"));
 
         // When
-        boolean exists = vaultService.configExists(PROVIDER_NAME, MERCHANT_ID);
+        boolean exists = vaultService.providerConfigExists(PROVIDER_NAME, MERCHANT_ID);
 
         // Then
         assertFalse(exists);
     }
 
     @Test
-    void updateProviderConfigField_Success() {
+    void updateProviderConfigProperty_Success() {
         // Given
         Map<String, Object> currentConfig = new HashMap<>(testConfig);
         String newFieldName = "newApiKey";
@@ -228,7 +228,7 @@ class VaultServiceTest {
         when(vaultTemplate.read(eq(EXPECTED_PATH), eq(Map.class))).thenReturn(mockResponse);
 
         // When
-        vaultService.updateProviderConfigField(PROVIDER_NAME, MERCHANT_ID, newFieldName, newFieldValue);
+        vaultService.updateProviderConfigProperty(PROVIDER_NAME, MERCHANT_ID, newFieldName, newFieldValue);
 
         // Then
         Map<String, Object> expectedUpdatedConfig = new HashMap<>(testConfig);
@@ -241,7 +241,7 @@ class VaultServiceTest {
     }
 
     @Test
-    void updateProviderConfigField_OverwritesExistingField() {
+    void updateProviderConfigField_OverwritesExistingProperty() {
         // Given
         Map<String, Object> currentConfig = new HashMap<>(testConfig);
         String existingFieldName = "apiKey";
@@ -255,7 +255,7 @@ class VaultServiceTest {
         when(vaultTemplate.read(eq(EXPECTED_PATH), eq(Map.class))).thenReturn(mockResponse);
 
         // When
-        vaultService.updateProviderConfigField(PROVIDER_NAME, MERCHANT_ID, existingFieldName, updatedFieldValue);
+        vaultService.updateProviderConfigProperty(PROVIDER_NAME, MERCHANT_ID, existingFieldName, updatedFieldValue);
 
         // Then
         Map<String, Object> expectedUpdatedConfig = new HashMap<>(testConfig);
