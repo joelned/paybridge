@@ -1,4 +1,4 @@
-package com.paybridge.Interfaces;
+package com.paybridge.Configs;
 
 import com.paybridge.Services.ConnectionTestResult;
 

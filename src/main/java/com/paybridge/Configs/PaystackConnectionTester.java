@@ -1,6 +1,5 @@
 package com.paybridge.Configs;
 
-import com.paybridge.Interfaces.ConnectionTester;
 import com.paybridge.Services.ConnectionTestResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

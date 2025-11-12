@@ -1,7 +1,6 @@
 package com.paybridge.Configs;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.paybridge.Interfaces.ConnectionTester;
 import com.paybridge.Services.ConnectionTestResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
