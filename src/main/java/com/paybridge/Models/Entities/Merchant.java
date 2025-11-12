@@ -66,6 +66,7 @@ public class Merchant {
     @Column(name="test_mode")
     private boolean testMode = true;
 
+
     public String getActiveKey(){
         return testMode ? apiKeyTest : apiKeyLive;
     }
