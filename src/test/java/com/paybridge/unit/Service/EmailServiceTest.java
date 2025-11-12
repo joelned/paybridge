@@ -1,6 +1,6 @@
 package com.paybridge.unit.Service;
 
-import com.paybridge.Services.EmailService;
+import com.paybridge.Services.impl.EmailService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
