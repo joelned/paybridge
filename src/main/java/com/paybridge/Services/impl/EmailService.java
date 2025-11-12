@@ -1,6 +1,8 @@
-package com.paybridge.Services;
+package com.paybridge.Services.impl;
 
+import com.paybridge.Services.EmailProvider;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Profile;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
@@ -11,7 +13,8 @@ import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 
 @Service
-public class EmailService {
+@Profile("smtp")
+public class EmailService implements EmailProvider {
 
     @Autowired
     private JavaMailSender mailSender;
@@ -20,6 +23,7 @@ public class EmailService {
     private String fromEmail;
 
     @Async
+    @Override
     public void sendVerificationEmail(String toEmail, String verificationCode, String businessName) {
         try {
             // In test or non-configured environments, skip sending to avoid failing flows

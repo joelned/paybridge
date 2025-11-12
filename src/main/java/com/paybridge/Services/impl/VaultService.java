@@ -1,7 +1,8 @@
-package com.paybridge.Services;
+package com.paybridge.Services.impl;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.paybridge.Services.CredentialStorageService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 import org.springframework.vault.core.VaultTemplate;
 import org.springframework.vault.support.VaultResponseSupport;
@@ -10,16 +11,15 @@ import java.util.HashMap;
 import java.util.Map;
 
 @Service
-public class VaultService {
+@Profile("vault")
+public class VaultService implements CredentialStorageService {
 
     @Autowired
     private VaultTemplate vaultTemplate;
 
-    @Autowired
-    private ObjectMapper objectMapper;
-
     private static final String PROVIDER_PATH_PREFIX = "secret/data/paybridge/providers";
 
+    @Override
     public void saveProviderConfig (String providerName, Long merchantId, Map<String, Object> config){
         String path = buildProviderPath(providerName, merchantId);
 
@@ -34,6 +34,7 @@ public class VaultService {
         }
     }
 
+    @Override
     public Map<String, Object> getProviderConfig(String providerName, Long merchantId){
         String path = buildProviderPath(providerName, merchantId);
 
@@ -49,6 +50,7 @@ public class VaultService {
         }
     }
 
+    @Override
     public void removeProviderConfig(String providerName, Long merchantId){
         String path = buildProviderPath(providerName, merchantId);
 
@@ -60,6 +62,7 @@ public class VaultService {
         }
     }
 
+    @Override
     public boolean providerConfigExists (String providerName, Long merchantId){
         String path = buildProviderPath(providerName, merchantId);
 
@@ -72,11 +75,12 @@ public class VaultService {
         }
     }
 
-    public void updateProviderConfigProperty (String providerName, Long userId,
+    @Override
+    public void updateProviderConfigProperty (String providerName, Long merchantId,
                                              String fieldName, Object fieldValue) {
-        Map<String, Object> currentConfig = getProviderConfig(providerName, userId);
+        Map<String, Object> currentConfig = getProviderConfig(providerName, merchantId);
         currentConfig.put(fieldName, fieldValue);
-        saveProviderConfig(providerName, userId, currentConfig);
+        saveProviderConfig(providerName, merchantId, currentConfig);
     }
 
     private String buildProviderPath(String providerName, Long merchantId){
