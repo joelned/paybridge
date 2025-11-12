@@ -1,8 +1,7 @@
 package com.paybridge.Controllers;
 
-import com.paybridge.Models.DTOs.ErrorResponse;
+import com.paybridge.Models.DTOs.ApiResponse;
 import com.paybridge.Models.DTOs.MerchantRegistrationRequest;
-import com.paybridge.Models.DTOs.MerchantRegistrationResponse;
 import com.paybridge.Services.MerchantService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,14 +18,9 @@ public class MerchantController {
 
 
     @PostMapping
-    public ResponseEntity<Object> registerMerchant(@RequestBody @Valid MerchantRegistrationRequest request){
-        try{
-            MerchantRegistrationResponse response = merchantService.registerMerchant(request);
-            return ResponseEntity.status(HttpStatus.CREATED).body(response);
-        } catch (RuntimeException ex){
-            ErrorResponse response = new ErrorResponse
-                    (400, ex.getMessage(), "Use a different email", "/api/v1/merchants");
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
-        }
+    public ResponseEntity<ApiResponse<String>> registerMerchant(@RequestBody @Valid MerchantRegistrationRequest request){
+            merchantService.registerMerchant(request);
+            return ResponseEntity.status(HttpStatus.CREATED)
+                    .body(ApiResponse.success("Registration successful. Please check your email for verification code"));
     }
 }

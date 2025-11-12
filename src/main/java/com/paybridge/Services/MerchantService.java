@@ -1,7 +1,6 @@
 package com.paybridge.Services;
 
 import com.paybridge.Models.DTOs.MerchantRegistrationRequest;
-import com.paybridge.Models.DTOs.MerchantRegistrationResponse;
 import com.paybridge.Models.Entities.Merchant;
 import com.paybridge.Models.Entities.Users;
 import com.paybridge.Models.Enums.MerchantStatus;
@@ -28,8 +27,7 @@ public class MerchantService {
     private PasswordEncoder passwordEncoder;
 
     @Autowired
-    private EmailService emailService;
-
+    private EmailProvider emailProvider;
 
     public MerchantService(UserRepository userRepository, MerchantRepository merchantRepository, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
@@ -39,7 +37,7 @@ public class MerchantService {
 
 
     @Transactional
-    public MerchantRegistrationResponse registerMerchant(MerchantRegistrationRequest request){
+    public void registerMerchant(MerchantRegistrationRequest request){
         boolean merchantExists = merchantRepository.existsByEmail(request.getEmail());
         if(merchantExists){
             throw new RuntimeException("Merchant already exists");
@@ -51,13 +49,7 @@ public class MerchantService {
         userRepository.save(user);
         merchantRepository.save(merchant);
 
-       emailService.sendVerificationEmail(user.getEmail(), user.getVerificationCode(), user.getMerchant().getBusinessName());
-
-        return new MerchantRegistrationResponse(
-                merchant.getBusinessName(), merchant.getEmail(), merchant.getStatus(),
-                "Registration successful. Please check your email for verification code.",
-                "Verify your email to activate your account"
-        );
+       emailProvider.sendVerificationEmail(user.getEmail(), user.getVerificationCode(), user.getMerchant().getBusinessName());
     }
 
     public Merchant createMerchant(MerchantRegistrationRequest request){

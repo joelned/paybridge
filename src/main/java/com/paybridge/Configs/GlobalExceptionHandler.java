@@ -1,9 +1,11 @@
 package com.paybridge.Configs;
 
-import com.paybridge.Models.DTOs.ErrorResponse;
+import com.paybridge.Models.DTOs.ApiResponse;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.context.support.DefaultMessageSourceResolvable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -14,41 +16,31 @@ import java.util.stream.Collectors;
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ErrorResponse> handleGenericException(Exception ex, HttpServletRequest request) {
-        ErrorResponse response = new ErrorResponse(
-                HttpStatus.INTERNAL_SERVER_ERROR.value(),
-                "Internal Server Error",
-                ex.getMessage(),
-                request.getRequestURI()
-        );
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+    public ResponseEntity<ApiResponse<String>> handleGenericException(Exception ex, HttpServletRequest request) {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(ApiResponse.error(ex.getMessage(), request.getRequestURI()));
     }
 
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ErrorResponse> handleValidationException(MethodArgumentNotValidException ex, HttpServletRequest request) {
+    public ResponseEntity<ApiResponse<String>> handleValidationException(MethodArgumentNotValidException ex, HttpServletRequest request) {
         String errorMessages = ex.getBindingResult().getFieldErrors()
                 .stream()
-                .map(err -> err.getField() + ": " + err.getDefaultMessage())
+                .map(DefaultMessageSourceResolvable::getDefaultMessage)
                 .collect(Collectors.joining(", "));
 
-        ErrorResponse response = new ErrorResponse(
-                HttpStatus.BAD_REQUEST.value(),
-                "Validation Error",
-                errorMessages,
-                request.getRequestURI()
-        );
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.error(errorMessages, request.getRequestURI()));
     }
 
     @ExceptionHandler(RuntimeException.class)
-    public ResponseEntity<ErrorResponse> handleRuntimeException(RuntimeException ex, HttpServletRequest request) {
-        ErrorResponse response = new ErrorResponse(
-                HttpStatus.BAD_REQUEST.value(),
-                "Bad Request",
-                ex.getMessage(),
-                request.getRequestURI()
-        );
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    public ResponseEntity<ApiResponse<String>> handleRuntimeException(RuntimeException ex, HttpServletRequest request) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.error(ex.getMessage(), request.getRequestURI()));
+    }
+
+    @ExceptionHandler(BadCredentialsException.class)
+    public ResponseEntity<ApiResponse<String>> handleBadCredentialsException(HttpServletRequest request){
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.error("Invalid username or password", request.getRequestURI()));
     }
 }

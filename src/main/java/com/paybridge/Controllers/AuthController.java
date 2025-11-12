@@ -34,42 +34,32 @@ public class AuthController {
     @Autowired
     private ApiKeyService apiKeyService;
 
-    @PostMapping("/login")
-    public ResponseEntity<LoginResponse> login(@RequestBody @Valid LoginRequest loginRequest,
+    @PostMapping(value = "/login")
+    public ResponseEntity<ApiResponse<String>> login(@RequestBody @Valid LoginRequest loginRequest,
                                                HttpServletResponse response){
-        LoginResponse loginResponse = authenticationService.login(loginRequest);
+        String token = authenticationService.login(loginRequest);
 
-        ResponseCookie cookie = ResponseCookie.from("jwt", loginResponse.getToken())
+        ResponseCookie cookie = ResponseCookie.from("jwt", token)
                 .httpOnly(true)
-                .secure(true) // use HTTPS in production
+                .secure(true)
                 .path("/")
-                .sameSite("None") // REQUIRED for cross-origin (CORS)
-                .maxAge(3600) // 1 hour
+                .sameSite("None")
+                .maxAge(3600)
                 .build();
 
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
-
-        LoginResponse sanitizedResponse = new LoginResponse(
-                null, // don’t expose token
-                loginResponse.getEmail(),
-                loginResponse.getUserType(),
-                loginResponse.getExpiresIn()
-        );
-
-        return ResponseEntity.ok(sanitizedResponse);
+        return ResponseEntity.ok(ApiResponse.success("Login Successful"));
     }
 
-    @PostMapping("/verify-email")
-    public ResponseEntity<VerifyEmailResponse> verifyEmail(@RequestBody @Valid VerifyEmailRequest request) {
-        VerifyEmailResponse response = verificationService.verifyEmail(request.getEmail(), request.getCode());
+    @PostMapping(value = "/verify-email")
+    public ResponseEntity<ApiResponse<String>> verifyEmail(@RequestBody @Valid VerifyEmailRequest request) {
+        ApiResponse<String> response = verificationService.verifyEmail(request.getEmail(), request.getCode());
         HttpStatus status = response.isSuccess() ? HttpStatus.OK : HttpStatus.BAD_REQUEST;
 
         Merchant merchant = merchantRepository.findByEmail(request.getEmail());
 
         if(merchant == null){
-            VerifyEmailResponse errorResponse = new VerifyEmailResponse
-                    ("No account found with this email", false);
-            return ResponseEntity.status(400).body(errorResponse);
+            return ResponseEntity.status(400).body(ApiResponse.error("Merchant does not exist"));
         }
         merchant.setTestMode(true);
         // Persist testMode flag change first to avoid overwriting keys set in a separate transaction

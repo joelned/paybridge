@@ -1,6 +1,6 @@
 package com.paybridge.Services;
 
-import com.paybridge.Models.DTOs.VerifyEmailResponse;
+import com.paybridge.Models.DTOs.ApiResponse;
 import com.paybridge.Models.Entities.Users;
 import com.paybridge.Repositories.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,24 +15,23 @@ public class VerificationService {
     private UserRepository userRepository;
 
     @Autowired
-    private EmailService emailService;
+    private EmailProvider emailProvider;
 
     @Autowired
     private TokenService tokenService;
 
-    public VerifyEmailResponse verifyEmail(String email, String code) {
+    public ApiResponse<String> verifyEmail(String email, String code) {
         Users user = userRepository.findByEmail(email);
         if (user == null) {
-            return new VerifyEmailResponse("No account found with this email", false);
+            return ApiResponse.error("No account found with this mail");
         }
 
         if (user.isEmailVerified()) {
-            return new VerifyEmailResponse("Email is already verified", false);
+            return ApiResponse.error("Email is already verified");
         }
 
-        // Check verification attempts
         if (user.getVerificationAttempts() >= 5) {
-            return new VerifyEmailResponse("Too many verification attempts. Please request a new code.", false);
+            return ApiResponse.error("Too many requests. Please request a new code");
         }
 
         // Validate code
@@ -42,16 +41,15 @@ public class VerificationService {
 
             if (user.getVerificationCodeExpiresAt() != null &&
                     java.time.LocalDateTime.now().isAfter(user.getVerificationCodeExpiresAt())) {
-                return new VerifyEmailResponse("Verification code has expired. Please request a new one.", false);
+                return ApiResponse.error("Verification code expired. Please request a new one");
             }
-            return new VerifyEmailResponse("Invalid verification code", false);
+            return ApiResponse.error("Invalid verification code");
         }
 
-        // Mark as verified
         user.markAsVerified();
         userRepository.save(user);
 
-        return new VerifyEmailResponse("Email verified successfully", true);
+        return ApiResponse.success("Email verified successfully");
     }
 
     public void resendVerificationCode(String email) {
@@ -68,12 +66,10 @@ public class VerificationService {
             throw new RuntimeException("Please wait before requesting another verification code");
         }
 
-        // Generate new verification code
         user.generateVerificationCode();
         userRepository.save(user);
 
-        // Send new verification email
         String businessName = user.getMerchant() != null ? user.getMerchant().getBusinessName() : null;
-        emailService.sendVerificationEmail(user.getEmail(), user.getVerificationCode(), businessName);
+        emailProvider.sendVerificationEmail(user.getEmail(), user.getVerificationCode(), businessName);
     }
 }
