@@ -18,6 +18,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.Map;
+import java.util.Optional;
+
 @RestController
 @RequestMapping(path = "/api/v1/auth")
 public class AuthController {
@@ -35,8 +38,8 @@ public class AuthController {
     private ApiKeyService apiKeyService;
 
     @PostMapping(value = "/login")
-    public ResponseEntity<ApiResponse<String>> login(@RequestBody @Valid LoginRequest loginRequest,
-                                               HttpServletResponse response){
+    public ResponseEntity<Map<String, Object>> login(@RequestBody @Valid LoginRequest loginRequest,
+                                                     HttpServletResponse response){
         String token = authenticationService.login(loginRequest);
 
         ResponseCookie cookie = ResponseCookie.from("jwt", token)
@@ -48,7 +51,10 @@ public class AuthController {
                 .build();
 
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
-        return ResponseEntity.ok(ApiResponse.success("Login Successful"));
+
+        Optional<Merchant> merchant = Optional.of(merchantRepository.findByEmail(loginRequest.getEmail()).orElseThrow());
+        Map<String, Object> userData = authenticationService.userData(merchant.get());
+        return ResponseEntity.ok(userData);
     }
 
     @PostMapping(value = "/verify-email")
@@ -56,16 +62,16 @@ public class AuthController {
         ApiResponse<String> response = verificationService.verifyEmail(request.getEmail(), request.getCode());
         HttpStatus status = response.isSuccess() ? HttpStatus.OK : HttpStatus.BAD_REQUEST;
 
-        Merchant merchant = merchantRepository.findByEmail(request.getEmail());
+        Optional<Merchant> merchant = merchantRepository.findByEmail(request.getEmail());
 
-        if(merchant == null){
+        if(merchant.isEmpty()){
             return ResponseEntity.status(400).body(ApiResponse.error("Merchant does not exist"));
         }
-        merchant.setTestMode(true);
+        merchant.get().setTestMode(true);
         // Persist testMode flag change first to avoid overwriting keys set in a separate transaction
-        merchantRepository.save(merchant);
+        merchantRepository.save(merchant.get());
         // Generate both test and live API keys and persist their hashes as part of remediation
-        apiKeyService.regenerateApiKey(merchant.getId(), true, true);
+        apiKeyService.regenerateApiKey(merchant.get().getId(), true, true);
 
         return ResponseEntity.status(status).body(response);
     }
