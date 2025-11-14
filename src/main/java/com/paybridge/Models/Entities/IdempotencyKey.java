@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
 public class IdempotencyKey {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private int id;
+    private Integer id;
     @ManyToOne
     @JoinColumn(name = "customer_id")
     private Customer customer;
@@ -18,6 +18,7 @@ public class IdempotencyKey {
     private String requestHash;
     @Column(name = "response")
     private String response;
+    @Enumerated(EnumType.STRING)
     @Column(name="status", nullable = false)
     private PaymentStatus paymentStatus;
     @CreationTimestamp
