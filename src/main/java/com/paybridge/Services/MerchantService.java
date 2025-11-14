@@ -62,7 +62,7 @@ public class MerchantService {
         merchant.setCreatedAt(LocalDateTime.now());
         merchant.setUpdatedAt(LocalDateTime.now());
         merchant.setEmail(request.getEmail());
-        merchant.setStatus(MerchantStatus.PENDING_PROVIDER_SETUP);
+        merchant.setStatus(MerchantStatus.PENDING_EMAIL_VERIFICATION);
         return merchant;
     }
 
