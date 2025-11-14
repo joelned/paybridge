@@ -1,14 +1,19 @@
 package com.paybridge.Services;
 
+import com.paybridge.Exceptions.EmailNotVerifiedException;
 import com.paybridge.Models.DTOs.LoginRequest;
 import com.paybridge.Models.Entities.Merchant;
 import com.paybridge.Models.Entities.Users;
+import com.paybridge.Models.Enums.UserType;
 import com.paybridge.Repositories.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
+
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 @Service
 public class AuthenticationService {
@@ -22,6 +27,9 @@ public class AuthenticationService {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private VerificationService verificationService;
+
     public AuthenticationService(AuthenticationManager authenticationManager
             , TokenService tokenService) {
         this.authenticationManager = authenticationManager;
@@ -31,7 +39,8 @@ public class AuthenticationService {
     public String login(LoginRequest request) {
         Users user = userRepository.findByEmail(request.getEmail());
         if (user != null && !user.isEmailVerified()) {
-            throw new RuntimeException("Please verify your email before logging in");
+            verificationService.resendVerificationCode(user.getEmail());
+            throw new EmailNotVerifiedException("Please verify your email before logging in");
         }
         Authentication authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(
                 request.getEmail(), request.getPassword()
@@ -60,6 +69,14 @@ public class AuthenticationService {
         }
 
         return merchant;
+    }
+
+    public Map<String, Object> userData(Merchant merchant){
+        Map<String, Object> merchantUserData = new LinkedHashMap<>();
+        merchantUserData.put("email", merchant.getEmail());
+        merchantUserData.put("businessName", merchant.getBusinessName());
+        merchantUserData.put("userType", UserType.MERCHANT);
+        return merchantUserData;
     }
 
 }
