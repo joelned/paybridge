@@ -1,6 +1,7 @@
 package com.paybridge.Filters;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.paybridge.Exceptions.EmailNotVerifiedException;
 import com.paybridge.Models.Entities.Merchant;
 import com.paybridge.Models.Enums.MerchantStatus;
 import com.paybridge.Repositories.MerchantRepository;

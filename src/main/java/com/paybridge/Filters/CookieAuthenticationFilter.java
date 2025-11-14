@@ -1,16 +1,22 @@
 package com.paybridge.Filters;
 
+import com.paybridge.Exceptions.EmailNotVerifiedException;
+import com.paybridge.Models.Entities.Merchant;
+import com.paybridge.Models.Enums.MerchantStatus;
+import com.paybridge.Services.AuthenticationService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtException;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
+import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
@@ -19,10 +25,14 @@ import java.io.IOException;
  * Filter for authenticating requests using JWT tokens stored in HttpOnly cookies.
  * This filter runs for all requests except public endpoints.
  */
+@Component
 public class CookieAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtDecoder jwtDecoder;
     private final JwtAuthenticationConverter jwtAuthenticationConverter;
+
+    @Autowired
+    private AuthenticationService authenticationService;
 
     public CookieAuthenticationFilter(JwtDecoder jwtDecoder,
                                       JwtAuthenticationConverter jwtAuthenticationConverter) {
@@ -50,7 +60,6 @@ public class CookieAuthenticationFilter extends OncePerRequestFilter {
 
                 // Convert JWT to Authentication
                 Authentication authentication = jwtAuthenticationConverter.convert(jwt);
-
                 SecurityContextHolder.getContext().setAuthentication(authentication);
             }
         } catch (JwtException e) {

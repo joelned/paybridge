@@ -1,4 +1,4 @@
-package com.paybridge.Configs;
+package com.paybridge.Exceptions;
 
 /**
  * Custom exception for encryption/decryption failures
