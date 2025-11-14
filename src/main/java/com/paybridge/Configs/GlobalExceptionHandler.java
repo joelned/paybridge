@@ -1,5 +1,6 @@
 package com.paybridge.Configs;
 
+import com.paybridge.Exceptions.EmailNotVerifiedException;
 import com.paybridge.Models.DTOs.ApiResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.context.support.DefaultMessageSourceResolvable;
@@ -42,5 +43,11 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<String>> handleBadCredentialsException(HttpServletRequest request){
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(ApiResponse.error("Invalid username or password", request.getRequestURI()));
+    }
+    @ExceptionHandler(EmailNotVerifiedException.class)
+    public ResponseEntity<ApiResponse<String>> handleEmailNotVerifiedException(EmailNotVerifiedException ex,
+                                                                               HttpServletRequest request){
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.error(ex.getMessage(), request.getRequestURI()));
     }
 }
