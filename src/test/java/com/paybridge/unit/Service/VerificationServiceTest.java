@@ -95,7 +95,7 @@ class VerificationServiceTest {
 
         // Assert
         assertFalse(response.isSuccess());
-        assertEquals("No account found with this email", response.getError());
+        assertEquals("No account found with this mail", response.getError());
         verify(userRepository, never()).save(any(Users.class));
     }
 
@@ -124,7 +124,7 @@ class VerificationServiceTest {
 
         // Assert
         assertFalse(response.isSuccess());
-        assertEquals("Too many verification attempts. Please request a new code.", response.getError());
+        assertEquals("Too many requests. Please request a new code", response.getError());
         verify(userRepository, never()).save(any(Users.class));
     }
 
@@ -156,7 +156,7 @@ class VerificationServiceTest {
 
         // Assert
         assertFalse(response.isSuccess());
-        assertEquals("Verification code has expired. Please request a new one.", response.getError());
+        assertEquals("Verification code expired. Please request a new one", response.getError());
         verify(userRepository, times(1)).save(unverifiedUser);
     }
 
@@ -298,7 +298,7 @@ class VerificationServiceTest {
 
         // Assert
         assertFalse(response.isSuccess());
-        assertEquals("Too many verification attempts. Please request a new code.", response.getError());
+        assertEquals("Too many requests. Please request a new code", response.getError());
 
         // Verify that save was NOT called because we blocked early
         verify(userRepository, never()).save(any(Users.class));

@@ -226,7 +226,7 @@ class MerchantServiceTest {
         assertEquals(validRequest.getBusinessName(), merchant.getBusinessName());
         assertEquals(validRequest.getWebsiteUrl(), merchant.getWebsiteUrl());
         assertEquals(validRequest.getEmail(), merchant.getEmail());
-        assertEquals(MerchantStatus.PENDING_PROVIDER_SETUP, merchant.getStatus());
+        assertEquals(MerchantStatus.PENDING_EMAIL_VERIFICATION, merchant.getStatus());
         assertNotNull(merchant.getCreatedAt());
         assertNotNull(merchant.getUpdatedAt());
         assertTrue(merchant.getCreatedAt().isBefore(LocalDateTime.now().plusSeconds(1)));
