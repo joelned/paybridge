@@ -12,13 +12,14 @@ import org.springframework.stereotype.Component;
 import java.util.Map;
 
 @Component
-public class StripeConnectionTester implements ConnectionTester {
+public class StripePaymentProvider implements PaymentProvider {
 
-    private static final Logger logger = LoggerFactory.getLogger(StripeConnectionTester.class);
+    private static final Logger logger = LoggerFactory.getLogger(StripePaymentProvider.class);
 
     /**
      * Test Stripe API connection by sending request with secret key
      */
+    @Override
     public ConnectionTestResult testConnection(Map<String, Object> credentials) {
         String stripeApiKey= (String) credentials.get("secretKey");
 
@@ -35,6 +36,11 @@ public class StripeConnectionTester implements ConnectionTester {
         } catch (StripeException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    @Override
+    public String getProviderName() {
+        return "stripe";
     }
 
 }

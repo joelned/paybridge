@@ -11,8 +11,8 @@ import org.springframework.web.client.RestTemplate;
 import java.util.Map;
 
 @Component
-public class PaystackConnectionTester implements ConnectionTester {
-    private static final Logger logger = LoggerFactory.getLogger(PaystackConnectionTester.class);
+public class PaystackPaymentProvider implements PaymentProvider {
+    private static final Logger logger = LoggerFactory.getLogger(PaystackPaymentProvider.class);
     private static final String PAYSTACK_TOKEN_URL = "https://api.paystack.co/";
 
     @Autowired
@@ -46,5 +46,10 @@ public class PaystackConnectionTester implements ConnectionTester {
        }catch(Exception ex){
             return ConnectionTestResult.failure(ex.getMessage());
        }
+    }
+
+    @Override
+    public String getProviderName() {
+        return "paystack";
     }
 }

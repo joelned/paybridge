@@ -16,9 +16,9 @@ import java.time.Instant;
 import java.util.Map;
 
 @Component
-public class FlutterwaveConnectionTester implements ConnectionTester {
+public class FlutterwavePaymentProvider implements PaymentProvider {
 
-    private static final Logger logger = LoggerFactory.getLogger(FlutterwaveConnectionTester.class);
+    private static final Logger logger = LoggerFactory.getLogger(FlutterwavePaymentProvider.class);
     private static final String FLUTTERWAVE_TOKEN_URL = "https://idp.flutterwave.com/realms/flutterwave/protocol/openid-connect/token";
 
     @Autowired
@@ -88,6 +88,11 @@ public class FlutterwaveConnectionTester implements ConnectionTester {
             logger.error("Unexpected error during Flutterwave connection test", e);
             return ConnectionTestResult.failure("Connection failed: " + e.getMessage());
         }
+    }
+
+    @Override
+    public String getProviderName() {
+        return "flutterwave";
     }
 
     /**
