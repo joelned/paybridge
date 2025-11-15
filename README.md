@@ -1,12 +1,25 @@
+<div align="center">
+
 # PayBridge
 
-A payment orchestration platform that provides unified API access to multiple payment providers through secure merchant onboarding, API key management, and provider configuration.
+### *Unified Payment Orchestration Platform*
 
-## Overview
+[![Java](https://img.shields.io/badge/Java-17-orange?style=for-the-badge&logo=java)](https://openjdk.java.net/)
+[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.5.6-brightgreen?style=for-the-badge&logo=spring)](https://spring.io/projects/spring-boot)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-14+-blue?style=for-the-badge&logo=postgresql)](https://www.postgresql.org/)
+[![Redis](https://img.shields.io/badge/Redis-6+-red?style=for-the-badge&logo=redis)](https://redis.io/)
+
+*A payment orchestration platform that provides unified API access to multiple payment providers through secure merchant onboarding, API key management, and provider configuration.*
+
+</div>
+
+---
+
+## 🎯 Overview
 
 PayBridge allows merchants to register, verify their accounts, and configure multiple payment providers (Stripe, Flutterwave, Paystack) through a single API. The platform handles authentication via JWT tokens and API keys, with built-in rate limiting and usage tracking.
 
-## Technology Stack
+## 🛠️ Technology Stack
 
 - **Framework**: Spring Boot 3.5.6
 - **Language**: Java 17
@@ -19,7 +32,7 @@ PayBridge allows merchants to register, verify their accounts, and configure mul
 - **Testing**: JUnit 5, Testcontainers
 - **Build**: Maven
 
-## Project Structure
+## 📁 Project Structure
 
 ```
 src/main/java/com/paybridge/
@@ -69,48 +82,48 @@ src/main/java/com/paybridge/
 └── PaybridgeApplication.java
 ```
 
-## API Endpoints
+## 🔗 API Endpoints
 
-### Public Endpoints
+### 🌐 Public Endpoints
 - `POST /api/v1/merchants` - Merchant registration
 - `POST /api/v1/auth/login` - Merchant login
 - `POST /api/v1/auth/verify-email` - Email verification
 - `POST /api/v1/auth/resend-verification` - Resend verification code
 
-### Protected Endpoints (JWT Required)
+### 🔒 Protected Endpoints (JWT Required)
 - `POST /api/v1/providers/configure` - Configure payment provider
 - `POST /api/v1/providers/test/{configId}` - Test provider connection
 
-## Features
+## ✨ Features
 
-### Authentication & Security
+### 🔐 Authentication & Security
 - **JWT Authentication**: RSA-signed tokens with HTTP-only cookies
 - **API Key Management**: Test and live mode API keys with SHA-256 hashing
 - **Rate Limiting**: 1,000 requests/hour, 10,000 requests/day per API key
 - **CORS Configuration**: Supports multiple frontend origins
 - **Password Encryption**: BCrypt hashing
 
-### Merchant Management
+### 👥 Merchant Management
 - **Registration**: Business information with email verification
 - **Email Verification**: 6-digit codes with 10-minute expiration
 - **Account Status**: Pending verification → Active workflow
 
-### Payment Provider Integration
+### 💳 Payment Provider Integration
 - **Stripe**: Customer creation testing via Stripe API
 - **Flutterwave**: OAuth2 client credentials authentication
 - **Paystack**: Bearer token authentication
 - **Connection Testing**: Validate provider credentials before saving
 
-### Monitoring & Analytics
+### 📊 Monitoring & Analytics
 - **Usage Tracking**: Redis-based real-time API usage statistics
 - **Scheduled Persistence**: Automatic transfer of Redis logs to PostgreSQL
 - **Request Logging**: IP address, endpoint, response status tracking
 
-### Secret Management
+### 🔑 Secret Management
 - **Vault Integration**: HashiCorp Vault for secure credential storage
 - **Profile-based**: Vault service activated via `vault` profile
 
-## Environment Variables
+## ⚙️ Environment Variables
 
 ```bash
 # Database
@@ -140,16 +153,16 @@ spring.mail.username=your_email@gmail.com
 spring.mail.password=your_app_password
 ```
 
-## Getting Started
+## 🚀 Getting Started
 
-### Prerequisites
+### 📋 Prerequisites
 - Java 17+
 - PostgreSQL 14+
 - Redis 6+
 - RabbitMQ 3.8+
 - HashiCorp Vault (optional)
 
-### Setup
+### 🔧 Setup
 
 1. **Clone and build**
    ```bash
@@ -175,9 +188,9 @@ spring.mail.password=your_app_password
    ./mvnw spring-boot:run
    ```
 
-The application starts on `http://localhost:8080`
+🎉 **The application starts on `http://localhost:8080`**
 
-## Usage Example
+## 💡 Usage Example
 
 ### 1. Register Merchant
 ```bash
@@ -230,7 +243,7 @@ Cookie: jwt=<jwt-token>
 }
 ```
 
-## Testing
+## 🧪 Testing
 
 ```bash
 # Run all tests
@@ -240,15 +253,15 @@ Cookie: jwt=<jwt-token>
 ./mvnw verify
 ```
 
-## Rate Limiting
+## ⏱️ Rate Limiting
 
 API keys are automatically rate limited:
 - **Hourly**: 1,000 requests
 - **Daily**: 10,000 requests
 
-Usage statistics are tracked in Redis and periodically persisted to PostgreSQL.
+📈 Usage statistics are tracked in Redis and periodically persisted to PostgreSQL.
 
-## Profiles
+## 🏷️ Profiles
 
 - `vault` - Enables HashiCorp Vault integration
 - `smtp` - Enables email service
@@ -257,3 +270,13 @@ Activate profiles:
 ```bash
 java -jar target/paybridge-0.0.1-SNAPSHOT.jar --spring.profiles.active=vault,smtp
 ```
+
+---
+
+<div align="center">
+
+### 🌟 Built with ❤️ for seamless payment integration
+
+*PayBridge - Bridging the gap between merchants and payment providers*
+
+</div>
