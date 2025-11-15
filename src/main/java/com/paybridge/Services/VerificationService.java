@@ -17,9 +17,6 @@ public class VerificationService {
     @Autowired
     private EmailProvider emailProvider;
 
-    @Autowired
-    private TokenService tokenService;
-
     public ApiResponse<String> verifyEmail(String email, String code) {
         Users user = userRepository.findByEmail(email);
         if (user == null) {
