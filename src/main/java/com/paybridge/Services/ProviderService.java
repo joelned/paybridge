@@ -1,8 +1,6 @@
 package com.paybridge.Services;
 
-import com.paybridge.Configs.FlutterwaveConnectionTester;
-import com.paybridge.Configs.PaystackConnectionTester;
-import com.paybridge.Configs.StripeConnectionTester;
+import com.paybridge.Configs.PaymentProvider;
 import com.paybridge.Models.DTOs.ProviderConfiguration;
 import com.paybridge.Models.Entities.Merchant;
 import com.paybridge.Models.Entities.Provider;
@@ -38,13 +36,7 @@ public class ProviderService {
     private ProviderConfigRepository providerConfigRepository;
 
     @Autowired
-    private StripeConnectionTester stripeConnectionTester;
-
-    @Autowired
-    private FlutterwaveConnectionTester flutterwaveConnectionTester;
-
-    @Autowired
-    private PaystackConnectionTester paystackConnectionTester;
+    private PaymentProviderRegistry paymentProviderRegistry;
 
     /**
      * Configure provider with connection testing
@@ -180,12 +172,8 @@ public class ProviderService {
      */
     private ConnectionTestResult testProviderConnection(String providerName,
                                                         Map<String, Object> credentials) {
-        return switch (providerName.toLowerCase()) {
-            case "stripe" -> stripeConnectionTester.testConnection(credentials);
-            case "flutterwave" -> flutterwaveConnectionTester.testConnection(credentials);
-            case "paystack" -> paystackConnectionTester.testConnection(credentials);
-            default -> throw new IllegalArgumentException("Unsupported provider: " + providerName);
-        };
+        PaymentProvider provider = paymentProviderRegistry.getProvider(providerName);
+        return provider.testConnection(credentials);
     }
 
     /**
