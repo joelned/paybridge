@@ -1,8 +1,6 @@
 package com.paybridge.Filters;
 
-import com.paybridge.Exceptions.EmailNotVerifiedException;
-import com.paybridge.Models.Entities.Merchant;
-import com.paybridge.Models.Enums.MerchantStatus;
+import com.paybridge.Security.SecurityConstants;
 import com.paybridge.Services.AuthenticationService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -17,6 +15,7 @@ import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtException;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.stereotype.Component;
+import org.springframework.util.AntPathMatcher;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
@@ -78,9 +77,14 @@ public class CookieAuthenticationFilter extends OncePerRequestFilter {
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
         String path = request.getRequestURI();
+        AntPathMatcher pathMatcher = new AntPathMatcher();
 
-        return path.startsWith("/api/v1/auth/") ||
-                path.equals("/api/v1/merchants");
+        for (String pattern : SecurityConstants.PUBLIC_URLS) {
+            if (pathMatcher.match(pattern, path)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
