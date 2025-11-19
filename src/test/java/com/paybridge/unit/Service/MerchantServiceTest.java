@@ -8,7 +8,6 @@ import com.paybridge.Models.Enums.UserType;
 import com.paybridge.Repositories.MerchantRepository;
 import com.paybridge.Repositories.UserRepository;
 import com.paybridge.Services.EmailProvider;
-import com.paybridge.Services.impl.EmailService;
 import com.paybridge.Services.MerchantService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -63,7 +62,7 @@ class MerchantServiceTest {
 
         // Manually inject the emailProvider since it's not in the constructor
         // This is needed because @InjectMocks only uses constructor injection
-        merchantService = new MerchantService(userRepository, merchantRepository, passwordEncoder);
+        merchantService = new MerchantService(userRepository, merchantRepository, passwordEncoder, emailProvider);
 
         // Use reflection to set the emailProvider field
         try {
@@ -263,9 +262,10 @@ class MerchantServiceTest {
         UserRepository userRepo = mock(UserRepository.class);
         MerchantRepository merchantRepo = mock(MerchantRepository.class);
         PasswordEncoder encoder = mock(PasswordEncoder.class);
+        EmailProvider provider = mock(EmailProvider.class);
 
         // Act
-        MerchantService service = new MerchantService(userRepo, merchantRepo, encoder);
+        MerchantService service = new MerchantService(userRepo, merchantRepo, encoder, provider);
 
         // Assert
         assertNotNull(service);
