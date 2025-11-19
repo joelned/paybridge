@@ -17,13 +17,13 @@ public class StripePaymentProvider implements PaymentProvider {
     private static final Logger logger = LoggerFactory.getLogger(StripePaymentProvider.class);
 
     /**
-     * Test Stripe API connection by sending request with secret key
+     * Test Stripe API connection by sending a request with a secret key
      */
     @Override
     public ConnectionTestResult testConnection(Map<String, Object> credentials) {
         String stripeApiKey= (String) credentials.get("secretKey");
 
-        StripeClient stripeClient = new StripeClient(stripeApiKey);
+        StripeClient stripeClient = createStripeClient(stripeApiKey);
         CustomerCreateParams params = CustomerCreateParams
                 .builder()
                 .setDescription("Payment Description")
@@ -41,6 +41,10 @@ public class StripePaymentProvider implements PaymentProvider {
     @Override
     public String getProviderName() {
         return "stripe";
+    }
+
+    protected StripeClient createStripeClient(String apiKey) {
+        return new StripeClient(apiKey);
     }
 
 }

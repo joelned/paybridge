@@ -10,18 +10,18 @@ public class ApiResponse<T> {
 
     private boolean success;
     private T data;                        // Successful data
-    private String error;                  // Error type (ex: "Bad Request")
+    private T error;                  // Error type (ex: "Bad Request")
     private Map<String, Object> metadata;  // Extra info (optional)
     private String path;                   // Endpoint path
     private LocalDateTime timestamp;       // Time of response
 
-    public ApiResponse(String error, String path, LocalDateTime timestamp) {
+    public ApiResponse(T error, String path, LocalDateTime timestamp) {
         this.error = error;
         this.path = path;
         this.timestamp = timestamp;
     }
 
-    public ApiResponse(String error, LocalDateTime timestamp) {
+    public ApiResponse(T error, LocalDateTime timestamp) {
         this.error = error;
         this.timestamp = timestamp;
     }
@@ -38,12 +38,12 @@ public class ApiResponse<T> {
 
 
     //For global exception handler
-    public static <T> ApiResponse<T> error(String error, String path) {
+    public static <T> ApiResponse<T> error(T error, String path) {
         return new ApiResponse<>(error, path, LocalDateTime.now());
     }
 
     //For niche errors across application
-    public static <T> ApiResponse<T> error(String error) {
+    public static <T> ApiResponse<T> error(T error) {
         return new ApiResponse<>(error, LocalDateTime.now());
     }
 
@@ -53,8 +53,8 @@ public class ApiResponse<T> {
     public T getData() { return data; }
     public void setData(T data) { this.data = data; }
 
-    public String getError() { return error; }
-    public void setError(String error) { this.error = error; }
+    public T getError() { return error; }
+    public void setError(T error) { this.error = error; }
 
     public Map<String, Object> getMetadata() { return metadata; }
     public void setMetadata(Map<String, Object> metadata) { this.metadata = metadata; }

@@ -1,5 +1,6 @@
 package com.paybridge.Controllers;
 
+import com.paybridge.Models.DTOs.ApiResponse;
 import com.paybridge.Models.DTOs.ProviderConfiguration;
 import com.paybridge.Models.Entities.Merchant;
 import com.paybridge.Models.Entities.ProviderConfig;
@@ -8,30 +9,31 @@ import com.paybridge.Repositories.MerchantRepository;
 import com.paybridge.Services.AuthenticationService;
 import com.paybridge.Services.ConnectionTestResult;
 import com.paybridge.Services.ProviderService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
-import java.util.HashMap;
 import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/providers")
 public class ProviderController {
 
-    @Autowired
-    private ProviderService providerService;
+    private final ProviderService providerService;
 
-    @Autowired
-    private AuthenticationService authenticationService;
+    private final AuthenticationService authenticationService;
 
-    @Autowired
-    private MerchantRepository merchantRepository;
+    private final MerchantRepository merchantRepository;
+
+    public ProviderController(ProviderService providerService, AuthenticationService authenticationService, MerchantRepository merchantRepository) {
+        this.providerService = providerService;
+        this.authenticationService = authenticationService;
+        this.merchantRepository = merchantRepository;
+    }
 
     @PostMapping("/configure")
-    public ResponseEntity<Map<String, Object>> configureProvider(
+    public ResponseEntity<ApiResponse<Map>> configureProvider(
             @RequestBody @Valid ProviderConfiguration providerConfiguration,
             @RequestParam(defaultValue = "true") boolean testConnection,
             Authentication authentication) {
@@ -45,39 +47,36 @@ public class ProviderController {
                     testConnection
             );
 
-            Map<String, Object> response = new HashMap<>();
-            response.put("status", "success");
-            response.put("message", "Provider configured successfully");
-            response.put("configId", config.getId());
-            response.put("provider", config.getProvider().getDisplayName());
-            response.put("tested", testConnection);
-
             merchant.setStatus(MerchantStatus.ACTIVE);
             merchantRepository.save(merchant);
-            return ResponseEntity.ok(response);
+            return ResponseEntity.ok(ApiResponse.success(Map.of(
+                    "configId", config.getId(),
+                    "provider", config.getProvider().getDisplayName(),
+                    "tested", testConnection
+            )));
 
         } catch (IllegalArgumentException e) {
-            Map<String, Object> response = new HashMap<>();
-            response.put("status", "error");
-            response.put("message", e.getMessage());
-            return ResponseEntity.badRequest().body(response);
+            return ResponseEntity.badRequest().body(ApiResponse.error(Map.of(
+                    "status", "error",
+                    "message", e.getMessage()
+            )));
 
         } catch (SecurityException e) {
-            Map<String, Object> response = new HashMap<>();
-            response.put("status", "error");
-            response.put("message", "Unauthorized");
-            return ResponseEntity.status(403).body(response);
+            return ResponseEntity.status(403).body(ApiResponse.error(Map.of(
+                    "status", "error",
+                    "message", "Unauthorized"
+            )));
 
         } catch (Exception e) {
-            Map<String, Object> response = new HashMap<>();
-            response.put("status", "error");
-            response.put("message", "Failed to configure provider");
-            return ResponseEntity.internalServerError().body(response);
+            return ResponseEntity.internalServerError().body(ApiResponse.error(Map.of(
+                    "status", "error",
+                    "message", "Failed to configure provider"
+            )));
         }
     }
 
     @PostMapping("/test/{configId}")
-    public ResponseEntity<Map<String, Object>> testProviderConnection(
+    public ResponseEntity<ApiResponse<Map>> testProviderConnection(
             @PathVariable Long configId,
             Authentication authentication) {
 
@@ -89,31 +88,27 @@ public class ProviderController {
                     merchant.getId()
             );
 
-            Map<String, Object> response = new HashMap<>();
-            response.put("status", result.isSuccess() ? "success" : "error");
-            response.put("message", result.getMessage());
-            response.put("tested", true);
-            response.put("durationMs", result.getTestDurationMs());
-            response.put("metadata", result.getMetadata());
-
             merchant.setStatus(MerchantStatus.ACTIVE);
             merchantRepository.save(merchant);
 
-            return result.isSuccess()
-                    ? ResponseEntity.ok(response)
-                    : ResponseEntity.badRequest().body(response);
+            return ResponseEntity.ok(ApiResponse.success(Map.of(
+                    "message", result.getMessage(),
+                    "tested", true,
+                    "durationMs", result.getTestDurationMs(),
+                    "metadata", result.getMetadata()
+            )));
 
         } catch (SecurityException e) {
-            Map<String, Object> response = new HashMap<>();
-            response.put("status", "error");
-            response.put("message", "Unauthorized");
-            return ResponseEntity.status(403).body(response);
+            return ResponseEntity.status(403).body(ApiResponse.error(Map.of(
+                    "status", "error",
+                    "message", e.getMessage()
+            )));
 
         } catch (Exception e) {
-            Map<String, Object> response = new HashMap<>();
-            response.put("status", "error");
-            response.put("message", "Test failed");
-            return ResponseEntity.internalServerError().body(response);
+            return ResponseEntity.status(500).body(ApiResponse.error(
+                    Map.of("status", "error",
+                    "message", e.getMessage()
+            )));
         }
     }
 }

@@ -1,11 +1,11 @@
 package com.paybridge.Filters;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.paybridge.Exceptions.EmailNotVerifiedException;
 import com.paybridge.Models.Entities.Merchant;
 import com.paybridge.Models.Enums.MerchantStatus;
 import com.paybridge.Repositories.MerchantRepository;
 import com.paybridge.Repositories.UserRepository;
+import com.paybridge.Security.SecurityConstants;
 import com.paybridge.Services.ApiKeyService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -18,6 +18,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
+import org.springframework.util.AntPathMatcher;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
@@ -132,9 +133,13 @@ public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
         String path = request.getRequestURI();
+        AntPathMatcher pathMatcher = new AntPathMatcher();
 
-        // Don't filter public endpoints
-        return path.startsWith("/api/v1/auth/") ||
-                path.equals("/api/v1/merchants");
+        for (String pattern : SecurityConstants.PUBLIC_URLS) {
+            if (pathMatcher.match(pattern, path)) {
+                return true;
+            }
+        }
+        return false;
     }
 }
