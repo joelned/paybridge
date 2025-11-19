@@ -333,4 +333,23 @@
        </createTable>
     </changeSet>
 
+    <changeSet id="011-update-idempotency-key-table" author="paybridge">
+        <addColumn tableName="idempotency_keys">
+            <column name="idempotency_key" type="VARCHAR(200)"/>
+        </addColumn>
+        <addColumn tableName="idempotency_keys">
+            <column name="expires_at" type="TIMESTAMP"/>
+        </addColumn>
+        <addColumn tableName="idempotency_keys">
+            <column name="created_at" type="TIMESTAMP"/>
+        </addColumn>
+        <addColumn tableName="idempotency_keys">
+            <column name="locked" type="BOOLEAN"/>
+        </addColumn>
+        <addColumn tableName="idempotency_keys">
+            <column name="payment_status" type="VARCHAR(25)"/>
+        </addColumn>
+    </changeSet>
+
+
 </databaseChangeLog>
