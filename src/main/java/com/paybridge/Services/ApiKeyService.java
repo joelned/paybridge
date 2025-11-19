@@ -7,7 +7,6 @@ import com.paybridge.Repositories.MerchantRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -31,14 +30,11 @@ import java.util.*;
 @Service
 public class ApiKeyService {
 
-    @Autowired
-    private MerchantRepository merchantRepository;
+    private final MerchantRepository merchantRepository;
 
-    @Autowired
-    private ApiKeyUsageRepository apiKeyUsageRepository;
+    private final ApiKeyUsageRepository apiKeyUsageRepository;
 
-    @Autowired
-    private RedisTemplate<String, Object> redisTemplate;
+    private final RedisTemplate<String, Object> redisTemplate;
 
     private final Logger logger = LoggerFactory.getLogger(ApiKeyService.class);
 
@@ -51,6 +47,12 @@ public class ApiKeyService {
 
     private static final String TEST_PREFIX = "pk_test_";
     private static final String LIVE_PREFIX = "pk_live_";
+
+    public ApiKeyService(MerchantRepository merchantRepository, ApiKeyUsageRepository apiKeyUsageRepository, RedisTemplate<String, Object> redisTemplate) {
+        this.merchantRepository = merchantRepository;
+        this.apiKeyUsageRepository = apiKeyUsageRepository;
+        this.redisTemplate = redisTemplate;
+    }
 
     public String generateApiKey(boolean isTestMode) {
         SecureRandom secureRandom = new SecureRandom();

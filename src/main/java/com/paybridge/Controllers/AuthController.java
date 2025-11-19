@@ -8,7 +8,6 @@ import com.paybridge.Services.AuthenticationService;
 import com.paybridge.Services.VerificationService;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
@@ -25,17 +24,20 @@ import java.util.Optional;
 @RequestMapping(path = "/api/v1/auth")
 public class AuthController {
 
-    @Autowired
-    private AuthenticationService authenticationService;
+    private final AuthenticationService authenticationService;
 
-    @Autowired
-    private VerificationService verificationService;
+    private final VerificationService verificationService;
 
-    @Autowired
-    private MerchantRepository merchantRepository;
+    private final MerchantRepository merchantRepository;
 
-    @Autowired
-    private ApiKeyService apiKeyService;
+    private final ApiKeyService apiKeyService;
+
+    public AuthController(AuthenticationService authenticationService, VerificationService verificationService, MerchantRepository merchantRepository, ApiKeyService apiKeyService) {
+        this.authenticationService = authenticationService;
+        this.verificationService = verificationService;
+        this.merchantRepository = merchantRepository;
+        this.apiKeyService = apiKeyService;
+    }
 
     @PostMapping(value = "/login")
     public ResponseEntity<Map<String, Object>> login(@RequestBody @Valid LoginRequest loginRequest,
@@ -52,8 +54,8 @@ public class AuthController {
 
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
 
-        Optional<Merchant> merchant = Optional.of(merchantRepository.findByEmail(loginRequest.getEmail()).orElseThrow());
-        Map<String, Object> userData = authenticationService.userData(merchant.get());
+        Merchant merchant = merchantRepository.findByEmail(loginRequest.getEmail()).orElseThrow();
+        Map<String, Object> userData = authenticationService.userData(merchant);
         return ResponseEntity.ok(userData);
     }
 
@@ -80,15 +82,12 @@ public class AuthController {
     public ResponseEntity<?> resendVerification(@RequestBody @Valid ResendVerificationRequest request) {
         try {
             verificationService.resendVerificationCode(request.getEmail());
-            return ResponseEntity.ok().body(java.util.Map.of(
+            return ResponseEntity.ok().body(ApiResponse.success(Map.of(
                     "message", "Verification code sent successfully",
                     "success", true
-            ));
+            )));
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(java.util.Map.of(
-                    "message", e.getMessage(),
-                    "success", false
-            ));
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
         }
     }
 }

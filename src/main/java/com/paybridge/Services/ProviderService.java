@@ -10,7 +10,6 @@ import com.paybridge.Repositories.ProviderRepository;
 import com.paybridge.Repositories.ProviderConfigRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,20 +22,23 @@ public class ProviderService {
 
     private static final Logger log = LoggerFactory.getLogger(ProviderService.class);
 
-    @Autowired
-    private CredentialStorageService credentialStorageService;
+    private final CredentialStorageService credentialStorageService;
 
-    @Autowired
-    private MerchantRepository merchantRepository;
+    private final MerchantRepository merchantRepository;
 
-    @Autowired
-    private ProviderRepository providerRepository;
+    private final ProviderRepository providerRepository;
 
-    @Autowired
-    private ProviderConfigRepository providerConfigRepository;
+    private final ProviderConfigRepository providerConfigRepository;
 
-    @Autowired
-    private PaymentProviderRegistry paymentProviderRegistry;
+    private final PaymentProviderRegistry paymentProviderRegistry;
+
+    public ProviderService(CredentialStorageService credentialStorageService, MerchantRepository merchantRepository, ProviderRepository providerRepository, ProviderConfigRepository providerConfigRepository, PaymentProviderRegistry paymentProviderRegistry) {
+        this.credentialStorageService = credentialStorageService;
+        this.merchantRepository = merchantRepository;
+        this.providerRepository = providerRepository;
+        this.providerConfigRepository = providerConfigRepository;
+        this.paymentProviderRegistry = paymentProviderRegistry;
+    }
 
     /**
      * Configure provider with connection testing

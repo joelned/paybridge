@@ -6,7 +6,6 @@ import com.paybridge.Models.Entities.Merchant;
 import com.paybridge.Models.Entities.Users;
 import com.paybridge.Models.Enums.UserType;
 import com.paybridge.Repositories.UserRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -18,22 +17,19 @@ import java.util.Map;
 @Service
 public class AuthenticationService {
 
-    @Autowired
-    private AuthenticationManager authenticationManager;
+    private final AuthenticationManager authenticationManager;
+    private final TokenService tokenService;
+    private final UserRepository userRepository;
+    private final VerificationService verificationService;
 
-    @Autowired
-    private TokenService tokenService;
-
-    @Autowired
-    private UserRepository userRepository;
-
-    @Autowired
-    private VerificationService verificationService;
-
-    public AuthenticationService(AuthenticationManager authenticationManager
-            , TokenService tokenService) {
+    public AuthenticationService(AuthenticationManager authenticationManager,
+                                 TokenService tokenService,
+                                 UserRepository userRepository,
+                                 VerificationService verificationService) {
         this.authenticationManager = authenticationManager;
         this.tokenService = tokenService;
+        this.userRepository = userRepository;
+        this.verificationService = verificationService;
     }
 
     public String login(LoginRequest request) {

@@ -3,7 +3,6 @@ package com.paybridge.Services;
 import com.paybridge.Models.DTOs.ApiResponse;
 import com.paybridge.Models.Entities.Users;
 import com.paybridge.Repositories.UserRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -11,11 +10,14 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional
 public class VerificationService {
 
-    @Autowired
-    private UserRepository userRepository;
+    private final UserRepository userRepository;
 
-    @Autowired
-    private EmailProvider emailProvider;
+    private final EmailProvider emailProvider;
+
+    public VerificationService(UserRepository userRepository, EmailProvider emailProvider) {
+        this.userRepository = userRepository;
+        this.emailProvider = emailProvider;
+    }
 
     public ApiResponse<String> verifyEmail(String email, String code) {
         Users user = userRepository.findByEmail(email);

@@ -4,7 +4,6 @@ import com.paybridge.Models.DTOs.ApiResponse;
 import com.paybridge.Models.DTOs.MerchantRegistrationRequest;
 import com.paybridge.Services.MerchantService;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -13,8 +12,11 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/v1/merchants")
 public class MerchantController {
 
-    @Autowired
-    private MerchantService merchantService;
+    private final MerchantService merchantService;
+
+    public MerchantController(MerchantService merchantService) {
+        this.merchantService = merchantService;
+    }
 
 
     @PostMapping
