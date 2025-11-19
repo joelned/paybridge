@@ -4,7 +4,7 @@
 
 ### *Unified Payment Orchestration Platform*
 
-[![Java](https://img.shields.io/badge/Java-17-orange?style=for-the-badge&logo=java)](https://openjdk.java.net/)
+[![Java](https://img.shields.io/badge/Java-17%2B-ED8B00?style=for-the-badge&labelColor=ED8B00&logo=java&color=808080[Java)](https://java.com)
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.5.6-brightgreen?style=for-the-badge&logo=spring)](https://spring.io/projects/spring-boot)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-14+-blue?style=for-the-badge&logo=postgresql)](https://www.postgresql.org/)
 [![Redis](https://img.shields.io/badge/Redis-6+-red?style=for-the-badge&logo=redis)](https://redis.io/)
@@ -275,7 +275,6 @@ java -jar target/paybridge-0.0.1-SNAPSHOT.jar --spring.profiles.active=vault,smt
 
 <div align="center">
 
-### 🌟 Built with ❤️ for seamless payment integration
 
 *PayBridge - Bridging the gap between merchants and payment providers*
 
