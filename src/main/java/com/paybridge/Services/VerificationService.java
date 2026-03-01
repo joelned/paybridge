@@ -1,7 +1,9 @@
 package com.paybridge.Services;
 
 import com.paybridge.Models.DTOs.ApiResponse;
+import com.paybridge.Models.Entities.Merchant;
 import com.paybridge.Models.Entities.Users;
+import com.paybridge.Repositories.MerchantRepository;
 import com.paybridge.Repositories.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -11,15 +13,22 @@ import org.springframework.transaction.annotation.Transactional;
 public class VerificationService {
 
     private final UserRepository userRepository;
+    private final MerchantRepository merchantRepository;
+    private final ApiKeyService apiKeyService;
 
     private final EmailProvider emailProvider;
 
-    public VerificationService(UserRepository userRepository, EmailProvider emailProvider) {
+    public VerificationService(UserRepository userRepository,
+                               MerchantRepository merchantRepository,
+                               ApiKeyService apiKeyService,
+                               EmailProvider emailProvider) {
         this.userRepository = userRepository;
+        this.merchantRepository = merchantRepository;
+        this.apiKeyService = apiKeyService;
         this.emailProvider = emailProvider;
     }
 
-    public ApiResponse<String> verifyEmail(String email, String code) {
+    public ApiResponse<String> verifyEmailAndActivateMerchant(String email, String code) {
         Users user = userRepository.findByEmail(email);
         if (user == null) {
             return ApiResponse.error("No account found with this mail");
@@ -45,10 +54,22 @@ public class VerificationService {
             return ApiResponse.error("Invalid verification code");
         }
 
+        Merchant merchant = user.getMerchant();
+        if (merchant == null) {
+            return ApiResponse.error("Merchant does not exist");
+        }
+
         user.markAsVerified();
         userRepository.save(user);
+        merchant.setTestMode(true);
+        merchantRepository.save(merchant);
+        apiKeyService.regenerateApiKey(merchant.getId(), true, true);
 
         return ApiResponse.success("Email verified successfully");
+    }
+
+    public ApiResponse<String> verifyEmail(String email, String code) {
+        return verifyEmailAndActivateMerchant(email, code);
     }
 
     public void resendVerificationCode(String email) {

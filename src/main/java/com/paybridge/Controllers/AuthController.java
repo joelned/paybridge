@@ -3,7 +3,6 @@ package com.paybridge.Controllers;
 import com.paybridge.Models.DTOs.*;
 import com.paybridge.Models.Entities.Merchant;
 import com.paybridge.Repositories.MerchantRepository;
-import com.paybridge.Services.ApiKeyService;
 import com.paybridge.Services.AuthenticationService;
 import com.paybridge.Services.VerificationService;
 import jakarta.servlet.http.HttpServletResponse;
@@ -18,7 +17,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Map;
-import java.util.Optional;
 
 @RestController
 @RequestMapping(path = "/api/v1/auth")
@@ -30,13 +28,12 @@ public class AuthController {
 
     private final MerchantRepository merchantRepository;
 
-    private final ApiKeyService apiKeyService;
-
-    public AuthController(AuthenticationService authenticationService, VerificationService verificationService, MerchantRepository merchantRepository, ApiKeyService apiKeyService) {
+    public AuthController(AuthenticationService authenticationService,
+                          VerificationService verificationService,
+                          MerchantRepository merchantRepository) {
         this.authenticationService = authenticationService;
         this.verificationService = verificationService;
         this.merchantRepository = merchantRepository;
-        this.apiKeyService = apiKeyService;
     }
 
     @PostMapping(value = "/login")
@@ -61,20 +58,8 @@ public class AuthController {
 
     @PostMapping(value = "/verify-email")
     public ResponseEntity<ApiResponse<String>> verifyEmail(@RequestBody @Valid VerifyEmailRequest request) {
-        ApiResponse<String> response = verificationService.verifyEmail(request.getEmail(), request.getCode());
+        ApiResponse<String> response = verificationService.verifyEmailAndActivateMerchant(request.getEmail(), request.getCode());
         HttpStatus status = response.isSuccess() ? HttpStatus.OK : HttpStatus.BAD_REQUEST;
-
-        Optional<Merchant> merchant = merchantRepository.findByEmail(request.getEmail());
-
-        if(merchant.isEmpty()){
-            return ResponseEntity.status(400).body(ApiResponse.error("Merchant does not exist"));
-        }
-        merchant.get().setTestMode(true);
-        // Persist testMode flag change first to avoid overwriting keys set in a separate transaction
-        merchantRepository.save(merchant.get());
-        // Generate both test and live API keys and persist their hashes as part of remediation
-        apiKeyService.regenerateApiKey(merchant.get().getId(), true, true);
-
         return ResponseEntity.status(status).body(response);
     }
 

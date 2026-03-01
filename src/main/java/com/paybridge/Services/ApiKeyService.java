@@ -223,17 +223,8 @@ public class ApiKeyService {
     }
 
     public Long convertToLong(Object value) {
-        if (value == null) {
-            return null;
-        }
-        if (value instanceof Long) {
-            return (Long) value;
-        }
-        if (value instanceof Integer) {
-            return ((Integer) value).longValue();
-        }
-        if (value instanceof Number) {
-            return ((Number) value).longValue();
+        if(value instanceof Number){
+            return((Number) value).longValue();
         }
         return null;
     }
