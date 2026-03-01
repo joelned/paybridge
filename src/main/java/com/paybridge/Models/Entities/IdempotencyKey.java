@@ -6,7 +6,8 @@ import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
 
-@Entity(name = "idempotency_key")
+@Entity
+@Table(name = "idempotency_keys")
 public class IdempotencyKey {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -14,7 +15,7 @@ public class IdempotencyKey {
     @Column(name="idempotency_key", nullable = false)
     private String idempotencyKey;
     @ManyToOne
-    @JoinColumn(name = "customer_id")
+    @JoinColumn(name = "customer_id", nullable = false)
     private Customer customer;
     @Column(name = "request_hash", nullable = false)
     private String requestHash;
@@ -31,6 +32,22 @@ public class IdempotencyKey {
     private LocalDateTime expiresAt;
     @Column(name = "locked")
     private boolean locked = false;
+
+    public Integer getId() {
+        return id;
+    }
+
+    public void setId(Integer id) {
+        this.id = id;
+    }
+
+    public String getIdempotencyKey() {
+        return idempotencyKey;
+    }
+
+    public void setIdempotencyKey(String idempotencyKey) {
+        this.idempotencyKey = idempotencyKey;
+    }
 
     public Customer getCustomer() {
         return customer;
