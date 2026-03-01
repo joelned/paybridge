@@ -4,7 +4,6 @@ import com.paybridge.Models.DTOs.ApiResponse;
 import com.paybridge.Models.DTOs.ProviderConfiguration;
 import com.paybridge.Models.Entities.Merchant;
 import com.paybridge.Models.Entities.ProviderConfig;
-import com.paybridge.Models.Enums.MerchantStatus;
 import com.paybridge.Repositories.MerchantRepository;
 import com.paybridge.Services.AuthenticationService;
 import com.paybridge.Services.ConnectionTestResult;
@@ -47,7 +46,6 @@ public class ProviderController {
                     testConnection
             );
 
-            merchant.setStatus(MerchantStatus.ACTIVE);
             merchantRepository.save(merchant);
             return ResponseEntity.ok(ApiResponse.success(Map.of(
                     "configId", config.getId(),
@@ -88,7 +86,6 @@ public class ProviderController {
                     merchant.getId()
             );
 
-            merchant.setStatus(MerchantStatus.ACTIVE);
             merchantRepository.save(merchant);
 
             return ResponseEntity.ok(ApiResponse.success(Map.of(

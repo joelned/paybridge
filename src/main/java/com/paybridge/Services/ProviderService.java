@@ -5,6 +5,7 @@ import com.paybridge.Models.DTOs.ProviderConfiguration;
 import com.paybridge.Models.Entities.Merchant;
 import com.paybridge.Models.Entities.Provider;
 import com.paybridge.Models.Entities.ProviderConfig;
+import com.paybridge.Models.Enums.MerchantStatus;
 import com.paybridge.Repositories.MerchantRepository;
 import com.paybridge.Repositories.ProviderRepository;
 import com.paybridge.Repositories.ProviderConfigRepository;
@@ -124,6 +125,8 @@ public class ProviderService {
             config.setLastVerifiedAt(LocalDateTime.now());
         }
 
+        merchant.setStatus(MerchantStatus.ACTIVE);
+        merchantRepository.save(merchant);
         return providerConfigRepository.save(config);
     }
 
