@@ -19,7 +19,8 @@ public class LoggingConfiguration {
         String className = joinPoint.getTarget().getClass().getSimpleName();
         Object[] args = joinPoint.getArgs();
 
-        log.debug("Entering {}.{} with args: {}", className, methodName, args);
+        // Avoid logging raw args because service methods may receive secrets.
+        log.debug("Entering {}.{} (argCount={})", className, methodName, args.length);
 
         long start = System.currentTimeMillis();
         try {
@@ -30,8 +31,9 @@ public class LoggingConfiguration {
             return result;
         } catch (Exception e) {
             long duration = System.currentTimeMillis() - start;
-            log.error("Error in {}.{} after {} ms: {}",
-                    className, methodName, duration, e.getMessage(), e);
+            log.error("Error in {}.{} after {} ms (type={})",
+                    className, methodName, duration, e.getClass().getSimpleName());
+            log.debug("Stack trace for {}.{}", className, methodName, e);
             throw e;
         }
     }
