@@ -1,5 +1,7 @@
 package com.paybridge.Configs;
 
+import com.paybridge.Models.DTOs.CreatePaymentRequest;
+import com.paybridge.Models.DTOs.PaymentProviderResponse;
 import com.paybridge.Services.ConnectionTestResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,6 +48,11 @@ public class PaystackPaymentProvider implements PaymentProvider {
        }catch(Exception ex){
             return ConnectionTestResult.failure(ex.getMessage());
        }
+    }
+
+    @Override
+    public PaymentProviderResponse CreatePaymentRequest(CreatePaymentRequest request, Map<String, Object> credentials) {
+        return null;
     }
 
     @Override

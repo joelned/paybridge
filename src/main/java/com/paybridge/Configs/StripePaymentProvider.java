@@ -1,5 +1,7 @@
 package com.paybridge.Configs;
 
+import com.paybridge.Models.DTOs.CreatePaymentRequest;
+import com.paybridge.Models.DTOs.PaymentProviderResponse;
 import com.paybridge.Services.ConnectionTestResult;
 import com.stripe.StripeClient;
 import com.stripe.exception.StripeException;
@@ -36,6 +38,11 @@ public class StripePaymentProvider implements PaymentProvider {
         } catch (StripeException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    @Override
+    public PaymentProviderResponse CreatePaymentRequest(CreatePaymentRequest request, Map<String, Object> credentials) {
+        return null;
     }
 
     @Override

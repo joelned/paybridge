@@ -1,6 +1,8 @@
 package com.paybridge.Configs;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.paybridge.Models.DTOs.CreatePaymentRequest;
+import com.paybridge.Models.DTOs.PaymentProviderResponse;
 import com.paybridge.Services.ConnectionTestResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,7 +15,9 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 @Component
 public class FlutterwavePaymentProvider implements PaymentProvider {
@@ -148,9 +152,6 @@ public class FlutterwavePaymentProvider implements PaymentProvider {
     }
 
 
-    /*
-     * Token Response DTO with better null safety
-     */
     public static class TokenResponse {
         @JsonProperty("access_token")
         private String accessToken;
@@ -232,5 +233,27 @@ public class FlutterwavePaymentProvider implements PaymentProvider {
             if (token == null || token.length() <= 8) return "***";
             return token.substring(0, 4) + "***" + token.substring(token.length() - 4);
         }
+    }
+
+    @Override
+    public PaymentProviderResponse CreatePaymentRequest(CreatePaymentRequest request, Map<String, Object> credentials){
+        ConnectionTestResult result = testConnection(credentials);
+        String accessToken = result.getMetadata().get("accessToken").toString();
+
+        String url = "https://api.flutterwave.com/v3/payments";
+
+        HttpHeaders httpHeaders = new HttpHeaders();
+        httpHeaders.add("Authorization", "Bearer " + accessToken);
+        httpHeaders.add("content-type", MediaType.APPLICATION_JSON_VALUE);
+
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("tx_ref", UUID.randomUUID().toString());
+        payload.put("amount", request.getAmount());
+        payload.put("currency", request.getCurrency());
+        payload.put("redirect_url", request.getRedirectUrl());
+        payload.put("customer", Map.of("email", request.getEmail()));
+
+        PaymentProviderResponse response = null;
+        return response;
     }
 }
