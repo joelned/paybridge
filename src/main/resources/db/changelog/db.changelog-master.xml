@@ -353,4 +353,43 @@
     </changeSet>
 
 
+
+    <changeSet id="012-add-password-reset-columns-to-users" author="paybridge">
+        <addColumn tableName="users">
+            <column name="password_reset_code" type="VARCHAR(10)"/>
+            <column name="password_reset_code_expires_at" type="TIMESTAMP"/>
+        </addColumn>
+    </changeSet>
+
+
+
+    <changeSet id="013-add-provider-reference-and-webhook-events" author="paybridge">
+        <addColumn tableName="payments">
+            <column name="provider_reference" type="VARCHAR(255)"/>
+        </addColumn>
+
+        <createIndex tableName="payments" indexName="idx_payments_provider_reference">
+            <column name="provider_reference"/>
+        </createIndex>
+
+        <createTable tableName="processed_webhook_events">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="provider" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="event_id" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="processed_webhook_events"
+                             columnNames="provider,event_id"
+                             constraintName="uk_processed_webhook_provider_event"/>
+    </changeSet>
+
 </databaseChangeLog>

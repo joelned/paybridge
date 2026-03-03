@@ -52,7 +52,6 @@ public class AuthenticationService {
         String email = authentication.getName();
         Users user = userRepository.findByEmail(email);
 
-        System.out.println("🔍 Found user: " + user);
 
         if(user == null){
             throw new IllegalArgumentException("User not found");
