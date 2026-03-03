@@ -7,6 +7,7 @@ import com.paybridge.Models.Enums.MerchantStatus;
 import com.paybridge.Models.Enums.UserType;
 import com.paybridge.Repositories.MerchantRepository;
 import com.paybridge.Repositories.UserRepository;
+import com.paybridge.Services.ApiKeyService;
 import com.paybridge.Services.EmailProvider;
 import com.paybridge.Services.MerchantService;
 import org.junit.jupiter.api.BeforeEach;
@@ -39,6 +40,9 @@ class MerchantServiceTest {
     @Mock
     private EmailProvider emailProvider;
 
+    @Mock
+    private ApiKeyService apiKeyService;
+
     @InjectMocks
     private MerchantService merchantService;
 
@@ -60,18 +64,7 @@ class MerchantServiceTest {
         validRequest.setBusinessCountry("US");
         validRequest.setWebsiteUrl("https://example.com");
 
-        // Manually inject the emailProvider since it's not in the constructor
-        // This is needed because @InjectMocks only uses constructor injection
-        merchantService = new MerchantService(userRepository, merchantRepository, passwordEncoder, emailProvider);
-
-        // Use reflection to set the emailProvider field
-        try {
-            var emailProviderField = MerchantService.class.getDeclaredField("emailProvider");
-            emailProviderField.setAccessible(true);
-            emailProviderField.set(merchantService, emailProvider);
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to inject emailProvider", e);
-        }
+        merchantService = new MerchantService(userRepository, merchantRepository, passwordEncoder, emailProvider, apiKeyService);
     }
 
     // Test Case 1: Successful merchant registration
@@ -265,7 +258,7 @@ class MerchantServiceTest {
         EmailProvider provider = mock(EmailProvider.class);
 
         // Act
-        MerchantService service = new MerchantService(userRepo, merchantRepo, encoder, provider);
+        MerchantService service = new MerchantService(userRepo, merchantRepo, encoder, provider, apiKeyService);
 
         // Assert
         assertNotNull(service);
