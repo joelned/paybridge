@@ -1,199 +1,99 @@
-<div align="center">
-
 # PayBridge
 
-### *Unified Payment Orchestration Platform*
+Unified payment orchestration backend built with Spring Boot.
 
-[![Java](https://img.shields.io/badge/Java-17%2B-ED8B00?style=for-the-badge&labelColor=ED8B00&logo=java&color=808080[Java)](https://java.com)
-[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.5.6-brightgreen?style=for-the-badge&logo=spring)](https://spring.io/projects/spring-boot)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-14+-blue?style=for-the-badge&logo=postgresql)](https://www.postgresql.org/)
-[![Redis](https://img.shields.io/badge/Redis-6+-red?style=for-the-badge&logo=redis)](https://redis.io/)
+PayBridge provides:
+- merchant onboarding and email verification
+- JWT + API key authentication
+- provider configuration and connection testing
+- payment initiation with idempotency support
+- API usage tracking and rate limiting
 
-*A payment orchestration platform that provides unified API access to multiple payment providers through secure merchant onboarding, API key management, and provider configuration.*
+Current payment providers:
+- Stripe
+- Paystack
 
-</div>
+## Tech Stack
+- Java 17
+- Spring Boot 3.5.x
+- Spring Security (JWT resource server + custom filters)
+- PostgreSQL + Liquibase
+- Redis
+- RabbitMQ
+- Vault (profile-based credential storage)
+- Maven
 
----
-
-## 🎯 Overview
-
-PayBridge allows merchants to register, verify their accounts, and configure multiple payment providers (Stripe, Flutterwave, Paystack) through a single API. The platform handles authentication via JWT tokens and API keys, with built-in rate limiting and usage tracking.
-
-## 🛠️ Technology Stack
-
-- **Framework**: Spring Boot 3.5.6
-- **Language**: Java 17
-- **Database**: PostgreSQL with Liquibase migrations
-- **Caching**: Redis for rate limiting and analytics
-- **Security**: Spring Security 6 with JWT (RSA encryption)
-- **Email**: Spring Mail with SMTP
-- **Secret Management**: HashiCorp Vault integration
-- **Messaging**: RabbitMQ
-- **Testing**: JUnit 5, Testcontainers
-- **Build**: Maven
-
-## 📁 Project Structure
-
-```
+## Project Structure
+```text
 src/main/java/com/paybridge/
-├── Configs/                    # Configuration classes
-│   ├── AsyncConfig.java
-│   ├── CorsConfig.java
-│   ├── FlutterwavePaymentProvider.java
-│   ├── GlobalExceptionHandler.java
-│   ├── LoggingConfiguration.java
-│   ├── PaymentProvider.java
-│   ├── PaystackPaymentProvider.java
-│   ├── RedisConfig.java
-│   ├── RestTemplateConfig.java
-│   ├── RsaKeyConfiguration.java
-│   ├── RsaKeyProperties.java
-│   └── StripePaymentProvider.java
-├── Controllers/                # REST API endpoints
-│   ├── AuthController.java
-│   ├── MerchantController.java
-│   └── ProviderController.java
-├── Filters/                   # Security filters
-│   ├── ApiKeyAuthenticationFilter.java
-│   └── CookieAuthenticationFilter.java
-├── Models/                    # Data models
-│   ├── DTOs/                 # Data Transfer Objects
-│   ├── Entities/             # JPA Entities
-│   └── Enums/                # Application enums
-├── Repositories/             # Data access layer
-├── Security/                 # Security configuration
-│   └── SecurityConfig.java
-├── Services/                 # Business logic
-│   ├── impl/
-│   │   ├── EmailService.java
-│   │   └── VaultService.java
-│   ├── ApiKeyService.java
-│   ├── AuthenticationService.java
-│   ├── ConnectionTestResult.java
-│   ├── CredentialStorageService.java
-│   ├── CustomUserDetailsService.java
-│   ├── EmailProvider.java
-│   ├── MerchantService.java
-│   ├── PaymentProviderRegistry.java
-│   ├── PaymentService.java
-│   ├── ProviderService.java
-│   ├── TokenService.java
-│   └── VerificationService.java
+├── Configs/
+├── Controllers/
+├── Filters/
+├── Models/
+│   ├── DTOs/
+│   ├── Entities/
+│   └── Enums/
+├── Repositories/
+├── Security/
+├── Services/
+│   └── impl/
 └── PaybridgeApplication.java
 ```
 
-## 🔗 API Endpoints
+## Core Flows
 
-### 🌐 Public Endpoints
-- `POST /api/v1/merchants` - Merchant registration
-- `POST /api/v1/auth/login` - Merchant login
-- `POST /api/v1/auth/verify-email` - Email verification
-- `POST /api/v1/auth/resend-verification` - Resend verification code
+### 1) Merchant onboarding
+1. Register merchant
+2. Receive verification code by email
+3. Verify email
+4. Merchant activated and API keys generated
 
-### 🔒 Protected Endpoints (JWT Required)
-- `POST /api/v1/providers/configure` - Configure payment provider
-- `POST /api/v1/providers/test/{configId}` - Test provider connection
+### 2) Provider setup
+1. Authenticated merchant submits provider configuration
+2. Credentials are validated (optional test call)
+3. Credentials are stored through `CredentialStorageService` (Vault profile uses Vault)
+4. Provider metadata saved in DB (`provider_configs`)
 
-## ✨ Features
+### 3) Payment creation
+1. Merchant sends `POST /api/v1/payments` with `Idempotency-Key`
+2. Service enforces idempotency by request hash
+3. Enabled provider config is selected
+4. Provider payment is created
+5. Internal `payments` record is saved
+6. Response is cached against idempotency key for safe replay
 
-### 🔐 Authentication & Security
-- **JWT Authentication**: RSA-signed tokens with HTTP-only cookies
-- **API Key Management**: Test and live mode API keys with SHA-256 hashing
-- **Rate Limiting**: 1,000 requests/hour, 10,000 requests/day per API key
-- **CORS Configuration**: Supports multiple frontend origins
-- **Password Encryption**: BCrypt hashing
+## API Endpoints
 
-### 👥 Merchant Management
-- **Registration**: Business information with email verification
-- **Email Verification**: 6-digit codes with 10-minute expiration
-- **Account Status**: Pending verification → Active workflow
+### Public
+- `POST /api/v1/merchants`  
+  Register merchant
 
-### 💳 Payment Provider Integration
-- **Stripe**: Customer creation testing via Stripe API
-- **Flutterwave**: OAuth2 client credentials authentication
-- **Paystack**: Bearer token authentication
-- **Connection Testing**: Validate provider credentials before saving
+- `POST /api/v1/auth/login`  
+  Login and set JWT cookie
 
-### 📊 Monitoring & Analytics
-- **Usage Tracking**: Redis-based real-time API usage statistics
-- **Scheduled Persistence**: Automatic transfer of Redis logs to PostgreSQL
-- **Request Logging**: IP address, endpoint, response status tracking
+- `POST /api/v1/auth/verify-email`  
+  Verify email code
 
-### 🔑 Secret Management
-- **Vault Integration**: HashiCorp Vault for secure credential storage
-- **Profile-based**: Vault service activated via `vault` profile
+- `POST /api/v1/auth/resend-verification`  
+  Resend verification code
 
-## ⚙️ Environment Variables
+### Authenticated
+- `POST /api/v1/providers/configure`  
+  Configure provider credentials for merchant
 
-```bash
-# Database
-DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=paybridge
-DB_USER=admin
-DB_PASSWORD=your_password
+- `POST /api/v1/providers/test/{configId}`  
+  Re-test existing provider config
 
-# Redis
-REDIS_HOST=localhost
-REDIS_PORT=6379
+- `POST /api/v1/payments`  
+  Create payment (requires `Idempotency-Key` header)
 
-# RabbitMQ
-RABBIT_HOST=localhost
-RABBIT_PORT=5672
+- `GET /api/v1/test-controller`  
+  Test endpoint
 
-# RSA Keys
-RSA_PRIVATE_KEY=classpath:certs/privatekey.pem
-RSA_PUBLIC_KEY=classpath:certs/publickey.pem
+## Request Examples
 
-# Vault (Optional)
-VAULT_TOKEN=your_vault_token
-
-# Email (Gmail SMTP)
-spring.mail.username=your_email@gmail.com
-spring.mail.password=your_app_password
-```
-
-## 🚀 Getting Started
-
-### 📋 Prerequisites
-- Java 17+
-- PostgreSQL 14+
-- Redis 6+
-- RabbitMQ 3.8+
-- HashiCorp Vault (optional)
-
-### 🔧 Setup
-
-1. **Clone and build**
-   ```bash
-   git clone <repository-url>
-   cd paybridge
-   ./mvnw clean package
-   ```
-
-2. **Generate RSA Keys**
-   ```bash
-   mkdir -p src/main/resources/certs
-   openssl genpkey -algorithm RSA -out src/main/resources/certs/privatekey.pem -pkeyopt rsa_keygen_bits:2048
-   openssl rsa -pubout -in src/main/resources/certs/privatekey.pem -out src/main/resources/certs/publickey.pem
-   ```
-
-3. **Database Setup**
-   ```sql
-   CREATE DATABASE paybridge;
-   ```
-
-4. **Run Application**
-   ```bash
-   ./mvnw spring-boot:run
-   ```
-
-🎉 **The application starts on `http://localhost:8080`**
-
-## 💡 Usage Example
-
-### 1. Register Merchant
-```bash
+### Register Merchant
+```http
 POST /api/v1/merchants
 Content-Type: application/json
 
@@ -207,19 +107,8 @@ Content-Type: application/json
 }
 ```
 
-### 2. Verify Email
-```bash
-POST /api/v1/auth/verify-email
-Content-Type: application/json
-
-{
-  "email": "merchant@example.com",
-  "code": "123456"
-}
-```
-
-### 3. Login
-```bash
+### Login
+```http
 POST /api/v1/auth/login
 Content-Type: application/json
 
@@ -229,53 +118,93 @@ Content-Type: application/json
 }
 ```
 
-### 4. Configure Provider
-```bash
-POST /api/v1/providers/configure
-Content-Type: application/json
+### Configure Provider (Stripe)
+```http
+POST /api/v1/providers/configure?testConnection=true
 Cookie: jwt=<jwt-token>
+Content-Type: application/json
 
 {
-  "providerName": "stripe",
-  "credentials": {
-    "secretKey": "sk_test_..."
+  "name": "stripe",
+  "config": {
+    "secretKey": "sk_test_xxx"
   }
 }
 ```
 
-## 🧪 Testing
+### Create Payment
+```http
+POST /api/v1/payments
+Cookie: jwt=<jwt-token>
+Idempotency-Key: 3c4d91f0-57f8-40fc-aef8-e6fc20626f9f
+Content-Type: application/json
 
+{
+  "amount": 5000.00,
+  "currency": "NGN",
+  "description": "Order #1042",
+  "email": "customer@example.com",
+  "redirectUrl": "https://merchant.example.com/payments/return",
+  "transactionReference": "order-1042"
+}
+```
+
+## Configuration
+
+`src/main/resources/application.properties` expects these values:
+
+### Database
+- `DB_HOST`
+- `DB_PORT`
+- `DB_NAME`
+- `DB_USER`
+- `DB_PASSWORD`
+
+### Redis
+- `REDIS_HOST`
+- `REDIS_PORT`
+
+### RabbitMQ
+- `RABBIT_HOST`
+- `RABBIT_PORT`
+
+### RSA Keys
+- `RSA_PRIVATE_KEY`
+- `RSA_PUBLIC_KEY`
+
+### Vault
+- `VAULT_TOKEN`
+
+### Email SMTP
+- `spring.mail.username`
+- `spring.mail.password`
+
+## Profiles
+- `vault`: enables Vault-backed `CredentialStorageService`
+- `smtp`: enables SMTP email sender implementation
+
+Default active profiles are set in `application.properties`.
+
+## Running Locally
+
+1. Start dependencies (Postgres, Redis, RabbitMQ; Vault optional but required if using `vault` profile).
+2. Set required environment variables.
+3. Run:
 ```bash
-# Run all tests
+./mvnw spring-boot:run
+```
+
+## Testing
+```bash
 ./mvnw test
-
-# Run with Testcontainers
-./mvnw verify
 ```
 
-## ⏱️ Rate Limiting
-
-API keys are automatically rate limited:
-- **Hourly**: 1,000 requests
-- **Daily**: 10,000 requests
-
-📈 Usage statistics are tracked in Redis and periodically persisted to PostgreSQL.
-
-## 🏷️ Profiles
-
-- `vault` - Enables HashiCorp Vault integration
-- `smtp` - Enables email service
-
-Activate profiles:
+If tests fail due Mockito inline agent issues in your local JVM, run compile checks first:
 ```bash
-java -jar target/paybridge-0.0.1-SNAPSHOT.jar --spring.profiles.active=vault,smtp
+./mvnw -DskipTests compile
+./mvnw -DskipTests test-compile
 ```
 
----
-
-<div align="center">
-
-
-*PayBridge - Bridging the gap between merchants and payment providers*
-
-</div>
+## Notes
+- Do not edit previously executed Liquibase changeSets; add new changeSets for schema/data changes.
+- Payment idempotency currently uses `idempotency_keys` and cached serialized `PaymentResponse`.

@@ -103,12 +103,6 @@
             <version>32.0.1-jre</version>
         </dependency>
 
-        <!-- For Flutterwave (HTTP Client) -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-webflux</artifactId>
-        </dependency>
-
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>
