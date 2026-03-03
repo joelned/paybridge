@@ -1,6 +1,7 @@
 package com.paybridge.Controllers;
 
 import com.paybridge.Models.DTOs.ApiResponse;
+import com.paybridge.Models.DTOs.ProviderConfigSummaryResponse;
 import com.paybridge.Models.DTOs.ProviderConfiguration;
 import com.paybridge.Models.Entities.Merchant;
 import com.paybridge.Models.Entities.ProviderConfig;
@@ -13,6 +14,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -29,6 +31,13 @@ public class ProviderController {
         this.providerService = providerService;
         this.authenticationService = authenticationService;
         this.merchantRepository = merchantRepository;
+    }
+
+    @GetMapping
+    public ResponseEntity<ApiResponse<List<ProviderConfigSummaryResponse>>> getConfiguredProviders(Authentication authentication) {
+        Merchant merchant = authenticationService.getMerchantFromAuthentication(authentication);
+        List<ProviderConfigSummaryResponse> configuredProviders = providerService.getConfiguredProviders(merchant.getId());
+        return ResponseEntity.ok(ApiResponse.success(configuredProviders));
     }
 
     @PostMapping("/configure")

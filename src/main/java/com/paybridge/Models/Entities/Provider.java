@@ -16,10 +16,10 @@ public class Provider {
     private Long id;
 
     @Column(nullable = false, unique = true)
-    private String name; // e.g., "stripe", "paypal", "flutterwave"
+    private String name; // e.g., "stripe", "paypal", "paystack"
 
     @Column(name = "display_name", nullable = false)
-    private String displayName; // e.g., "Stripe", "PayPal", "Flutterwave"
+    private String displayName; // e.g., "Stripe", "PayPal", "Paystack"
 
     @Column(name = "brand_color")
     private String brandColor; // e.g., "#635BFF" for Stripe

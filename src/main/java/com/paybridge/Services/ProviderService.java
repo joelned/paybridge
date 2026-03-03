@@ -1,6 +1,7 @@
 package com.paybridge.Services;
 
 import com.paybridge.Configs.PaymentProvider;
+import com.paybridge.Models.DTOs.ProviderConfigSummaryResponse;
 import com.paybridge.Models.DTOs.ProviderConfiguration;
 import com.paybridge.Models.Entities.Merchant;
 import com.paybridge.Models.Entities.Provider;
@@ -15,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -130,6 +132,23 @@ public class ProviderService {
         return providerConfigRepository.save(config);
     }
 
+    @Transactional(readOnly = true)
+    public List<ProviderConfigSummaryResponse> getConfiguredProviders(Long merchantId) {
+        List<ProviderConfig> configs = providerConfigRepository.findByMerchantId(merchantId);
+
+        return configs.stream().map(config -> {
+            ProviderConfigSummaryResponse item = new ProviderConfigSummaryResponse();
+            item.setConfigId(config.getId());
+            item.setProviderId(config.getProvider().getId());
+            item.setProviderName(config.getProvider().getDisplayName());
+            item.setProviderCode(config.getProvider().getName());
+            item.setEnabled(config.isEnabled());
+            item.setLastVerifiedAt(config.getLastVerifiedAt());
+            item.setCreatedAt(config.getCreatedAt());
+            return item;
+        }).toList();
+    }
+
     /**
      * Test existing provider configuration
      */
@@ -189,9 +208,6 @@ public class ProviderService {
             case "stripe", "paystack":
                 requireFields(config, "secretKey");
                 break;
-            case "flutterwave":
-                requireFields(config, "clientSecret", "clientId", "encryptionKey");
-                break;
             default:
                 throw new IllegalArgumentException("Unsupported provider: " + providerName);
         }
@@ -213,8 +229,6 @@ public class ProviderService {
             }
         }
     }
-
-
 
     /**
      * Build Vault reference path

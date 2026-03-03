@@ -53,9 +53,6 @@ class ProviderServiceTest {
     private PaymentProvider stripePaymentProvider;
 
     @Mock
-    private PaymentProvider flutterwavePaymentProvider;
-
-    @Mock
     private PaymentProvider paystackPaymentProvider;
 
     @InjectMocks
@@ -88,7 +85,7 @@ class ProviderServiceTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"stripe", "flutterwave", "paystack"})
+    @ValueSource(strings = {"stripe", "paystack"})
     void configureProvider_AllProviders_Success(String providerName) {
         // Given
         Provider provider = createTestProvider(providerName);
@@ -294,30 +291,6 @@ class ProviderServiceTest {
     }
 
     @Test
-    void configureProvider_FlutterwaveMissingRequiredFields_ThrowsException() {
-        // Given
-        Provider flutterwaveProvider = new Provider();
-        flutterwaveProvider.setId(2L);
-        flutterwaveProvider.setName("flutterwave");
-
-        Map<String, Object> invalidConfig = new HashMap<>();
-        invalidConfig.put("clientId", "client_123");
-        // Missing clientSecret and encryptionKey
-
-        ProviderConfiguration providerConfig = new ProviderConfiguration();
-        providerConfig.setName("flutterwave");
-        providerConfig.setConfig(invalidConfig);
-
-        when(providerRepository.findByName("flutterwave")).thenReturn(Optional.of(flutterwaveProvider));
-
-        // When & Then
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-                () -> providerService.configureProvider(providerConfig, MERCHANT_ID, false));
-
-        assertTrue(exception.getMessage().contains("Missing required field"));
-    }
-
-    @Test
     void configureProvider_EmptyFieldValue_ThrowsException() {
         // Given
         Map<String, Object> invalidConfig = new HashMap<>();
@@ -477,42 +450,6 @@ class ProviderServiceTest {
     }
 
     @Test
-    void testExistingProviderConfig_FlutterwaveProvider_Success() {
-        // Given
-        Provider flutterwaveProvider = new Provider();
-        flutterwaveProvider.setId(2L);
-        flutterwaveProvider.setName("flutterwave");
-
-        ProviderConfig config = new ProviderConfig();
-        config.setId(CONFIG_ID);
-        config.setProvider(flutterwaveProvider);
-        config.setMerchant(testMerchant);
-
-        Map<String, Object> credentials = new HashMap<>();
-        credentials.put("clientId", "client_123");
-        credentials.put("clientSecret", "secret_123");
-        credentials.put("encryptionKey", "encrypt_123");
-
-        when(providerConfigRepository.findById(CONFIG_ID)).thenReturn(Optional.of(config));
-        when(credentialStorageService.getProviderConfig("flutterwave", MERCHANT_ID)).thenReturn(credentials);
-        when(paymentProviderRegistry.getProvider("flutterwave")).thenReturn(flutterwavePaymentProvider);
-
-        ConnectionTestResult successResult = ConnectionTestResult.success("Flutterwave credentials are valid");
-        when(flutterwavePaymentProvider.testConnection(credentials)).thenReturn(successResult);
-        when(providerConfigRepository.save(any(ProviderConfig.class))).thenReturn(config);
-
-        // When
-        ConnectionTestResult result = providerService.testExistingProviderConfig(CONFIG_ID, MERCHANT_ID);
-
-        // Then
-        assertTrue(result.isSuccess());
-        assertEquals("Flutterwave credentials are valid", result.getMessage());
-
-        verify(providerConfigRepository).save(config);
-        verify(flutterwavePaymentProvider).testConnection(credentials);
-    }
-
-    @Test
     void testExistingProviderConfig_PaystackProvider_Success() {
         // Given
         Provider paystackProvider = new Provider();
@@ -572,9 +509,8 @@ class ProviderServiceTest {
         Provider provider = new Provider();
         provider.setId(switch (providerName) {
             case "stripe" -> 1L;
-            case "flutterwave" -> 2L;
-            case "paystack" -> 3L;
-            default -> 4L;
+            case "paystack" -> 2L;
+            default -> 3L;
         });
         provider.setName(providerName);
         provider.setDisplayName(providerName.substring(0, 1).toUpperCase() + providerName.substring(1));
@@ -585,11 +521,6 @@ class ProviderServiceTest {
         Map<String, Object> configMap = new HashMap<>();
         switch (providerName) {
             case "stripe" -> configMap.put("secretKey", "sk_test_123456789");
-            case "flutterwave" -> {
-                configMap.put("clientId", "client_123");
-                configMap.put("clientSecret", "secret_123");
-                configMap.put("encryptionKey", "encrypt_123");
-            }
             case "paystack" -> configMap.put("secretKey", "sk_test_paystack_123");
         }
 
@@ -602,7 +533,6 @@ class ProviderServiceTest {
     private PaymentProvider getMockPaymentProvider(String providerName) {
         return switch (providerName) {
             case "stripe" -> stripePaymentProvider;
-            case "flutterwave" -> flutterwavePaymentProvider;
             case "paystack" -> paystackPaymentProvider;
             default -> throw new IllegalArgumentException("Unknown provider: " + providerName);
         };
