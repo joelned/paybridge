@@ -13,9 +13,9 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.security.SecureRandom;
-import java.security.MessageDigest;
 import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -66,6 +66,41 @@ public class ApiKeyService {
 
     public boolean isTestMode(String apiKey) {
         return apiKey != null && apiKey.startsWith(TEST_PREFIX);
+    }
+
+    @Transactional
+    public String rotateApiKey(Long merchantId, boolean isTestMode) {
+        Merchant merchant = merchantRepository.findById(merchantId)
+                .orElseThrow(() -> new IllegalArgumentException("Merchant not found"));
+
+        String newApiKey = generateApiKey(isTestMode);
+
+        if (isTestMode) {
+            merchant.setApiKeyTest(newApiKey);
+            merchant.setApiKeyTestHash(hashApiKey(newApiKey));
+        } else {
+            merchant.setApiKeyLive(newApiKey);
+            merchant.setApiKeyLiveHash(hashApiKey(newApiKey));
+        }
+
+        merchantRepository.save(merchant);
+        return newApiKey;
+    }
+
+    @Transactional
+    public void revokeApiKey(Long merchantId, boolean isTestMode) {
+        Merchant merchant = merchantRepository.findById(merchantId)
+                .orElseThrow(() -> new IllegalArgumentException("Merchant not found"));
+
+        if (isTestMode) {
+            merchant.setApiKeyTest(null);
+            merchant.setApiKeyTestHash(null);
+        } else {
+            merchant.setApiKeyLive(null);
+            merchant.setApiKeyLiveHash(null);
+        }
+
+        merchantRepository.save(merchant);
     }
 
     @Transactional
