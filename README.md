@@ -1,157 +1,120 @@
-# PayBridge
+# PayBridge Backend
 
-Unified payment orchestration backend built with Spring Boot.
+> A merchant-first payment orchestration API that lets ecommerce teams integrate once and route payments across providers.
 
-PayBridge provides:
-- merchant onboarding and email verification
-- JWT + API key authentication
-- provider configuration and connection testing
-- payment initiation with idempotency support
-- API usage tracking and rate limiting
+PayBridge is the backend engine behind the PayBridge merchant dashboard. It handles onboarding, auth, provider configuration, payment creation, idempotency, API keys, and webhook-driven status updates.
 
-Current payment providers:
+## Why This Project Stands Out
+
+- Real multi-provider payment orchestration (`stripe`, `paystack`)
+- Two auth models in one system: JWT cookie (dashboard) + API key (merchant server-to-server)
+- Idempotent payment creation with request hashing and replay-safe responses
+- Provider credentials stored via pluggable `CredentialStorageService` (Vault profile ready)
+- Webhook signature verification + duplicate event protection
+- Production-oriented validation and merchant isolation rules
+
+## Current Capabilities
+
+### Merchant and Auth
+- Merchant registration: `POST /api/v1/merchants`
+- Login with JWT cookie: `POST /api/v1/auth/login`
+- Session bootstrap for frontend: `GET /api/v1/auth/me`
+- Logout (cookie clear): `POST /api/v1/auth/logout`
+- Email verification + resend
+- Forgot/reset password flows
+
+### Merchant Settings
+- Merchant profile retrieval: `GET /api/v1/merchants/profile`
+- API key lifecycle (create/rotate/list/revoke)
+
+### Provider Management
+- Configure provider credentials per merchant
+- Test provider connection
+- Fetch merchant-configured providers for UI display
+
+### Payments
+- Create payment via `POST /api/v1/payments`
+- Idempotency via required `Idempotency-Key` header
+- Explicit provider routing supported (`provider` in request)
+- Safe fallback behavior when provider is omitted
+
+### Webhooks
+- Stripe webhook endpoint with signature verification
+- Paystack webhook endpoint with HMAC signature verification
+- Idempotent webhook processing via persisted processed event IDs
+
+## Supported Providers
+
 - Stripe
 - Paystack
 
 ## Tech Stack
+
 - Java 17
 - Spring Boot 3.5.x
-- Spring Security (JWT resource server + custom filters)
+- Spring Security (JWT resource server + custom auth filters)
 - PostgreSQL + Liquibase
 - Redis
 - RabbitMQ
-- Vault (profile-based credential storage)
+- HashiCorp Vault (profile-based credential storage)
 - Maven
 
-## Project Structure
-```text
-src/main/java/com/paybridge/
-├── Configs/
-├── Controllers/
-├── Filters/
-├── Models/
-│   ├── DTOs/
-│   ├── Entities/
-│   └── Enums/
-├── Repositories/
-├── Security/
-├── Services/
-│   └── impl/
-└── PaybridgeApplication.java
-```
+## Auth Model (Important)
 
-## Core Flows
+PayBridge uses two authentication paths:
 
-### 1) Merchant onboarding
-1. Register merchant
-2. Receive verification code by email
-3. Verify email
-4. Merchant activated and API keys generated
+1. Dashboard/merchant management endpoints:
+- `jwt` HttpOnly cookie
 
-### 2) Provider setup
-1. Authenticated merchant submits provider configuration
-2. Credentials are validated (optional test call)
-3. Credentials are stored through `CredentialStorageService` (Vault profile uses Vault)
-4. Provider metadata saved in DB (`provider_configs`)
+2. Merchant ecommerce backend payment calls:
+- `x-api-key` header (server-to-server)
 
-### 3) Payment creation
-1. Merchant sends `POST /api/v1/payments` with `Idempotency-Key`
-2. Service enforces idempotency by request hash
-3. Enabled provider config is selected
-4. Provider payment is created
-5. Internal `payments` record is saved
-6. Response is cached against idempotency key for safe replay
+In practice, payment creation should happen from the merchant backend, not directly from browser UI clients.
 
-## API Endpoints
+## API Overview
 
-### Public
-- `POST /api/v1/merchants`  
-  Register merchant
+### Public endpoints
+- `POST /api/v1/merchants`
+- `POST /api/v1/auth/login`
+- `POST /api/v1/auth/verify-email`
+- `POST /api/v1/auth/resend-verification`
+- `POST /api/v1/auth/forgot-password`
+- `POST /api/v1/auth/reset-password`
+- `POST /api/v1/webhooks/stripe`
+- `POST /api/v1/webhooks/paystack`
 
-- `POST /api/v1/auth/login`  
-  Login and set JWT cookie
+### Authenticated endpoints
+- `GET /api/v1/auth/me`
+- `POST /api/v1/auth/logout`
+- `GET /api/v1/merchants/profile`
+- `GET /api/v1/merchants/api-keys`
+- `POST /api/v1/merchants/api-keys`
+- `DELETE /api/v1/merchants/api-keys/{keyId}`
+- `GET /api/v1/providers`
+- `POST /api/v1/providers/configure`
+- `POST /api/v1/providers/test/{configId}`
+- `POST /api/v1/payments`
 
-- `POST /api/v1/auth/verify-email`  
-  Verify email code
+## Example: Create Payment (Server-to-Server)
 
-- `POST /api/v1/auth/resend-verification`  
-  Resend verification code
-
-### Authenticated
-- `POST /api/v1/providers/configure`  
-  Configure provider credentials for merchant
-
-- `POST /api/v1/providers/test/{configId}`  
-  Re-test existing provider config
-
-- `POST /api/v1/payments`  
-  Create payment (requires `Idempotency-Key` header)
-
-- `GET /api/v1/test-controller`  
-  Test endpoint
-
-## Request Examples
-
-### Register Merchant
-```http
-POST /api/v1/merchants
-Content-Type: application/json
-
-{
-  "businessName": "Example Corp",
-  "email": "merchant@example.com",
-  "password": "SecurePass123$",
-  "businessType": "E_COMMERCE",
-  "businessCountry": "US",
-  "websiteUrl": "https://example.com"
-}
-```
-
-### Login
-```http
-POST /api/v1/auth/login
-Content-Type: application/json
-
-{
-  "email": "merchant@example.com",
-  "password": "SecurePass123$"
-}
-```
-
-### Configure Provider (Stripe)
-```http
-POST /api/v1/providers/configure?testConnection=true
-Cookie: jwt=<jwt-token>
-Content-Type: application/json
-
-{
-  "name": "stripe",
-  "config": {
-    "secretKey": "sk_test_xxx"
-  }
-}
-```
-
-### Create Payment
 ```http
 POST /api/v1/payments
-Cookie: jwt=<jwt-token>
-Idempotency-Key: 3c4d91f0-57f8-40fc-aef8-e6fc20626f9f
+x-api-key: pk_test_xxxxxxxxx
+Idempotency-Key: 8b8e062c-8d0d-4cc8-b2e9-1be2a2647f2d
 Content-Type: application/json
 
 {
-  "amount": 5000.00,
+  "amount": 1000,
   "currency": "NGN",
-  "description": "Order #1042",
+  "description": "Order #1001",
   "email": "customer@example.com",
-  "redirectUrl": "https://merchant.example.com/payments/return",
-  "transactionReference": "order-1042"
+  "provider": "paystack"
 }
 ```
 
-## Configuration
+## Environment Configuration
 
-`src/main/resources/application.properties` expects these values:
+`src/main/resources/application.properties` expects these environment variables:
 
 ### Database
 - `DB_HOST`
@@ -172,39 +135,68 @@ Content-Type: application/json
 - `RSA_PRIVATE_KEY`
 - `RSA_PUBLIC_KEY`
 
+### Email SMTP
+- `MAIL_HOST`
+- `MAIL_PORT`
+- `MAIL_USERNAME`
+- `MAIL_PASSWORD`
+
 ### Vault
 - `VAULT_TOKEN`
 
-### Email SMTP
-- `spring.mail.username`
-- `spring.mail.password`
+### Webhooks
+- `STRIPE_WEBHOOK_SECRET`
 
-## Profiles
-- `vault`: enables Vault-backed `CredentialStorageService`
-- `smtp`: enables SMTP email sender implementation
+## Local Run
 
-Default active profiles are set in `application.properties`.
-
-## Running Locally
-
-1. Start dependencies (Postgres, Redis, RabbitMQ; Vault optional but required if using `vault` profile).
-2. Set required environment variables.
-3. Run:
 ```bash
 ./mvnw spring-boot:run
 ```
 
-## Testing
+## Tests
+
 ```bash
 ./mvnw test
 ```
 
-If tests fail due Mockito inline agent issues in your local JVM, run compile checks first:
+Test coverage includes:
+- webhook controller integration behavior
+- Stripe and Paystack webhook service flows
+- provider routing on payment API
+- API key lifecycle endpoints
+
+## Local Webhook Testing
+
+Use [ngrok](https://ngrok.com/) to expose localhost:
+
 ```bash
-./mvnw -DskipTests compile
-./mvnw -DskipTests test-compile
+ngrok http 8080
+```
+
+Then set provider webhook URLs to:
+- `https://<ngrok-domain>/api/v1/webhooks/stripe`
+- `https://<ngrok-domain>/api/v1/webhooks/paystack`
+
+## Project Structure
+
+```text
+src/main/java/com/paybridge/
+├── Configs/
+├── Controllers/
+├── Filters/
+├── Models/
+│   ├── DTOs/
+│   ├── Entities/
+│   └── Enums/
+├── Repositories/
+├── Security/
+├── Services/
+│   └── impl/
+└── PaybridgeApplication.java
 ```
 
 ## Notes
-- Do not edit previously executed Liquibase changeSets; add new changeSets for schema/data changes.
-- Payment idempotency currently uses `idempotency_keys` and cached serialized `PaymentResponse`.
+
+- Add new Liquibase changeSets for schema changes; do not edit executed changeSets.
+- Keep API key plaintext display one-time only in client UX.
+- If multiple providers are enabled and no provider is specified in payment request, API returns a clear validation error.
