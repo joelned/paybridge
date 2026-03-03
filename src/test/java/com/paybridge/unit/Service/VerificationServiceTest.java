@@ -4,9 +4,10 @@ import com.paybridge.Models.DTOs.ApiResponse;
 import com.paybridge.Models.Entities.Merchant;
 import com.paybridge.Models.Entities.Users;
 import com.paybridge.Models.Enums.UserType;
+import com.paybridge.Repositories.MerchantRepository;
 import com.paybridge.Repositories.UserRepository;
+import com.paybridge.Services.ApiKeyService;
 import com.paybridge.Services.EmailProvider;
-import com.paybridge.Services.TokenService;
 import com.paybridge.Services.VerificationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -32,7 +33,10 @@ class VerificationServiceTest {
     private EmailProvider emailProvider;
 
     @Mock
-    private TokenService tokenService;
+    private MerchantRepository merchantRepository;
+
+    @Mock
+    private ApiKeyService apiKeyService;
 
     @InjectMocks
     private VerificationService verificationService;
@@ -48,6 +52,7 @@ class VerificationServiceTest {
     void setUp() {
         // Setup merchant
         merchant = new Merchant();
+        merchant.setId(10L);
         merchant.setBusinessName("Test Business");
 
         // Setup unverified user
@@ -73,6 +78,7 @@ class VerificationServiceTest {
         // Arrange
         when(userRepository.findByEmail(validEmail)).thenReturn(unverifiedUser);
         when(userRepository.save(any(Users.class))).thenReturn(unverifiedUser);
+        when(merchantRepository.save(any(Merchant.class))).thenReturn(merchant);
 
         // Act
         ApiResponse<String> response = verificationService.verifyEmail(validEmail, validCode);
@@ -81,6 +87,8 @@ class VerificationServiceTest {
         assertTrue(response.isSuccess());
         assertEquals("Email verified successfully", response.getData());
         verify(userRepository, times(1)).save(unverifiedUser);
+        verify(merchantRepository, times(1)).save(merchant);
+        verify(apiKeyService, times(1)).regenerateApiKey(eq(10L), eq(true), eq(true));
         assertTrue(unverifiedUser.isEmailVerified());
         assertNull(unverifiedUser.getVerificationCode());
     }
@@ -266,6 +274,7 @@ class VerificationServiceTest {
         // Arrange
         when(userRepository.findByEmail(validEmail)).thenReturn(unverifiedUser);
         when(userRepository.save(any(Users.class))).thenReturn(unverifiedUser);
+        when(merchantRepository.save(any(Merchant.class))).thenReturn(merchant);
 
         // Act - First 4 failed attempts
         for (int i = 0; i < 4; i++) {
@@ -284,6 +293,7 @@ class VerificationServiceTest {
         assertTrue(successResponse.isSuccess());
         assertEquals("Email verified successfully", successResponse.getData());
         assertTrue(unverifiedUser.isEmailVerified());
+        verify(apiKeyService, times(1)).regenerateApiKey(eq(10L), eq(true), eq(true));
     }
 
     @Test

@@ -1,6 +1,5 @@
 package com.paybridge.Configs;
 
-import com.paybridge.Configs.PaystackPaymentProvider;
 import com.paybridge.Services.ConnectionTestResult;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -11,6 +10,7 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.HashMap;
@@ -36,12 +36,16 @@ class PaystackPaymentProviderTest {
         Map<String, Object> credentials = new HashMap<>();
         credentials.put("secretKey", "sk_test_123");
 
+        Map<String, Object> responseBody = new HashMap<>();
+        responseBody.put("status", true);
+        responseBody.put("message", "Authorization successful");
+
         when(restTemplate.exchange(
                 any(String.class),
                 eq(HttpMethod.GET),
                 any(HttpEntity.class),
-                eq(String.class)
-        )).thenReturn(new ResponseEntity<>("{\"status\": true}", HttpStatus.OK));
+                eq(Map.class)
+        )).thenReturn(new ResponseEntity<>(responseBody, HttpStatus.OK));
 
         // When
         ConnectionTestResult result = paystackPaymentProvider.testConnection(credentials);
@@ -52,7 +56,32 @@ class PaystackPaymentProviderTest {
     }
 
     @Test
-    void testConnection_Failure_InvalidKey() {
+    void testConnection_Failure_StatusFalseResponse() {
+        // Given
+        Map<String, Object> credentials = new HashMap<>();
+        credentials.put("secretKey", "sk_test_invalid");
+
+        Map<String, Object> responseBody = new HashMap<>();
+        responseBody.put("status", false);
+        responseBody.put("message", "Invalid key");
+
+        when(restTemplate.exchange(
+                any(String.class),
+                eq(HttpMethod.GET),
+                any(HttpEntity.class),
+                eq(Map.class)
+        )).thenReturn(new ResponseEntity<>(responseBody, HttpStatus.OK));
+
+        // When
+        ConnectionTestResult result = paystackPaymentProvider.testConnection(credentials);
+
+        // Then
+        assertThat(result.isSuccess()).isFalse();
+        assertThat(result.getMessage()).contains("Invalid key");
+    }
+
+    @Test
+    void testConnection_Failure_InvalidKeyUnauthorized() {
         // Given
         Map<String, Object> credentials = new HashMap<>();
         credentials.put("secretKey", "sk_test_invalid");
@@ -61,15 +90,15 @@ class PaystackPaymentProviderTest {
                 any(String.class),
                 eq(HttpMethod.GET),
                 any(HttpEntity.class),
-                eq(String.class)
-        )).thenThrow(new RuntimeException("401 Unauthorized"));
+                eq(Map.class)
+        )).thenThrow(new HttpClientErrorException(HttpStatus.UNAUTHORIZED, "Unauthorized"));
 
         // When
         ConnectionTestResult result = paystackPaymentProvider.testConnection(credentials);
 
         // Then
         assertThat(result.isSuccess()).isFalse();
-        assertThat(result.getMessage()).contains("401 Unauthorized");
+        assertThat(result.getMessage()).contains("Paystack authentication failed");
     }
 
     @Test

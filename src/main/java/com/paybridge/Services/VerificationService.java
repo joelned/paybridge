@@ -3,6 +3,7 @@ package com.paybridge.Services;
 import com.paybridge.Models.DTOs.ApiResponse;
 import com.paybridge.Models.Entities.Merchant;
 import com.paybridge.Models.Entities.Users;
+import com.paybridge.Models.Enums.MerchantStatus;
 import com.paybridge.Repositories.MerchantRepository;
 import com.paybridge.Repositories.UserRepository;
 import org.springframework.stereotype.Service;
@@ -63,6 +64,7 @@ public class VerificationService {
         userRepository.save(user);
         merchant.setTestMode(true);
         merchantRepository.save(merchant);
+        merchant.setStatus(MerchantStatus.PENDING_PROVIDER_SETUP);
         apiKeyService.regenerateApiKey(merchant.getId(), true, true);
 
         return ApiResponse.success("Email verified successfully");
