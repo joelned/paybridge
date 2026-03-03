@@ -46,6 +46,12 @@ public class Users {
     @Column(name = "last_verification_request_at")
     private LocalDateTime lastVerificationRequestAt;
 
+    @Column(name = "password_reset_code")
+    private String passwordResetCode;
+
+    @Column(name = "password_reset_code_expires_at")
+    private LocalDateTime passwordResetCodeExpiresAt;
+
     // --- Verification Logic ---
 
     public boolean isVerificationCodeValid(String code) {
@@ -83,6 +89,29 @@ public class Users {
                 LocalDateTime.now().isAfter(lastVerificationRequestAt.plusMinutes(5));
     }
 
+    public void generatePasswordResetCode() {
+        Random random = new Random();
+        this.passwordResetCode = String.format("%06d", random.nextInt(1_000_000));
+        this.passwordResetCodeExpiresAt = LocalDateTime.now().plusMinutes(15);
+    }
+
+    public boolean isPasswordResetCodeValid(String code) {
+        if (passwordResetCode == null || code == null) {
+            return false;
+        }
+
+        return MessageDigest.isEqual(
+                passwordResetCode.getBytes(StandardCharsets.UTF_8),
+                code.getBytes(StandardCharsets.UTF_8)
+        ) && passwordResetCodeExpiresAt != null
+                && LocalDateTime.now().isBefore(passwordResetCodeExpiresAt);
+    }
+
+    public void clearPasswordResetCode() {
+        this.passwordResetCode = null;
+        this.passwordResetCodeExpiresAt = null;
+    }
+
     // --- Getters and Setters ---
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -116,6 +145,22 @@ public class Users {
 
     public LocalDateTime getLastVerificationRequestAt() { return lastVerificationRequestAt; }
     public void setLastVerificationRequestAt(LocalDateTime lastVerificationRequestAt) { this.lastVerificationRequestAt = lastVerificationRequestAt; }
+
+    public String getPasswordResetCode() {
+        return passwordResetCode;
+    }
+
+    public void setPasswordResetCode(String passwordResetCode) {
+        this.passwordResetCode = passwordResetCode;
+    }
+
+    public LocalDateTime getPasswordResetCodeExpiresAt() {
+        return passwordResetCodeExpiresAt;
+    }
+
+    public void setPasswordResetCodeExpiresAt(LocalDateTime passwordResetCodeExpiresAt) {
+        this.passwordResetCodeExpiresAt = passwordResetCodeExpiresAt;
+    }
 
     // --- Utility ---
     public boolean isMerchant() { return userType == UserType.MERCHANT; }
