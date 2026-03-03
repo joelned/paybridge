@@ -45,7 +45,7 @@ public class PaymentResponse {
 
     /**
      * Hosted checkout URL where customer should be redirected
-     * This is a URL on the payment provider's domain (Stripe, Flutterwave, etc.)
+     * This is a URL on the payment provider's domain (Stripe, Paystack, etc.)
      *
      * Example: "https://checkout.stripe.com/pay/cs_test_abc123"
      *
@@ -84,7 +84,7 @@ public class PaymentResponse {
 
     /**
      * Which payment provider is handling this payment
-     * Example: "stripe", "flutterwave", "paystack"
+     * Example: "stripe", "paystack"
      */
     private String provider;
 
@@ -93,7 +93,7 @@ public class PaymentResponse {
      * This is the payment ID in the provider's system
      *
      * Example for Stripe: "pi_3abc123def456"
-     * Example for Flutterwave: "2786172"
+     * Example for Paystack: "2786172"
      */
     private String providerReference;
 

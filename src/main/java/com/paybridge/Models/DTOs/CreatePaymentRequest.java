@@ -15,6 +15,7 @@ import java.util.Map;
  * - description: What the payment is for
  *
  * OPTIONAL FIELDS (merchant can provide):
+ * - provider: Explicit provider route (e.g. "stripe", "paystack")
  * - email: Customer's email (for receipt/notification)
  * - metadata: Custom data merchant wants to store
  * - redirectUrl: Where to send customer after payment
@@ -53,6 +54,14 @@ public class CreatePaymentRequest {
     private String description;
 
     // ========== OPTIONAL FIELDS ==========
+
+    /**
+     * Optional explicit provider routing.
+     * Examples: stripe, paystack
+     */
+    @Size(max = 50, message = "Provider value too long")
+    @Pattern(regexp = "^[A-Za-z0-9_-]+$", message = "Provider contains invalid characters")
+    private String provider;
 
     /**
      * Customer's email address
@@ -151,6 +160,14 @@ public class CreatePaymentRequest {
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    public String getProvider() {
+        return provider;
+    }
+
+    public void setProvider(String provider) {
+        this.provider = provider;
     }
 
     public String getEmail() {
