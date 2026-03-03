@@ -33,3 +33,6 @@ build/
 .vscode/
 certs
 test-keys
+jmeter.log
+Summary Report.jmx
+01 - Merchant Registration.jmx
