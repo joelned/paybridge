@@ -14,9 +14,6 @@ public interface MerchantRepository extends JpaRepository<Merchant, Long> {
 
     Optional<Merchant> findByEmail(String email);
 
-    @Query("SELECT m FROM Merchant m WHERE m.apiKeyTest = :apiKey OR m.apiKeyLive = :apiKey")
-    Optional<Merchant> findByApiKeyTestOrApiKeyLive(@Param("apiKey") String apiKey);
-
     @Query("SELECT m FROM Merchant m WHERE m.apiKeyTestHash = :apiKeyHash OR m.apiKeyLiveHash = :apiKeyHash")
     Optional<Merchant> findByApiKeyHash(@Param("apiKeyHash") String apiKeyHash);
 
@@ -27,4 +24,3 @@ public interface MerchantRepository extends JpaRepository<Merchant, Long> {
     @Cacheable(cacheNames = "merchantEnabledUser", key = "#merchantId")
     boolean hasMerchantEnabledUser(@Param("merchantId") Long merchantId);
 }
-

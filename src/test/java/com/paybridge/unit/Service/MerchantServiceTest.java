@@ -6,8 +6,10 @@ import com.paybridge.Models.Entities.Users;
 import com.paybridge.Models.Enums.MerchantStatus;
 import com.paybridge.Models.Enums.UserType;
 import com.paybridge.Repositories.MerchantRepository;
+import com.paybridge.Repositories.PaymentRepository;
 import com.paybridge.Repositories.UserRepository;
 import com.paybridge.Services.ApiKeyService;
+import com.paybridge.Services.CredentialStorageService;
 import com.paybridge.Services.EmailProvider;
 import com.paybridge.Services.MerchantService;
 import org.junit.jupiter.api.BeforeEach;
@@ -43,6 +45,12 @@ class MerchantServiceTest {
     @Mock
     private ApiKeyService apiKeyService;
 
+    @Mock
+    private PaymentRepository paymentRepository;
+
+    @Mock
+    private CredentialStorageService credentialStorageService;
+
     @InjectMocks
     private MerchantService merchantService;
 
@@ -64,7 +72,15 @@ class MerchantServiceTest {
         validRequest.setBusinessCountry("US");
         validRequest.setWebsiteUrl("https://example.com");
 
-        merchantService = new MerchantService(userRepository, merchantRepository, passwordEncoder, emailProvider, apiKeyService);
+        merchantService = new MerchantService(
+                userRepository,
+                merchantRepository,
+                passwordEncoder,
+                emailProvider,
+                apiKeyService,
+                paymentRepository,
+                credentialStorageService
+        );
     }
 
     // Test Case 1: Successful merchant registration
@@ -258,7 +274,15 @@ class MerchantServiceTest {
         EmailProvider provider = mock(EmailProvider.class);
 
         // Act
-        MerchantService service = new MerchantService(userRepo, merchantRepo, encoder, provider, apiKeyService);
+        MerchantService service = new MerchantService(
+                userRepo,
+                merchantRepo,
+                encoder,
+                provider,
+                apiKeyService,
+                paymentRepository,
+                credentialStorageService
+        );
 
         // Assert
         assertNotNull(service);

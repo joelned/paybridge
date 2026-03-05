@@ -42,6 +42,14 @@ public class MerchantController {
         return ResponseEntity.ok().body(ApiResponse.success(merchantProfile));
     }
 
+    @GetMapping("/analytics")
+    public ResponseEntity<ApiResponse<MerchantAnalyticsResponse>> getMerchantAnalytics(Authentication authentication,
+                                                                                       @RequestParam(defaultValue = "30") int days) {
+        Merchant merchant = authenticationService.getMerchantFromAuthentication(authentication);
+        MerchantAnalyticsResponse analytics = merchantService.getMerchantAnalytics(merchant, days);
+        return ResponseEntity.ok(ApiResponse.success(analytics));
+    }
+
     @GetMapping("/api-keys")
     public ResponseEntity<ApiResponse<List<MerchantApiKeySummaryResponse>>> getMerchantApiKeys(Authentication authentication) {
         Merchant merchant = authenticationService.getMerchantFromAuthentication(authentication);
@@ -68,5 +76,31 @@ public class MerchantController {
                 "message", "API key revoked successfully",
                 "keyId", keyId
         )));
+    }
+
+    @GetMapping("/webhooks/{provider}")
+    public ResponseEntity<ApiResponse<MerchantWebhookSecretResponse>> getWebhookSecret(Authentication authentication,
+                                                                                       @PathVariable String provider) {
+        Merchant merchant = authenticationService.getMerchantFromAuthentication(authentication);
+        MerchantWebhookSecretResponse response = merchantService.getWebhookSecret(merchant, provider);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @PutMapping("/webhooks/{provider}/secret")
+    public ResponseEntity<ApiResponse<MerchantWebhookSecretResponse>> setWebhookSecret(Authentication authentication,
+                                                                                       @PathVariable String provider,
+                                                                                       @RequestBody @Valid MerchantWebhookSecretRequest request) {
+        Merchant merchant = authenticationService.getMerchantFromAuthentication(authentication);
+        MerchantWebhookSecretResponse response = merchantService.upsertWebhookSecret(merchant, provider, request.getSecret());
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @PostMapping("/webhooks/{provider}/rotate")
+    public ResponseEntity<ApiResponse<MerchantWebhookSecretResponse>> rotateWebhookSecret(Authentication authentication,
+                                                                                          @PathVariable String provider,
+                                                                                          @RequestBody @Valid MerchantWebhookSecretRequest request) {
+        Merchant merchant = authenticationService.getMerchantFromAuthentication(authentication);
+        MerchantWebhookSecretResponse response = merchantService.upsertWebhookSecret(merchant, provider, request.getSecret());
+        return ResponseEntity.ok(ApiResponse.success(response));
     }
 }
