@@ -154,7 +154,7 @@ public class ProviderService {
      */
     @Transactional(readOnly = true)
     public ConnectionTestResult testExistingProviderConfig(Long configId, Long merchantId) {
-        ProviderConfig config = providerConfigRepository.findById(configId)
+        ProviderConfig config = providerConfigRepository.findByIdWithProvider(configId)
                 .orElseThrow(() -> new RuntimeException("Configuration not found"));
 
         // Verify ownership

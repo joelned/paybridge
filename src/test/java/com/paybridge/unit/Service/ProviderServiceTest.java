@@ -344,7 +344,7 @@ class ProviderServiceTest {
         Map<String, Object> credentials = new HashMap<>();
         credentials.put("secretKey", "sk_test_123456789");
 
-        when(providerConfigRepository.findById(CONFIG_ID)).thenReturn(Optional.of(config));
+        when(providerConfigRepository.findByIdWithProvider(CONFIG_ID)).thenReturn(Optional.of(config));
         when(credentialStorageService.getProviderConfig(PROVIDER_NAME, MERCHANT_ID)).thenReturn(credentials);
         when(paymentProviderRegistry.getProvider(PROVIDER_NAME)).thenReturn(stripePaymentProvider);
 
@@ -374,7 +374,7 @@ class ProviderServiceTest {
         differentMerchant.setId(999L); // Different merchant ID
         config.setMerchant(differentMerchant);
 
-        when(providerConfigRepository.findById(CONFIG_ID)).thenReturn(Optional.of(config));
+        when(providerConfigRepository.findByIdWithProvider(CONFIG_ID)).thenReturn(Optional.of(config));
 
         // When & Then
         SecurityException exception = assertThrows(SecurityException.class,
@@ -396,7 +396,7 @@ class ProviderServiceTest {
         Map<String, Object> credentials = new HashMap<>();
         credentials.put("secretKey", "sk_test_123456789");
 
-        when(providerConfigRepository.findById(CONFIG_ID)).thenReturn(Optional.of(config));
+        when(providerConfigRepository.findByIdWithProvider(CONFIG_ID)).thenReturn(Optional.of(config));
         when(credentialStorageService.getProviderConfig(PROVIDER_NAME, MERCHANT_ID)).thenReturn(credentials);
         when(paymentProviderRegistry.getProvider(PROVIDER_NAME)).thenReturn(stripePaymentProvider);
 
@@ -417,7 +417,7 @@ class ProviderServiceTest {
     @Test
     void testExistingProviderConfig_ConfigNotFound_ThrowsException() {
         // Given
-        when(providerConfigRepository.findById(CONFIG_ID)).thenReturn(Optional.empty());
+        when(providerConfigRepository.findByIdWithProvider(CONFIG_ID)).thenReturn(Optional.empty());
 
         // When & Then
         RuntimeException exception = assertThrows(RuntimeException.class,
@@ -436,7 +436,7 @@ class ProviderServiceTest {
         config.setProvider(testProvider);
         config.setMerchant(testMerchant);
 
-        when(providerConfigRepository.findById(CONFIG_ID)).thenReturn(Optional.of(config));
+        when(providerConfigRepository.findByIdWithProvider(CONFIG_ID)).thenReturn(Optional.of(config));
         when(credentialStorageService.getProviderConfig(PROVIDER_NAME, MERCHANT_ID))
                 .thenThrow(new RuntimeException("Provider configuration not found in Vault"));
 
@@ -464,7 +464,7 @@ class ProviderServiceTest {
         Map<String, Object> credentials = new HashMap<>();
         credentials.put("secretKey", "sk_test_paystack_123");
 
-        when(providerConfigRepository.findById(CONFIG_ID)).thenReturn(Optional.of(config));
+        when(providerConfigRepository.findByIdWithProvider(CONFIG_ID)).thenReturn(Optional.of(config));
         when(credentialStorageService.getProviderConfig("paystack", MERCHANT_ID)).thenReturn(credentials);
         when(paymentProviderRegistry.getProvider("paystack")).thenReturn(paystackPaymentProvider);
 
