@@ -6,60 +6,58 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.paybridge.Models.DTOs.CreatePaymentRequest;
 import com.paybridge.Models.DTOs.PaymentProviderResponse;
 import com.paybridge.Models.DTOs.PaymentResponse;
-import com.paybridge.Models.Entities.Customer;
 import com.paybridge.Models.Entities.IdempotencyKey;
 import com.paybridge.Models.Entities.Merchant;
-import com.paybridge.Models.Entities.Payment;
 import com.paybridge.Models.Entities.ProviderConfig;
-import com.paybridge.Models.Enums.PaymentStatus;
-import com.paybridge.Repositories.CustomerRepository;
-import com.paybridge.Repositories.IdempotencyKeyRepository;
-import com.paybridge.Repositories.PaymentRepository;
 import com.paybridge.Repositories.ProviderConfigRepository;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.security.MessageDigest;
-import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.UUID;
 
+/**
+ * Orchestrates payment creation across three phases to avoid holding a DB connection
+ * open during the (potentially slow) external provider HTTP call.
+ *
+ * <pre>
+ * Phase 1 [short TX]  — validate idempotency key, create customer, lock record
+ * Phase 2 [no TX]     — resolve provider config, call external payment API
+ * Phase 3 [short TX]  — persist payment, store response, release lock
+ * </pre>
+ *
+ * The {@code @Transactional} boundaries are managed by {@link PaymentTransactionHelper},
+ * a separate Spring bean whose proxied methods are called from here. This is required
+ * because calling {@code @Transactional} methods on {@code this} bypasses the proxy.
+ */
 @Service
 public class PaymentService {
 
-    private final IdempotencyKeyRepository idempotencyKeyRepository;
-    private final PaymentRepository paymentRepository;
     private final ProviderConfigRepository providerConfigRepository;
     private final PaymentProviderRegistry paymentProviderRegistry;
     private final CredentialStorageService credentialStorageService;
-    private final CustomerRepository customerRepository;
     private final ObjectMapper objectMapper;
+    private final PaymentTransactionHelper transactionHelper;
 
-    public PaymentService(IdempotencyKeyRepository idempotencyKeyRepository,
-                          PaymentRepository paymentRepository,
-                          ProviderConfigRepository providerConfigRepository,
+    public PaymentService(ProviderConfigRepository providerConfigRepository,
                           PaymentProviderRegistry paymentProviderRegistry,
                           CredentialStorageService credentialStorageService,
-                          CustomerRepository customerRepository,
-                          ObjectMapper objectMapper) {
-        this.idempotencyKeyRepository = idempotencyKeyRepository;
-        this.paymentRepository = paymentRepository;
+                          ObjectMapper objectMapper,
+                          PaymentTransactionHelper transactionHelper) {
         this.providerConfigRepository = providerConfigRepository;
         this.paymentProviderRegistry = paymentProviderRegistry;
         this.credentialStorageService = credentialStorageService;
-        this.customerRepository = customerRepository;
         this.objectMapper = objectMapper;
+        this.transactionHelper = transactionHelper;
     }
 
-    @Transactional
-    public PaymentResponse createPayment(CreatePaymentRequest paymentRequest, Merchant merchant, String idempotencyKey) {
+    // NOTE: intentionally NOT @Transactional — the three-phase split below
+    // ensures no DB connection is held during the external provider HTTP call.
+    public PaymentResponse createPayment(CreatePaymentRequest paymentRequest,
+                                         Merchant merchant,
+                                         String idempotencyKey) {
         if (merchant == null) {
             throw new IllegalArgumentException("Authenticated merchant not found");
         }
@@ -68,47 +66,30 @@ public class PaymentService {
         }
 
         String requestHash = buildStableRequestHash(paymentRequest);
-        Optional<IdempotencyKey> existingOpt = idempotencyKeyRepository.findByIdempotencyKey(idempotencyKey);
 
-        if (existingOpt.isPresent()) {
-            IdempotencyKey existing = existingOpt.get();
+        // ── Phase 1: short transaction ────────────────────────────────────────
+        // Validates/locks the idempotency key and resolves the customer.
+        // DB connection is released as soon as preparePayment() returns.
+        PreparePaymentResult preparation =
+                transactionHelper.preparePayment(merchant, paymentRequest, idempotencyKey, requestHash);
 
-            if (!Objects.equals(existing.getRequestHash(), requestHash)) {
-                throw new IllegalStateException("Idempotency key already used with a different request payload");
-            }
-
-            if (existing.getResponse() != null && !existing.getResponse().isBlank()) {
-                try {
-                    return objectMapper.readValue(existing.getResponse(), PaymentResponse.class);
-                } catch (Exception ex) {
-                    throw new RuntimeException("Failed to read cached idempotent response", ex);
-                }
-            }
-
-            if (existing.isLocked()) {
-                throw new IllegalStateException("A request with this idempotency key is already being processed");
-            }
+        if (preparation.hasCachedResponse()) {
+            return deserializeResponse(preparation.getCachedResponse());
         }
 
-        Customer customer = resolveCustomer(merchant, paymentRequest);
-        IdempotencyKey idempotencyRecord = existingOpt.orElseGet(IdempotencyKey::new);
-        if (idempotencyRecord.getId() == null) {
-            idempotencyRecord.setIdempotencyKey(idempotencyKey);
-            idempotencyRecord.setCreatedAt(LocalDateTime.now());
-        }
-        idempotencyRecord.setCustomer(customer);
-        idempotencyRecord.setRequestHash(requestHash);
-        idempotencyRecord.setExpiresAt(LocalDateTime.now().plusDays(1));
-        idempotencyRecord.setPaymentStatus(PaymentStatus.PROCESSING);
-        idempotencyRecord.setLocked(true);
-        idempotencyRecord.setResponse(null);
-        idempotencyKeyRepository.save(idempotencyRecord);
+        IdempotencyKey idempotencyRecord = preparation.getIdempotencyRecord();
 
         try {
-            ProviderConfig providerConfig = resolveEnabledProviderConfig(merchant.getId(), paymentRequest.getProvider());
+            // ── Phase 2: no transaction ───────────────────────────────────────
+            // Provider config lookup is a cheap indexed read — no TX needed.
+            // The external API call can take 1–3 s; no DB connection is held.
+            ProviderConfig providerConfig =
+                    resolveEnabledProviderConfig(merchant.getId(), paymentRequest.getProvider());
             String providerName = providerConfig.getProvider().getName().toLowerCase(Locale.ROOT);
 
-            Map<String, Object> credentials = credentialStorageService.getProviderConfig(providerName, merchant.getId());
+            Map<String, Object> credentials =
+                    credentialStorageService.getProviderConfig(providerName, merchant.getId());
+
             PaymentProviderResponse providerResponse = paymentProviderRegistry
                     .getProvider(providerName)
                     .CreatePaymentRequest(paymentRequest, credentials);
@@ -117,32 +98,22 @@ public class PaymentService {
                 throw new RuntimeException("Provider returned empty payment response");
             }
 
-            PaymentStatus paymentStatus = mapProviderStatus(providerResponse.getStatus());
+            // ── Phase 3: short transaction ────────────────────────────────────
+            // Writes the payment record and releases the idempotency lock.
+            return transactionHelper.finalizePayment(
+                    merchant, providerConfig, providerResponse,
+                    idempotencyRecord, paymentRequest, providerName);
 
-            Payment payment = new Payment();
-            payment.setMerchant(merchant);
-            payment.setProvider(providerConfig.getProvider());
-            payment.setAmount(paymentRequest.getAmount());
-            payment.setCurrency(paymentRequest.getCurrency());
-            payment.setStatus(paymentStatus);
-            payment.setProviderReference(providerResponse.getProviderPaymentId());
-            Payment savedPayment = paymentRepository.save(payment);
-
-            PaymentResponse response = toPaymentResponse(savedPayment, paymentRequest, providerName, providerResponse);
-
-            idempotencyRecord.setPaymentStatus(paymentStatus);
-            idempotencyRecord.setLocked(false);
-            idempotencyRecord.setResponse(writeAsString(response));
-            idempotencyKeyRepository.save(idempotencyRecord);
-
-            return response;
         } catch (RuntimeException ex) {
-            idempotencyRecord.setPaymentStatus(PaymentStatus.FAILED);
-            idempotencyRecord.setLocked(false);
-            idempotencyKeyRepository.save(idempotencyRecord);
+            // REQUIRES_NEW — commits the failure independently of this call stack.
+            transactionHelper.failIdempotencyRecord(idempotencyRecord);
             throw ex;
         }
     }
+
+    // -------------------------------------------------------------------------
+    // Private helpers
+    // -------------------------------------------------------------------------
 
     private ProviderConfig resolveEnabledProviderConfig(Long merchantId, String requestedProvider) {
         if (requestedProvider != null && !requestedProvider.isBlank()) {
@@ -150,75 +121,27 @@ public class PaymentService {
             return providerConfigRepository
                     .findByMerchantIdAndProvider_NameIgnoreCaseAndIsEnabledTrue(merchantId, normalizedProvider)
                     .orElseThrow(() -> new IllegalStateException(
-                            "Requested provider is not configured/enabled for merchant: " + normalizedProvider
-                    ));
+                            "Requested provider is not configured/enabled for merchant: " + normalizedProvider));
         }
 
-        List<ProviderConfig> enabledConfigs = providerConfigRepository.findByMerchantIdAndIsEnabledTrue(merchantId);
+        List<ProviderConfig> enabledConfigs =
+                providerConfigRepository.findByMerchantIdAndIsEnabledTrue(merchantId);
         if (enabledConfigs.isEmpty()) {
             throw new IllegalStateException("No enabled payment provider configuration found for merchant");
         }
-
         if (enabledConfigs.size() > 1) {
-            throw new IllegalStateException("Multiple providers are enabled. Please specify provider in request body.");
+            throw new IllegalStateException(
+                    "Multiple providers are enabled. Please specify provider in request body.");
         }
-
         return enabledConfigs.get(0);
     }
 
-    private Customer resolveCustomer(Merchant merchant, CreatePaymentRequest request) {
-        Customer customer = new Customer();
-        customer.setMerchant(merchant);
-        customer.setEmail(request.getEmail());
-        customer.setFullName(request.getCustomerName());
-        customer.setPhone(request.getCustomerPhone());
-
-        String referenceSeed = request.getCustomerReference();
-        if (referenceSeed == null || referenceSeed.isBlank()) {
-            referenceSeed = request.getEmail() != null ? request.getEmail() : UUID.randomUUID().toString();
+    private PaymentResponse deserializeResponse(String json) {
+        try {
+            return objectMapper.readValue(json, PaymentResponse.class);
+        } catch (Exception ex) {
+            throw new RuntimeException("Failed to read cached idempotent response", ex);
         }
-
-        int externalId = Math.abs(referenceSeed.hashCode());
-        customer.setExternalCustomerId(externalId == 0 ? 1 : externalId);
-
-        return customerRepository.save(customer);
-    }
-
-    private PaymentResponse toPaymentResponse(Payment payment,
-                                              CreatePaymentRequest request,
-                                              String providerName,
-                                              PaymentProviderResponse providerResponse) {
-        PaymentResponse response = new PaymentResponse();
-        response.setId(payment.getId());
-        response.setStatus(payment.getStatus());
-        response.setAmount(payment.getAmount());
-        response.setCurrency(payment.getCurrency());
-        response.setProvider(providerName);
-        response.setProviderReference(providerResponse.getProviderPaymentId());
-        response.setCheckoutUrl(providerResponse.getCheckoutUrl());
-        response.setClientSecret(providerResponse.getClientSecret());
-        response.setMetadata(request.getMetadata());
-        response.setMessage("Payment created successfully");
-
-        LocalDateTime createdAt = payment.getCreatedAt() != null ? payment.getCreatedAt() : LocalDateTime.now();
-        response.setCreatedAt(createdAt.toInstant(ZoneOffset.UTC));
-        response.setExpiresAt(Instant.now().plusSeconds(3600));
-        return response;
-    }
-
-    private PaymentStatus mapProviderStatus(String providerStatus) {
-        if (providerStatus == null || providerStatus.isBlank()) {
-            return PaymentStatus.PENDING;
-        }
-
-        return switch (providerStatus.toLowerCase(Locale.ROOT)) {
-            case "succeeded", "success", "successful" -> PaymentStatus.SUCCEEDED;
-            case "failed", "failure" -> PaymentStatus.FAILED;
-            case "cancelled", "canceled" -> PaymentStatus.CANCELLED;
-            case "processing", "pending", "requires_payment_method", "requires_confirmation",
-                 "requires_action" -> PaymentStatus.PENDING;
-            default -> PaymentStatus.PROCESSING;
-        };
     }
 
     private String buildStableRequestHash(CreatePaymentRequest paymentRequest) {
@@ -233,14 +156,6 @@ public class PaymentService {
             return HexFormat.of().formatHex(hash);
         } catch (Exception ex) {
             throw new RuntimeException("Failed to compute payment request hash", ex);
-        }
-    }
-
-    private String writeAsString(PaymentResponse response) {
-        try {
-            return objectMapper.writeValueAsString(response);
-        } catch (Exception ex) {
-            throw new RuntimeException("Failed to serialize payment response", ex);
         }
     }
 }

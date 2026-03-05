@@ -2,10 +2,15 @@ package com.paybridge.Models.Entities;
 
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
+import org.springframework.data.jpa.repository.EntityGraph;
 
 import java.time.LocalDateTime;
 
 @Entity
+@NamedEntityGraph(
+        name = "ProviderConfig.withProvider",
+        attributeNodes = @NamedAttributeNode("provider")
+)
 @Table(name = "provider_configs")
 public class ProviderConfig {
     @Id

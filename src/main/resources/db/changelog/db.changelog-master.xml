@@ -392,4 +392,20 @@
                              constraintName="uk_processed_webhook_provider_event"/>
     </changeSet>
 
+    <!-- Unique constraint on idempotency_key to prevent double-processing under concurrent requests.
+         Without this, two threads can both pass the "key not found" check before either commits,
+         resulting in two payments being created for the same key. The DB unique constraint ensures
+         exactly one INSERT wins; the other gets a constraint violation and the transaction rolls back. -->
+    <changeSet id="014-add-unique-constraint-idempotency-key" author="paybridge">
+        <addUniqueConstraint tableName="idempotency_keys"
+                             columnNames="idempotency_key"
+                             constraintName="uk_idempotency_key"/>
+
+        <createIndex tableName="idempotency_keys"
+                     indexName="idx_idempotency_key_lookup"
+                     unique="true">
+            <column name="idempotency_key"/>
+        </createIndex>
+    </changeSet>
+
 </databaseChangeLog>

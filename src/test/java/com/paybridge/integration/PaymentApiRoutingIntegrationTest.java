@@ -15,6 +15,8 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.util.Map;
 
 import static org.hamcrest.Matchers.containsString;
@@ -64,6 +66,7 @@ class PaymentApiRoutingIntegrationTest extends BaseIntegrationTest {
         merchant.setEmail("route@test.com");
         merchant.setStatus(MerchantStatus.ACTIVE);
         merchant.setApiKeyTest("pk_test_route_123456789012345");
+        merchant.setApiKeyTestHash(sha256("pk_test_route_123456789012345"));
         merchant = merchantRepository.save(merchant);
 
         Users user = new Users();
@@ -162,5 +165,19 @@ class PaymentApiRoutingIntegrationTest extends BaseIntegrationTest {
                 .andExpect(jsonPath("$.error", containsString("Multiple providers are enabled")));
 
         verify(paymentProviderRegistry, never()).getProvider(anyString());
+    }
+
+    private String sha256(String input) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(input.getBytes(StandardCharsets.UTF_8));
+            StringBuilder sb = new StringBuilder(hash.length * 2);
+            for (byte b : hash) {
+                sb.append(String.format("%02x", b));
+            }
+            return sb.toString();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 }

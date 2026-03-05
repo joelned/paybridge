@@ -1,22 +1,18 @@
-package com.paybridge.unit.Service;
+package com.paybridge.Services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.paybridge.Configs.PaymentProvider;
 import com.paybridge.Models.DTOs.CreatePaymentRequest;
 import com.paybridge.Models.DTOs.PaymentProviderResponse;
 import com.paybridge.Models.DTOs.PaymentResponse;
-import com.paybridge.Models.Entities.*;
-import com.paybridge.Repositories.CustomerRepository;
-import com.paybridge.Repositories.IdempotencyKeyRepository;
-import com.paybridge.Repositories.PaymentRepository;
+import com.paybridge.Models.Entities.IdempotencyKey;
+import com.paybridge.Models.Entities.Merchant;
+import com.paybridge.Models.Entities.Provider;
+import com.paybridge.Models.Entities.ProviderConfig;
 import com.paybridge.Repositories.ProviderConfigRepository;
-import com.paybridge.Services.CredentialStorageService;
-import com.paybridge.Services.PaymentProviderRegistry;
-import com.paybridge.Services.PaymentService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -26,17 +22,21 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyMap;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class PaymentServiceRoutingTest {
 
-    @Mock
-    private IdempotencyKeyRepository idempotencyKeyRepository;
-    @Mock
-    private PaymentRepository paymentRepository;
     @Mock
     private ProviderConfigRepository providerConfigRepository;
     @Mock
@@ -44,7 +44,7 @@ class PaymentServiceRoutingTest {
     @Mock
     private CredentialStorageService credentialStorageService;
     @Mock
-    private CustomerRepository customerRepository;
+    private PaymentTransactionHelper transactionHelper;
     @Mock
     private PaymentProvider paymentProvider;
 
@@ -53,20 +53,20 @@ class PaymentServiceRoutingTest {
     @BeforeEach
     void setUp() {
         paymentService = new PaymentService(
-                idempotencyKeyRepository,
-                paymentRepository,
                 providerConfigRepository,
                 paymentProviderRegistry,
                 credentialStorageService,
-                customerRepository,
-                new ObjectMapper().findAndRegisterModules()
+                new ObjectMapper().findAndRegisterModules(),
+                transactionHelper
         );
     }
 
     @Test
-    void createPayment_UsesExplicitRequestedProviderAndPersistsProviderReference() {
+    void createPayment_UsesExplicitRequestedProvider_AndFinalizesSuccessfully() {
         Merchant merchant = new Merchant();
         merchant.setId(99L);
+
+        IdempotencyKey idempotencyRecord = new IdempotencyKey();
 
         Provider provider = new Provider();
         provider.setName("paystack");
@@ -86,19 +86,21 @@ class PaymentServiceRoutingTest {
         providerResponse.setStatus("pending");
         providerResponse.setCheckoutUrl("https://checkout.example.com");
 
-        when(idempotencyKeyRepository.findByIdempotencyKey("idem-1")).thenReturn(Optional.empty());
-        when(customerRepository.save(any(Customer.class))).thenAnswer(inv -> inv.getArgument(0));
-        when(idempotencyKeyRepository.save(any(IdempotencyKey.class))).thenAnswer(inv -> inv.getArgument(0));
+        PaymentResponse expectedResponse = new PaymentResponse();
+        expectedResponse.setId(UUID.randomUUID());
+        expectedResponse.setProvider("paystack");
+        expectedResponse.setProviderReference("ref_123");
+        expectedResponse.setCheckoutUrl("https://checkout.example.com");
+
+        when(transactionHelper.preparePayment(any(Merchant.class), any(CreatePaymentRequest.class), eq("idem-1"), anyString()))
+                .thenReturn(PreparePaymentResult.proceed(idempotencyRecord));
         when(providerConfigRepository.findByMerchantIdAndProvider_NameIgnoreCaseAndIsEnabledTrue(99L, "paystack"))
                 .thenReturn(Optional.of(providerConfig));
         when(credentialStorageService.getProviderConfig("paystack", 99L)).thenReturn(Map.of("secretKey", "sk_test_123"));
         when(paymentProviderRegistry.getProvider("paystack")).thenReturn(paymentProvider);
         when(paymentProvider.CreatePaymentRequest(any(CreatePaymentRequest.class), anyMap())).thenReturn(providerResponse);
-        when(paymentRepository.save(any(Payment.class))).thenAnswer(inv -> {
-            Payment p = inv.getArgument(0);
-            p.setId(UUID.randomUUID());
-            return p;
-        });
+        when(transactionHelper.finalizePayment(eq(merchant), eq(providerConfig), eq(providerResponse), eq(idempotencyRecord), eq(request), eq("paystack")))
+                .thenReturn(expectedResponse);
 
         PaymentResponse response = paymentService.createPayment(request, merchant, "idem-1");
 
@@ -106,17 +108,16 @@ class PaymentServiceRoutingTest {
         assertEquals("ref_123", response.getProviderReference());
         assertEquals("https://checkout.example.com", response.getCheckoutUrl());
 
-        ArgumentCaptor<Payment> paymentCaptor = ArgumentCaptor.forClass(Payment.class);
-        verify(paymentRepository).save(paymentCaptor.capture());
-        assertEquals("ref_123", paymentCaptor.getValue().getProviderReference());
-
         verify(providerConfigRepository, never()).findByMerchantIdAndIsEnabledTrue(anyLong());
+        verify(transactionHelper, never()).failIdempotencyRecord(any(IdempotencyKey.class));
     }
 
     @Test
-    void createPayment_WithoutProviderAndMultipleEnabledConfigs_ThrowsClearError() {
+    void createPayment_WithoutProviderAndMultipleEnabledConfigs_ThrowsClearError_AndMarksIdempotencyFailed() {
         Merchant merchant = new Merchant();
         merchant.setId(5L);
+
+        IdempotencyKey idempotencyRecord = new IdempotencyKey();
 
         Provider p1 = new Provider();
         p1.setName("stripe");
@@ -134,9 +135,8 @@ class PaymentServiceRoutingTest {
         request.setDescription("Order #2");
         request.setEmail("customer@example.com");
 
-        when(idempotencyKeyRepository.findByIdempotencyKey("idem-2")).thenReturn(Optional.empty());
-        when(customerRepository.save(any(Customer.class))).thenAnswer(inv -> inv.getArgument(0));
-        when(idempotencyKeyRepository.save(any(IdempotencyKey.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(transactionHelper.preparePayment(any(Merchant.class), any(CreatePaymentRequest.class), eq("idem-2"), anyString()))
+                .thenReturn(PreparePaymentResult.proceed(idempotencyRecord));
         when(providerConfigRepository.findByMerchantIdAndIsEnabledTrue(5L)).thenReturn(List.of(c1, c2));
 
         IllegalStateException ex = assertThrows(
@@ -146,5 +146,6 @@ class PaymentServiceRoutingTest {
 
         assertTrue(ex.getMessage().contains("Multiple providers are enabled"));
         verify(paymentProviderRegistry, never()).getProvider(anyString());
+        verify(transactionHelper).failIdempotencyRecord(idempotencyRecord);
     }
 }
