@@ -123,8 +123,7 @@ public class ApiKeyService {
     }
 
     /**
-     * Find Merchant by presented API key using hashed lookup. Performs lazy backfill of hash columns
-     * if only plaintext columns are populated (Option B rollout phase).
+     * Find Merchant by presented API key using hash-only lookup.
      */
     @Transactional
     public Optional<Merchant> findMerchantByApiKey(String apiKey) {
@@ -132,27 +131,7 @@ public class ApiKeyService {
             return Optional.empty();
         }
         String apiKeyHash = hashApiKey(apiKey);
-        Optional<Merchant> byHash = merchantRepository.findByApiKeyHash(apiKeyHash);
-        if (byHash.isPresent()) {
-            return byHash;
-        }
-        // Fallback: look up by plaintext (legacy) and backfill hash columns
-        Optional<Merchant> legacy = merchantRepository.findByApiKeyTestOrApiKeyLive(apiKey);
-        if (legacy.isPresent()) {
-            Merchant m = legacy.get();
-            try {
-                if (apiKey.equals(m.getApiKeyTest()) && (m.getApiKeyTestHash() == null || m.getApiKeyTestHash().isEmpty())) {
-                    m.setApiKeyTestHash(apiKeyHash);
-                }
-                if (apiKey.equals(m.getApiKeyLive()) && (m.getApiKeyLiveHash() == null || m.getApiKeyLiveHash().isEmpty())) {
-                    m.setApiKeyLiveHash(apiKeyHash);
-                }
-                merchantRepository.save(m);
-            } catch (Exception e) {
-                logger.warn("Failed to backfill API key hash for merchant {}", m.getId(), e);
-            }
-        }
-        return legacy;
+        return merchantRepository.findByApiKeyHash(apiKeyHash);
     }
 
     @Async

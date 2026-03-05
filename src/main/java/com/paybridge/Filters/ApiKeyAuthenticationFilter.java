@@ -52,6 +52,11 @@ public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
                                     HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
 
+        if(request.getHeader(API_KEY_HEADER) == null || request.getHeader(API_KEY_HEADER).isBlank()){
+            filterChain.doFilter(request, response);
+            return;
+        }
+
         String apiKey = request.getHeader(API_KEY_HEADER);
 
         // If no API key header, continue to next filter (JWT authentication)
@@ -91,18 +96,18 @@ public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
                 response.getWriter().write(new ObjectMapper().writeValueAsString(errorResponseMessage));
                 return;
             }
-//            if(merchant.getStatus() == MerchantStatus.PENDING_PROVIDER_SETUP){
-//                response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-//                response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-//                Map<String, String> errorResponseMessage = new HashMap<>();
-//
-//                errorResponseMessage.put("message", "Please configure at least one provider to use api key");
-//                errorResponseMessage.put("status", "error");
-//
-//                response.getWriter().write(new ObjectMapper().writeValueAsString(errorResponseMessage));
-//                return;
-//
-//            }
+            if(merchant.getStatus() == MerchantStatus.PENDING_PROVIDER_SETUP){
+                response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+                Map<String, String> errorResponseMessage = new HashMap<>();
+
+                errorResponseMessage.put("message", "Please configure at least one provider to use api key");
+                errorResponseMessage.put("status", "error");
+
+                response.getWriter().write(new ObjectMapper().writeValueAsString(errorResponseMessage));
+                return;
+
+            }
             // Create authentication token
             UsernamePasswordAuthenticationToken authentication =
                     new UsernamePasswordAuthenticationToken(

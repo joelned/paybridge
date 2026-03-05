@@ -200,6 +200,32 @@ class ApiKeyServiceTest {
         assertNotEquals("old_live", savedMerchant.getApiKeyLive());
     }
 
+    // ---------- findMerchantByApiKey ----------
+    @Test
+    void findMerchantByApiKey_ShouldUseHashLookupOnly() {
+        String apiKey = "pk_test_hash_lookup";
+        String expectedHash = sha256(apiKey);
+        Merchant merchant = new Merchant();
+        merchant.setId(44L);
+
+        when(merchantRepository.findByApiKeyHash(expectedHash)).thenReturn(Optional.of(merchant));
+
+        Optional<Merchant> result = apiKeyService.findMerchantByApiKey(apiKey);
+
+        assertTrue(result.isPresent());
+        assertEquals(44L, result.get().getId());
+        verify(merchantRepository, times(1)).findByApiKeyHash(expectedHash);
+        verify(merchantRepository, never()).save(any(Merchant.class));
+    }
+
+    @Test
+    void findMerchantByApiKey_NullOrBlankKey_ReturnsEmpty() {
+        assertTrue(apiKeyService.findMerchantByApiKey(null).isEmpty());
+        assertTrue(apiKeyService.findMerchantByApiKey("").isEmpty());
+
+        verify(merchantRepository, never()).findByApiKeyHash(anyString());
+    }
+
     // ---------- checkRateLimit ----------
     @Test
     void checkRateLimit_ShouldAllowWhenBelowLimit() {
