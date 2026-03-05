@@ -125,11 +125,17 @@ class WebhookServiceTest {
 
     @Test
     void handleStripeWebhook_WithoutConfiguredSigningSecret_Throws() {
+        Payment payment = buildPayment(PaymentStatus.PENDING, "cs_test_missing_secret");
+        String payload = "{\"id\":\"evt_1\",\"object\":\"event\",\"type\":\"checkout.session.completed\",\"data\":{\"object\":{\"id\":\"cs_test_missing_secret\",\"object\":\"checkout.session\"}}}";
+
+        when(paymentRepository.findByProviderReferenceAndProvider_NameIgnoreCase("cs_test_missing_secret", "stripe"))
+                .thenReturn(Optional.of(payment));
+        when(credentialStorageService.getProviderConfig("stripe", 11L)).thenReturn(Map.of());
         ReflectionTestUtils.setField(webhookService, "stripeSigningSecret", "");
 
         IllegalStateException ex = assertThrows(
                 IllegalStateException.class,
-                () -> webhookService.handleStripeWebhook("{\"id\":\"evt_1\"}", "t=1,v1=abc")
+                () -> webhookService.handleStripeWebhook(payload, "t=1,v1=abc")
         );
 
         assertTrue(ex.getMessage().contains("signing secret is not configured"));
@@ -149,11 +155,15 @@ class WebhookServiceTest {
 
     @Test
     void handleStripeWebhook_InvalidSignature_Throws() {
-        ReflectionTestUtils.setField(webhookService, "stripeSigningSecret", "whsec_test_123");
+        Payment payment = buildPayment(PaymentStatus.PENDING, "cs_test_invalid_signature");
+        String payload = "{\"id\":\"evt_1\",\"object\":\"event\",\"type\":\"checkout.session.completed\",\"data\":{\"object\":{\"id\":\"cs_test_invalid_signature\",\"object\":\"checkout.session\"}}}";
 
+        when(paymentRepository.findByProviderReferenceAndProvider_NameIgnoreCase("cs_test_invalid_signature", "stripe"))
+                .thenReturn(Optional.of(payment));
+        when(credentialStorageService.getProviderConfig("stripe", 11L)).thenReturn(Map.of("webhookSecret", "whsec_test_123"));
         IllegalArgumentException ex = assertThrows(
                 IllegalArgumentException.class,
-                () -> webhookService.handleStripeWebhook("{\"id\":\"evt_1\",\"object\":\"event\"}", "t=1,v1=invalid")
+                () -> webhookService.handleStripeWebhook(payload, "t=1,v1=invalid")
         );
 
         assertTrue(ex.getMessage().contains("Invalid Stripe webhook signature"));

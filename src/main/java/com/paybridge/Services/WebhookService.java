@@ -51,16 +51,26 @@ public class WebhookService {
 
     @Transactional
     public Map<String, Object> handleStripeWebhook(String payload, String signatureHeader) {
-        if (stripeSigningSecret == null || stripeSigningSecret.isBlank()) {
-            throw new IllegalStateException("Stripe webhook signing secret is not configured");
-        }
         if (signatureHeader == null || signatureHeader.isBlank()) {
             throw new IllegalArgumentException("Missing Stripe-Signature header");
         }
 
+        String providerReference = extractStripeSessionId(payload);
+        if (providerReference == null || providerReference.isBlank()) {
+            return Map.of("processed", false, "ignored", true, "reason", "Missing checkout session id");
+        }
+
+        Optional<Payment> paymentOpt = paymentRepository.findByProviderReferenceAndProvider_NameIgnoreCase(providerReference, "stripe");
+        if (paymentOpt.isEmpty()) {
+            return Map.of("processed", false, "ignored", true, "reason", "Payment not found", "providerReference", providerReference);
+        }
+
+        Payment payment = paymentOpt.get();
+        String signingSecret = loadMerchantStripeWebhookSecret(payment);
+
         Event event;
         try {
-            event = Webhook.constructEvent(payload, signatureHeader, stripeSigningSecret);
+            event = Webhook.constructEvent(payload, signatureHeader, signingSecret);
         } catch (SignatureVerificationException e) {
             throw new IllegalArgumentException("Invalid Stripe webhook signature");
         }
@@ -80,19 +90,11 @@ public class WebhookService {
             return Map.of("processed", false, "ignored", true, "reason", "Unsupported Stripe event object", "eventType", event.getType());
         }
 
-        String providerReference = session.getId();
-        if (providerReference == null || providerReference.isBlank()) {
+        String sessionId = session.getId();
+        if (sessionId == null || sessionId.isBlank()) {
             markProcessed("stripe", eventId);
             return Map.of("processed", false, "ignored", true, "reason", "Missing session id");
         }
-
-        Optional<Payment> paymentOpt = paymentRepository.findByProviderReferenceAndProvider_NameIgnoreCase(providerReference, "stripe");
-        if (paymentOpt.isEmpty()) {
-            markProcessed("stripe", eventId);
-            return Map.of("processed", false, "ignored", true, "reason", "Payment not found", "providerReference", providerReference);
-        }
-
-        Payment payment = paymentOpt.get();
         PaymentStatus nextStatus = mapStripeEventStatus(event.getType());
         if (nextStatus != null) {
             applyStatusTransition(payment, nextStatus);
@@ -207,7 +209,10 @@ public class WebhookService {
     private String loadMerchantPaystackSecret(Payment payment) {
         Long merchantId = payment.getMerchant().getId();
         Map<String, Object> credentials = credentialStorageService.getProviderConfig("paystack", merchantId);
-        Object secret = credentials.get("secretKey");
+        Object secret = credentials.get("webhookSecret");
+        if (!(secret instanceof String) || ((String) secret).isBlank()) {
+            secret = credentials.get("secretKey");
+        }
 
         if (!(secret instanceof String secretString) || secretString.isBlank()) {
             throw new IllegalStateException("Paystack secret key not configured for merchant");
@@ -218,6 +223,29 @@ public class WebhookService {
             normalized = normalized.substring(7).trim();
         }
         return normalized;
+    }
+
+    private String loadMerchantStripeWebhookSecret(Payment payment) {
+        Long merchantId = payment.getMerchant().getId();
+        Map<String, Object> credentials = credentialStorageService.getProviderConfig("stripe", merchantId);
+        Object secret = credentials.get("webhookSecret");
+
+        if (secret instanceof String secretString && !secretString.isBlank()) {
+            return secretString.trim();
+        }
+
+        if (stripeSigningSecret != null && !stripeSigningSecret.isBlank()) {
+            return stripeSigningSecret.trim();
+        }
+
+        throw new IllegalStateException("Stripe webhook signing secret is not configured for merchant");
+    }
+
+    private String extractStripeSessionId(String payload) {
+        Map<String, Object> eventBody = readAsMap(payload);
+        Map<String, Object> data = asMap(eventBody.get("data"));
+        Map<String, Object> eventObject = asMap(data.get("object"));
+        return asString(eventObject.get("id"));
     }
 
     private void verifyPaystackSignature(String payload, String signatureHeader, String secretKey) {
