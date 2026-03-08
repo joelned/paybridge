@@ -47,7 +47,7 @@ class WebhookControllerIntegrationTest extends BaseIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"id\":\"evt_123\"}"))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.error", containsString("Missing Stripe-Signature header")));
+                .andExpect(jsonPath("$.error.message", containsString("Missing Stripe-Signature header")));
     }
 
     @Test
@@ -60,6 +60,6 @@ class WebhookControllerIntegrationTest extends BaseIntegrationTest {
                         .header("x-paystack-signature", "invalid")
                         .content("{\"event\":\"charge.success\",\"data\":{\"reference\":\"ref_1\"}}"))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.error", containsString("Invalid Paystack webhook signature")));
+                .andExpect(jsonPath("$.error.message", containsString("Invalid Paystack webhook signature")));
     }
 }

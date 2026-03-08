@@ -76,8 +76,9 @@ class ApiKeyAuthenticationFilterTest {
     void doFilterInternal_RateLimitExceeded_Returns429() throws ServletException, IOException {
         // Given
         when(request.getHeader("x-api-key")).thenReturn("test-key");
+        when(request.getRequestURI()).thenReturn("/api/test");
         when(apiKeyService.checkRateLimit("test-key")).thenReturn(false);
-        
+
         StringWriter stringWriter = new StringWriter();
         PrintWriter writer = new PrintWriter(stringWriter);
         when(response.getWriter()).thenReturn(writer);
@@ -125,6 +126,7 @@ class ApiKeyAuthenticationFilterTest {
         merchant.setStatus(MerchantStatus.SUSPENDED);
 
         when(request.getHeader("x-api-key")).thenReturn(apiKey);
+        when(request.getRequestURI()).thenReturn("/api/test");
         when(apiKeyService.checkRateLimit(apiKey)).thenReturn(true);
         when(apiKeyService.findMerchantByApiKey(apiKey)).thenReturn(Optional.of(merchant));
         when(merchantRepository.hasMerchantEnabledUser(1L)).thenReturn(true); // User enabled but merchant suspended

@@ -1,6 +1,8 @@
 package com.paybridge.Services;
 
 import com.paybridge.Models.DTOs.ApiResponse;
+import com.paybridge.Models.DTOs.ErrorDetail;
+import com.paybridge.Models.Enums.ApiErrorCode;
 import com.paybridge.Models.Entities.Merchant;
 import com.paybridge.Models.Entities.Users;
 import com.paybridge.Models.Enums.MerchantStatus;
@@ -32,15 +34,15 @@ public class VerificationService {
     public ApiResponse<String> verifyEmailAndActivateMerchant(String email, String code) {
         Users user = userRepository.findByEmail(email);
         if (user == null) {
-            return ApiResponse.error("No account found with this mail");
+            return ApiResponse.error(ErrorDetail.of("No account found with this mail", ApiErrorCode.ACCOUNT_NOT_FOUND));
         }
 
         if (user.isEmailVerified()) {
-            return ApiResponse.error("Email is already verified");
+            return ApiResponse.error(ErrorDetail.of("Email is already verified", ApiErrorCode.EMAIL_NOT_VERIFIED));
         }
 
         if (user.getVerificationAttempts() >= 5) {
-            return ApiResponse.error("Too many requests. Please request a new code");
+            return ApiResponse.error(ErrorDetail.of("Too many requests. Please request a new code", ApiErrorCode.RESEND_LIMIT_EXCEEDED));
         }
 
         // Validate code
@@ -50,14 +52,14 @@ public class VerificationService {
 
             if (user.getVerificationCodeExpiresAt() != null &&
                     java.time.LocalDateTime.now().isAfter(user.getVerificationCodeExpiresAt())) {
-                return ApiResponse.error("Verification code expired. Please request a new one");
+                return ApiResponse.error(ErrorDetail.of("Verification code expired. Please request a new one", ApiErrorCode.VERIFICATION_CODE_EXPIRED));
             }
-            return ApiResponse.error("Invalid verification code");
+            return ApiResponse.error(ErrorDetail.of("Invalid verification code", ApiErrorCode.VERIFICATION_CODE_INVALID));
         }
 
         Merchant merchant = user.getMerchant();
         if (merchant == null) {
-            return ApiResponse.error("Merchant does not exist");
+            return ApiResponse.error(ErrorDetail.of("Merchant does not exist", ApiErrorCode.ACCOUNT_NOT_FOUND));
         }
 
         user.markAsVerified();

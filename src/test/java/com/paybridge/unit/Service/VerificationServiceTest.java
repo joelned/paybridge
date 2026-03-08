@@ -103,7 +103,7 @@ class VerificationServiceTest {
 
         // Assert
         assertFalse(response.isSuccess());
-        assertEquals("No account found with this mail", response.getError());
+        assertEquals("No account found with this mail", response.getError().getMessage());
         verify(userRepository, never()).save(any(Users.class));
     }
 
@@ -117,7 +117,7 @@ class VerificationServiceTest {
 
         // Assert
         assertFalse(response.isSuccess());
-        assertEquals("Email is already verified", response.getError());
+        assertEquals("Email is already verified", response.getError().getMessage());
         verify(userRepository, never()).save(any(Users.class));
     }
 
@@ -132,7 +132,7 @@ class VerificationServiceTest {
 
         // Assert
         assertFalse(response.isSuccess());
-        assertEquals("Too many requests. Please request a new code", response.getError());
+        assertEquals("Too many requests. Please request a new code", response.getError().getMessage());
         verify(userRepository, never()).save(any(Users.class));
     }
 
@@ -147,7 +147,7 @@ class VerificationServiceTest {
 
         // Assert
         assertFalse(response.isSuccess());
-        assertEquals("Invalid verification code", response.getError());
+        assertEquals("Invalid verification code", response.getError().getMessage());
         verify(userRepository, times(1)).save(unverifiedUser);
         assertEquals(1, unverifiedUser.getVerificationAttempts());
     }
@@ -164,7 +164,7 @@ class VerificationServiceTest {
 
         // Assert
         assertFalse(response.isSuccess());
-        assertEquals("Verification code expired. Please request a new one", response.getError());
+        assertEquals("Verification code expired. Please request a new one", response.getError().getMessage());
         verify(userRepository, times(1)).save(unverifiedUser);
     }
 
@@ -179,7 +179,7 @@ class VerificationServiceTest {
 
         // Assert
         assertFalse(response.isSuccess());
-        assertEquals("Invalid verification code", response.getError());
+        assertEquals("Invalid verification code", response.getError().getMessage());
     }
 
     @Test
@@ -280,7 +280,7 @@ class VerificationServiceTest {
         for (int i = 0; i < 4; i++) {
             ApiResponse<String> response = verificationService.verifyEmail(validEmail, invalidCode);
             assertFalse(response.isSuccess());
-            assertEquals("Invalid verification code", response.getError());
+            assertEquals("Invalid verification code", response.getError().getMessage());
         }
 
         // Verify attempts count
@@ -308,7 +308,7 @@ class VerificationServiceTest {
 
         // Assert
         assertFalse(response.isSuccess());
-        assertEquals("Too many requests. Please request a new code", response.getError());
+        assertEquals("Too many requests. Please request a new code", response.getError().getMessage());
 
         // Verify that save was NOT called because we blocked early
         verify(userRepository, never()).save(any(Users.class));

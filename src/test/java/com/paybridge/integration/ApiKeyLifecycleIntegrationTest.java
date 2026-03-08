@@ -133,6 +133,6 @@ class ApiKeyLifecycleIntegrationTest extends BaseIntegrationTest {
         mockMvc.perform(delete("/api/v1/merchants/api-keys/unknown")
                         .cookie(new Cookie("jwt", jwtToken)))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.error", containsString("Unsupported API key id")));
+                .andExpect(jsonPath("$.error.message", containsString("Unsupported API key id")));
     }
 }

@@ -1,6 +1,8 @@
 package com.paybridge.Controllers;
 
 import com.paybridge.Models.DTOs.ApiResponse;
+import com.paybridge.Models.DTOs.ErrorDetail;
+import com.paybridge.Models.Enums.ApiErrorCode;
 import com.paybridge.Models.DTOs.ProviderConfigSummaryResponse;
 import com.paybridge.Models.DTOs.ProviderConfiguration;
 import com.paybridge.Models.Entities.Merchant;
@@ -65,22 +67,19 @@ public class ProviderController {
             )));
 
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(ApiResponse.error(Map.of(
-                    "status", "error",
-                    "message", e.getMessage()
-            )));
+            return ResponseEntity.badRequest().body(ApiResponse.error(
+                    ErrorDetail.of(e.getMessage(), ApiErrorCode.BAD_REQUEST)
+            ));
 
         } catch (SecurityException e) {
-            return ResponseEntity.status(403).body(ApiResponse.error(Map.of(
-                    "status", "error",
-                    "message", "Unauthorized"
-            )));
+            return ResponseEntity.status(403).body(ApiResponse.error(
+                    ErrorDetail.of("Unauthorized", ApiErrorCode.UNAUTHORIZED)
+            ));
 
         } catch (Exception e) {
-            return ResponseEntity.internalServerError().body(ApiResponse.error(Map.of(
-                    "status", "error",
-                    "message", "Failed to configure provider"
-            )));
+            return ResponseEntity.internalServerError().body(ApiResponse.error(
+                    ErrorDetail.of("Failed to configure provider", ApiErrorCode.INTERNAL_ERROR)
+            ));
         }
     }
 
@@ -107,16 +106,14 @@ public class ProviderController {
             )));
 
         } catch (SecurityException e) {
-            return ResponseEntity.status(403).body(ApiResponse.error(Map.of(
-                    "status", "error",
-                    "message", e.getMessage()
-            )));
+            return ResponseEntity.status(403).body(ApiResponse.error(
+                    ErrorDetail.of(e.getMessage(), ApiErrorCode.UNAUTHORIZED)
+            ));
 
         } catch (Exception e) {
             return ResponseEntity.status(500).body(ApiResponse.error(
-                    Map.of("status", "error",
-                    "message", e.getMessage()
-            )));
+                    ErrorDetail.of(e.getMessage() != null ? e.getMessage() : "Connection test failed", ApiErrorCode.INTERNAL_ERROR)
+            ));
         }
     }
 }

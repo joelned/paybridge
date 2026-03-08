@@ -9,19 +9,21 @@ import java.util.Map;
 public class ApiResponse<T> {
 
     private boolean success;
-    private T data;                        // Successful data
-    private T error;                  // Error type (ex: "Bad Request")
-    private Map<String, Object> metadata;  // Extra info (optional)
-    private String path;                   // Endpoint path
-    private LocalDateTime timestamp;       // Time of response
+    private T data;
+    private ErrorDetail error;
+    private Map<String, Object> metadata;
+    private String path;
+    private LocalDateTime timestamp;
 
-    public ApiResponse(T error, String path, LocalDateTime timestamp) {
+    public ApiResponse(ErrorDetail error, String path, LocalDateTime timestamp) {
+        this.success = false;
         this.error = error;
         this.path = path;
         this.timestamp = timestamp;
     }
 
-    public ApiResponse(T error, LocalDateTime timestamp) {
+    public ApiResponse(ErrorDetail error, LocalDateTime timestamp) {
+        this.success = false;
         this.error = error;
         this.timestamp = timestamp;
     }
@@ -33,35 +35,62 @@ public class ApiResponse<T> {
     }
 
     public static <T> ApiResponse<T> success(T data) {
-        return new ApiResponse<>(true, data, LocalDateTime.now() );
+        return new ApiResponse<>(true, data, LocalDateTime.now());
     }
 
-
-    //For global exception handler
-    public static <T> ApiResponse<T> error(T error, String path) {
-        return new ApiResponse<>(error, path, LocalDateTime.now());
-    }
-
-    //For niche errors across application
-    public static <T> ApiResponse<T> error(T error) {
+    public static <T> ApiResponse<T> error(ErrorDetail error) {
         return new ApiResponse<>(error, LocalDateTime.now());
     }
 
-    public boolean isSuccess() { return success; }
-    public void setSuccess(boolean success) { this.success = success; }
+    public static <T> ApiResponse<T> error(ErrorDetail error, String path) {
+        return new ApiResponse<>(error, path, LocalDateTime.now());
+    }
 
-    public T getData() { return data; }
-    public void setData(T data) { this.data = data; }
+    public boolean isSuccess() {
+        return success;
+    }
 
-    public T getError() { return error; }
-    public void setError(T error) { this.error = error; }
+    public void setSuccess(boolean success) {
+        this.success = success;
+    }
 
-    public Map<String, Object> getMetadata() { return metadata; }
-    public void setMetadata(Map<String, Object> metadata) { this.metadata = metadata; }
+    public T getData() {
+        return data;
+    }
 
-    public String getPath() { return path; }
-    public void setPath(String path) { this.path = path; }
+    public void setData(T data) {
+        this.data = data;
+    }
 
-    public LocalDateTime getTimestamp() { return timestamp; }
-    public void setTimestamp(LocalDateTime timestamp) { this.timestamp = timestamp; }
+    public ErrorDetail getError() {
+        return error;
+    }
+
+    public void setError(ErrorDetail error) {
+        this.error = error;
+    }
+
+    public Map<String, Object> getMetadata() {
+        return metadata;
+    }
+
+    public void setMetadata(Map<String, Object> metadata) {
+        this.metadata = metadata;
+    }
+
+    public String getPath() {
+        return path;
+    }
+
+    public void setPath(String path) {
+        this.path = path;
+    }
+
+    public LocalDateTime getTimestamp() {
+        return timestamp;
+    }
+
+    public void setTimestamp(LocalDateTime timestamp) {
+        this.timestamp = timestamp;
+    }
 }

@@ -1,6 +1,8 @@
 package com.paybridge.Services;
 
 import com.paybridge.Models.DTOs.ApiResponse;
+import com.paybridge.Models.DTOs.ErrorDetail;
+import com.paybridge.Models.Enums.ApiErrorCode;
 import com.paybridge.Models.DTOs.ResetPasswordRequest;
 import com.paybridge.Models.Entities.Users;
 import com.paybridge.Repositories.UserRepository;
@@ -43,16 +45,16 @@ public class PasswordResetService {
 
     public ApiResponse<String> resetPassword(ResetPasswordRequest request) {
         if (!request.getNewPassword().equals(request.getConfirmPassword())) {
-            return ApiResponse.error("Password confirmation does not match");
+            return ApiResponse.error(ErrorDetail.of("Password confirmation does not match", ApiErrorCode.PASSWORD_MISMATCH));
         }
 
         Users user = userRepository.findByEmail(request.getEmail());
         if (user == null) {
-            return ApiResponse.error("Invalid email or reset code");
+            return ApiResponse.error(ErrorDetail.of("Invalid email or reset code", ApiErrorCode.INVALID_RESET_CODE));
         }
 
         if (!user.isPasswordResetCodeValid(request.getCode())) {
-            return ApiResponse.error("Invalid or expired reset code");
+            return ApiResponse.error(ErrorDetail.of("Invalid or expired reset code", ApiErrorCode.INVALID_RESET_CODE));
         }
 
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));

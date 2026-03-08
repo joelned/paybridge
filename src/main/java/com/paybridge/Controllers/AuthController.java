@@ -1,6 +1,7 @@
 package com.paybridge.Controllers;
 
 import com.paybridge.Models.DTOs.*;
+import com.paybridge.Models.Enums.ApiErrorCode;
 import com.paybridge.Models.Entities.Merchant;
 import com.paybridge.Repositories.MerchantRepository;
 import com.paybridge.Services.AuthenticationService;
@@ -87,7 +88,14 @@ public class AuthController {
                     "success", true
             )));
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+            ApiErrorCode code = ApiErrorCode.BAD_REQUEST;
+            String msg = e.getMessage();
+            if (msg != null) {
+                if (msg.contains("No account found")) code = ApiErrorCode.ACCOUNT_NOT_FOUND;
+                else if (msg.contains("already verified")) code = ApiErrorCode.EMAIL_NOT_VERIFIED;
+                else if (msg.contains("Please wait")) code = ApiErrorCode.RESEND_LIMIT_EXCEEDED;
+            }
+            return ResponseEntity.badRequest().body(ApiResponse.error(ErrorDetail.of(e.getMessage(), code)));
         }
     }
 

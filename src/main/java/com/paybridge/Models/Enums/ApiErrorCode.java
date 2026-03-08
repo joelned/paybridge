@@ -1,0 +1,22 @@
+package com.paybridge.Models.Enums;
+
+/**
+ * Machine-readable error codes for consistent API error responses.
+ */
+public enum ApiErrorCode {
+    VALIDATION_FAILED,
+    INVALID_CREDENTIALS,
+    EMAIL_NOT_VERIFIED,
+    ACCOUNT_NOT_FOUND,
+    ACCOUNT_DISABLED,
+    PROVIDER_NOT_CONFIGURED,
+    RATE_LIMIT_EXCEEDED,
+    RESEND_LIMIT_EXCEEDED,
+    VERIFICATION_CODE_EXPIRED,
+    VERIFICATION_CODE_INVALID,
+    PASSWORD_MISMATCH,
+    INVALID_RESET_CODE,
+    UNAUTHORIZED,
+    BAD_REQUEST,
+    INTERNAL_ERROR
+}

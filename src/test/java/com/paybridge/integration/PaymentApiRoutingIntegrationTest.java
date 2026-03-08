@@ -162,7 +162,7 @@ class PaymentApiRoutingIntegrationTest extends BaseIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(requestBody)))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.error", containsString("Multiple providers are enabled")));
+                .andExpect(jsonPath("$.error.message", containsString("Multiple providers are enabled")));
 
         verify(paymentProviderRegistry, never()).getProvider(anyString());
     }

@@ -118,6 +118,6 @@ class MerchantWebhookSecretIntegrationTest extends BaseIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"secret\":\"abc\"}"))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.error", containsString("Unsupported provider")));
+                .andExpect(jsonPath("$.error.message", containsString("Unsupported provider")));
     }
 }

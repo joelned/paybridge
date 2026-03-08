@@ -1,7 +1,11 @@
 package com.paybridge.Filters;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.paybridge.Models.DTOs.ApiResponse;
+import com.paybridge.Models.DTOs.ErrorDetail;
 import com.paybridge.Models.Entities.Merchant;
+import com.paybridge.Models.Enums.ApiErrorCode;
 import com.paybridge.Models.Enums.MerchantStatus;
 import com.paybridge.Repositories.MerchantRepository;
 import com.paybridge.Repositories.UserRepository;
@@ -23,8 +27,6 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -67,14 +69,7 @@ public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
 
         // Check rate limit
         if (!apiKeyService.checkRateLimit(apiKey)) {
-            response.setStatus(429);
-            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-
-            Map<String, String> errorResponseMessage = new HashMap<>();
-            errorResponseMessage.put("status", "error");
-            errorResponseMessage.put("message", "Rate limit exceeded");
-
-            response.getWriter().write(new ObjectMapper().writeValueAsString(errorResponseMessage));
+            writeErrorResponse(response, 429, ErrorDetail.of("Rate limit exceeded", ApiErrorCode.RATE_LIMIT_EXCEEDED), request.getRequestURI());
             return;
         }
         // Find merchant by API key (hashed lookup with legacy fallback)
@@ -85,28 +80,16 @@ public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
             if (!merchantRepository.hasMerchantEnabledUser(merchant.getId()) ||
                     merchant.getStatus() == MerchantStatus.SUSPENDED) {
 
-                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-
-                Map<String, String> errorResponseMessage = new HashMap<>();
-
-                errorResponseMessage.put("message", "Account has been disabled. Please contact support");
-                errorResponseMessage.put("status", "error");
-
-                response.getWriter().write(new ObjectMapper().writeValueAsString(errorResponseMessage));
+                writeErrorResponse(response, HttpServletResponse.SC_UNAUTHORIZED,
+                        ErrorDetail.of("Account has been disabled. Please contact support", ApiErrorCode.ACCOUNT_DISABLED),
+                        request.getRequestURI());
                 return;
             }
-            if(merchant.getStatus() == MerchantStatus.PENDING_PROVIDER_SETUP){
-                response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-                response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-                Map<String, String> errorResponseMessage = new HashMap<>();
-
-                errorResponseMessage.put("message", "Please configure at least one provider to use api key");
-                errorResponseMessage.put("status", "error");
-
-                response.getWriter().write(new ObjectMapper().writeValueAsString(errorResponseMessage));
+            if (merchant.getStatus() == MerchantStatus.PENDING_PROVIDER_SETUP) {
+                writeErrorResponse(response, HttpServletResponse.SC_BAD_REQUEST,
+                        ErrorDetail.of("Please configure at least one provider to use api key", ApiErrorCode.PROVIDER_NOT_CONFIGURED),
+                        request.getRequestURI());
                 return;
-
             }
             // Create authentication token
             UsernamePasswordAuthenticationToken authentication =
@@ -133,6 +116,15 @@ public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
             SecurityContextHolder.clearContext();
         }
         filterChain.doFilter(request, response);
+    }
+
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper().registerModule(new JavaTimeModule());
+
+    private void writeErrorResponse(HttpServletResponse response, int status, ErrorDetail error, String path) throws IOException {
+        response.setStatus(status);
+        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+        ApiResponse<?> apiResponse = ApiResponse.error(error, path);
+        response.getWriter().write(OBJECT_MAPPER.writeValueAsString(apiResponse));
     }
 
     @Override
