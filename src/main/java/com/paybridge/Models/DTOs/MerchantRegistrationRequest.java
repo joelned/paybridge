@@ -1,5 +1,6 @@
 package com.paybridge.Models.DTOs;
 
+import jakarta.validation.Constraint;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
@@ -27,8 +28,6 @@ public class MerchantRegistrationRequest {
     @Size(min = 2, max = 2, message = "Country code must be 2 characters (e.g., NG, US)")
     private String businessCountry;
 
-    @Pattern(regexp = "^(https?://)?([\\da-z.-]+)\\.([a-z.]{2,6})([/\\w .-]*)*/?$",
-            message = "Invalid website URL")
     private String websiteUrl;
 
     public MerchantRegistrationRequest(String businessName, String email, String password,

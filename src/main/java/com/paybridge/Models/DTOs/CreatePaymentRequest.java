@@ -89,20 +89,12 @@ public class CreatePaymentRequest {
      * URL where customer should be redirected after successful payment
      * If not provided, uses merchant's default redirect URL
      */
-    @Pattern(
-            regexp = "^(https?://)?([\\da-z.-]+)\\.([a-z.]{2,6})([/\\w .-]*)*/?$",
-            message = "Invalid redirect URL format"
-    )
     private String redirectUrl;
 
     /**
      * URL where payment success webhook should be sent
      * Overrides merchant's default webhook URL for this specific payment
      */
-    @Pattern(
-            regexp = "^(https?://)?([\\da-z.-]+)\\.([a-z.]{2,6})([/\\w .-]*)*/?$",
-            message = "Invalid webhook URL format"
-    )
     private String webhookUrl;
 
     /**
