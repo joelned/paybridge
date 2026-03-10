@@ -21,9 +21,6 @@ public class Provider {
     @Column(name = "display_name", nullable = false)
     private String displayName; // e.g., "Stripe", "PayPal", "Paystack"
 
-    @Column(name = "brand_color")
-    private String brandColor; // e.g., "#635BFF" for Stripe
-
     @CreationTimestamp
     @Column(name = "created_at")
     private LocalDateTime createdAt;
@@ -61,14 +58,6 @@ public class Provider {
 
     public void setDisplayName(String displayName) {
         this.displayName = displayName;
-    }
-
-    public String getBrandColor() {
-        return brandColor;
-    }
-
-    public void setBrandColor(String brandColor) {
-        this.brandColor = brandColor;
     }
 
     public LocalDateTime getCreatedAt() {

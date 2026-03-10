@@ -36,9 +36,6 @@ public class Merchant {
     @Column(name = "webhook_url")
     private String webhookUrl;
 
-    @Column(name = "webhook_secret")
-    private String webhookSecret;
-
     @Column(name = "website_url")
     private String websiteUrl;
 
@@ -100,14 +97,6 @@ public class Merchant {
         return providerConfigs;
     }
 
-
-    public String getWebhookSecret() {
-        return webhookSecret;
-    }
-
-    public void setWebhookSecret(String webhookSecret) {
-        this.webhookSecret = webhookSecret;
-    }
 
     public List<Users> getUsers() {
         return users;

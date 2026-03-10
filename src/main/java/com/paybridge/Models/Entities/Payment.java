@@ -37,9 +37,6 @@ public class Payment {
     @Column(name = "provider_reference", length = 255)
     private String providerReference;
 
-    @Column(name = "refunded_amount", precision = 12, scale = 2)
-    private BigDecimal refundedAmount = BigDecimal.ZERO;
-
     @CreationTimestamp
     @Column(name = "created_at")
     private LocalDateTime createdAt;
@@ -102,14 +99,6 @@ public class Payment {
 
     public void setProviderReference(String providerReference) {
         this.providerReference = providerReference;
-    }
-
-    public BigDecimal getRefundedAmount() {
-        return refundedAmount;
-    }
-
-    public void setRefundedAmount(BigDecimal refundedAmount) {
-        this.refundedAmount = refundedAmount;
     }
 
     public LocalDateTime getCreatedAt() {
