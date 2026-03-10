@@ -4,13 +4,15 @@ import com.paybridge.Models.Enums.UserType;
 import jakarta.persistence.*;
 
 import java.nio.charset.StandardCharsets;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.time.LocalDateTime;
-import java.util.Random;
 import java.security.MessageDigest;
 
 @Entity
 @Table(name = "users")
 public class Users {
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -55,14 +57,26 @@ public class Users {
     // --- Verification Logic ---
 
     public boolean isVerificationCodeValid(String code) {
-        if (verificationCode == null || code == null) return false;
+        if (verificationCode == null || code == null || verificationCodeExpiresAt == null) {
+            return false;
+        }
+        if (LocalDateTime.now().isAfter(verificationCodeExpiresAt)) {
+            return false;
+        }
 
-        // Constant-time comparison
+        if (looksLikeHash(verificationCode)) {
+            String candidateHash = sha256Hex(code);
+            return MessageDigest.isEqual(
+                    verificationCode.getBytes(StandardCharsets.UTF_8),
+                    candidateHash.getBytes(StandardCharsets.UTF_8)
+            );
+        }
+
+        // Backward compatibility for existing plaintext codes.
         return MessageDigest.isEqual(
                 verificationCode.getBytes(StandardCharsets.UTF_8),
                 code.getBytes(StandardCharsets.UTF_8)
-        ) && verificationCodeExpiresAt != null &&
-                LocalDateTime.now().isBefore(verificationCodeExpiresAt);
+        );
     }
 
     public void markAsVerified() {
@@ -72,12 +86,13 @@ public class Users {
         this.verificationAttempts = 0;
     }
 
-    public void generateVerificationCode() {
-        Random random = new Random();
-        this.verificationCode = String.format("%06d", random.nextInt(1_000_000));
+    public String generateVerificationCode() {
+        String code = String.format("%06d", SECURE_RANDOM.nextInt(1_000_000));
+        this.verificationCode = sha256Hex(code);
         this.verificationCodeExpiresAt = LocalDateTime.now().plusMinutes(10);
         this.lastVerificationRequestAt = LocalDateTime.now();
         this.verificationAttempts = 0;
+        return code;
     }
 
     public void incrementVerificationAttempts() {
@@ -89,10 +104,11 @@ public class Users {
                 LocalDateTime.now().isAfter(lastVerificationRequestAt.plusMinutes(5));
     }
 
-    public void generatePasswordResetCode() {
-        Random random = new Random();
-        this.passwordResetCode = String.format("%06d", random.nextInt(1_000_000));
+    public String generatePasswordResetCode() {
+        String code = String.format("%06d", SECURE_RANDOM.nextInt(1_000_000));
+        this.passwordResetCode = sha256Hex(code);
         this.passwordResetCodeExpiresAt = LocalDateTime.now().plusMinutes(15);
+        return code;
     }
 
     public boolean isPasswordResetCodeValid(String code) {
@@ -100,16 +116,46 @@ public class Users {
             return false;
         }
 
+        if (passwordResetCodeExpiresAt == null || LocalDateTime.now().isAfter(passwordResetCodeExpiresAt)) {
+            return false;
+        }
+
+        if (looksLikeHash(passwordResetCode)) {
+            String candidateHash = sha256Hex(code);
+            return MessageDigest.isEqual(
+                    passwordResetCode.getBytes(StandardCharsets.UTF_8),
+                    candidateHash.getBytes(StandardCharsets.UTF_8)
+            );
+        }
+
+        // Backward compatibility for existing plaintext codes.
         return MessageDigest.isEqual(
                 passwordResetCode.getBytes(StandardCharsets.UTF_8),
                 code.getBytes(StandardCharsets.UTF_8)
-        ) && passwordResetCodeExpiresAt != null
-                && LocalDateTime.now().isBefore(passwordResetCodeExpiresAt);
+        );
     }
 
     public void clearPasswordResetCode() {
         this.passwordResetCode = null;
         this.passwordResetCodeExpiresAt = null;
+    }
+
+    private static String sha256Hex(String value) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(value.getBytes(StandardCharsets.UTF_8));
+            StringBuilder sb = new StringBuilder(hash.length * 2);
+            for (byte b : hash) {
+                sb.append(String.format("%02x", b));
+            }
+            return sb.toString();
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-256 not available", e);
+        }
+    }
+
+    private static boolean looksLikeHash(String value) {
+        return value != null && value.length() == 64 && value.matches("^[a-fA-F0-9]{64}$");
     }
 
     // --- Getters and Setters ---

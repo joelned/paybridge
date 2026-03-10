@@ -34,11 +34,11 @@ public class PasswordResetService {
             return ApiResponse.success("If an account exists, a reset code has been sent to the email address");
         }
 
-        user.generatePasswordResetCode();
+        String resetCode = user.generatePasswordResetCode();
         userRepository.save(user);
 
         String businessName = user.getMerchant() != null ? user.getMerchant().getBusinessName() : null;
-        emailProvider.sendPasswordResetEmail(user.getEmail(), user.getPasswordResetCode(), businessName);
+        emailProvider.sendPasswordResetEmail(user.getEmail(), resetCode, businessName);
 
         return ApiResponse.success("If an account exists, a reset code has been sent to the email address");
     }

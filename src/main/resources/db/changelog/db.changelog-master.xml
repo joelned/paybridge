@@ -408,4 +408,21 @@
         </createIndex>
     </changeSet>
 
+    <changeSet id="015-security-hardening-admin-codes-keys" author="paybridge">
+        <delete tableName="users">
+            <where>user_type = 'ADMIN' AND email = 'admin@paybridge.com'</where>
+        </delete>
+
+        <modifyDataType tableName="users" columnName="verification_code" newDataType="VARCHAR(255)"/>
+        <modifyDataType tableName="users" columnName="password_reset_code" newDataType="VARCHAR(255)"/>
+
+        <sql>
+            UPDATE merchants
+            SET api_key_test = NULL,
+                api_key_live = NULL
+            WHERE api_key_test IS NOT NULL
+               OR api_key_live IS NOT NULL;
+        </sql>
+    </changeSet>
+
 </databaseChangeLog>

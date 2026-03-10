@@ -76,10 +76,10 @@ public class ApiKeyService {
         String newApiKey = generateApiKey(isTestMode);
 
         if (isTestMode) {
-            merchant.setApiKeyTest(newApiKey);
+            merchant.setApiKeyTest(null);
             merchant.setApiKeyTestHash(hashApiKey(newApiKey));
         } else {
-            merchant.setApiKeyLive(newApiKey);
+            merchant.setApiKeyLive(null);
             merchant.setApiKeyLiveHash(hashApiKey(newApiKey));
         }
 
@@ -110,13 +110,13 @@ public class ApiKeyService {
 
         if (regenerateTest) {
             String newTestKey = generateApiKey(true);
-            merchant.setApiKeyTest(newTestKey);
+            merchant.setApiKeyTest(null);
             merchant.setApiKeyTestHash(hashApiKey(newTestKey));
         }
 
         if (regenerateLive) {
             String newLiveKey = generateApiKey(false);
-            merchant.setApiKeyLive(newLiveKey);
+            merchant.setApiKeyLive(null);
             merchant.setApiKeyLiveHash(hashApiKey(newLiveKey));
         }
         merchantRepository.save(merchant);
@@ -231,8 +231,8 @@ public class ApiKeyService {
 
             return true;
         } catch (Exception ex) {
-            logger.error("Failed to check rate limit, defaulting to allow request for availability", ex);
-            return true;
+            logger.error("Failed to check rate limit, denying request to fail safely", ex);
+            return false;
         }
     }
 
@@ -398,9 +398,7 @@ public class ApiKeyService {
             }
             return sb.toString();
         } catch (Exception e) {
-            // In the unlikely event hashing fails, fall back to masked api key to avoid using raw key
-            logger.warn("Failed to hash API key, falling back to masked representation");
-            return maskApiKey(apiKey);
+            throw new IllegalStateException("Failed to hash API key", e);
         }
     }
 }

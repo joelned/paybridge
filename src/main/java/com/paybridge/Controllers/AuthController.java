@@ -1,7 +1,6 @@
 package com.paybridge.Controllers;
 
 import com.paybridge.Models.DTOs.*;
-import com.paybridge.Models.Enums.ApiErrorCode;
 import com.paybridge.Models.Entities.Merchant;
 import com.paybridge.Repositories.MerchantRepository;
 import com.paybridge.Services.AuthenticationService;
@@ -81,22 +80,11 @@ public class AuthController {
 
     @PostMapping("/resend-verification")
     public ResponseEntity<?> resendVerification(@RequestBody @Valid ResendVerificationRequest request) {
-        try {
-            verificationService.resendVerificationCode(request.getEmail());
-            return ResponseEntity.ok().body(ApiResponse.success(Map.of(
-                    "message", "Verification code sent successfully",
-                    "success", true
-            )));
-        } catch (RuntimeException e) {
-            ApiErrorCode code = ApiErrorCode.BAD_REQUEST;
-            String msg = e.getMessage();
-            if (msg != null) {
-                if (msg.contains("No account found")) code = ApiErrorCode.ACCOUNT_NOT_FOUND;
-                else if (msg.contains("already verified")) code = ApiErrorCode.EMAIL_NOT_VERIFIED;
-                else if (msg.contains("Please wait")) code = ApiErrorCode.RESEND_LIMIT_EXCEEDED;
-            }
-            return ResponseEntity.badRequest().body(ApiResponse.error(ErrorDetail.of(e.getMessage(), code)));
-        }
+        verificationService.resendVerificationCode(request.getEmail());
+        return ResponseEntity.ok().body(ApiResponse.success(Map.of(
+                "message", "If an account exists and is eligible, a verification code has been sent",
+                "success", true
+        )));
     }
 
     @PostMapping("/forgot-password")

@@ -128,16 +128,24 @@ class ApiKeyServiceTest {
         apiKeyService.regenerateApiKey(1L, true, true);
 
         verify(merchantRepository, times(1)).save(merchant);
-        assertTrue(merchant.getApiKeyLive().startsWith("pk_live_"));
-        assertTrue(merchant.getApiKeyTest().startsWith("pk_test_"));
+        assertNull(merchant.getApiKeyLive());
+        assertNull(merchant.getApiKeyTest());
+        assertNotNull(merchant.getApiKeyLiveHash());
+        assertNotNull(merchant.getApiKeyTestHash());
+        assertTrue(merchant.getApiKeyLiveHash().matches("^[a-f0-9]{64}$"));
+        assertTrue(merchant.getApiKeyTestHash().matches("^[a-f0-9]{64}$"));
     }
 
     @Test
     void regenerateApiKey_ShouldOnlyUpdateTestKeyWhenRequested() {
         Merchant merchant = new Merchant();
         merchant.setId(1L);
-        merchant.setApiKeyLive("original_live");
-        merchant.setApiKeyTest("original_test");
+        merchant.setApiKeyLive(null);
+        merchant.setApiKeyLiveHash(sha256("pk_live_existing"));
+        merchant.setApiKeyTest(null);
+        merchant.setApiKeyTestHash(sha256("pk_test_existing"));
+        String originalLiveHash = merchant.getApiKeyLiveHash();
+        String originalTestHash = merchant.getApiKeyTestHash();
 
         when(merchantRepository.findById(1L)).thenReturn(Optional.of(merchant));
 
@@ -145,16 +153,22 @@ class ApiKeyServiceTest {
         apiKeyService.regenerateApiKey(1L, true, false);
 
         verify(merchantRepository, times(1)).save(merchant);
-        assertTrue(merchant.getApiKeyTest().startsWith("pk_test_"));
-        assertEquals("original_live", merchant.getApiKeyLive()); // Should remain unchanged
+        assertNull(merchant.getApiKeyTest());
+        assertNotNull(merchant.getApiKeyTestHash());
+        assertNotEquals(originalTestHash, merchant.getApiKeyTestHash());
+        assertEquals(originalLiveHash, merchant.getApiKeyLiveHash()); // Should remain unchanged
     }
 
     @Test
     void regenerateApiKey_ShouldOnlyUpdateLiveKeyWhenRequested() {
         Merchant merchant = new Merchant();
         merchant.setId(1L);
-        merchant.setApiKeyLive("original_live");
-        merchant.setApiKeyTest("original_test");
+        merchant.setApiKeyLive(null);
+        merchant.setApiKeyLiveHash(sha256("pk_live_existing"));
+        merchant.setApiKeyTest(null);
+        merchant.setApiKeyTestHash(sha256("pk_test_existing"));
+        String originalLiveHash = merchant.getApiKeyLiveHash();
+        String originalTestHash = merchant.getApiKeyTestHash();
 
         when(merchantRepository.findById(1L)).thenReturn(Optional.of(merchant));
 
@@ -162,8 +176,9 @@ class ApiKeyServiceTest {
         apiKeyService.regenerateApiKey(1L, false, true);
 
         verify(merchantRepository, times(1)).save(merchant);
-        assertEquals("original_test", merchant.getApiKeyTest()); // Should remain unchanged
-        assertTrue(merchant.getApiKeyLive().startsWith("pk_live_"));
+        assertEquals(originalTestHash, merchant.getApiKeyTestHash()); // Should remain unchanged
+        assertNotEquals(originalLiveHash, merchant.getApiKeyLiveHash());
+        assertNull(merchant.getApiKeyLive());
     }
 
     @Test
@@ -194,10 +209,10 @@ class ApiKeyServiceTest {
 
         Merchant savedMerchant = merchantCaptor.getValue();
         assertEquals(1L, savedMerchant.getId());
-        assertTrue(savedMerchant.getApiKeyTest().startsWith("pk_test_"));
-        assertTrue(savedMerchant.getApiKeyLive().startsWith("pk_live_"));
-        assertNotEquals("old_test", savedMerchant.getApiKeyTest());
-        assertNotEquals("old_live", savedMerchant.getApiKeyLive());
+        assertNull(savedMerchant.getApiKeyTest());
+        assertNull(savedMerchant.getApiKeyLive());
+        assertNotNull(savedMerchant.getApiKeyTestHash());
+        assertNotNull(savedMerchant.getApiKeyLiveHash());
     }
 
     // ---------- findMerchantByApiKey ----------
@@ -271,10 +286,10 @@ class ApiKeyServiceTest {
         String apiKey = "pk_test_error";
         when(valueOperations.get(anyString())).thenThrow(new RuntimeException("Redis unavailable"));
 
-        // Should not throw exception, should fail open (allow request)
+        // Should not throw exception, and should fail closed for safety.
         assertDoesNotThrow(() -> {
             boolean result = apiKeyService.checkRateLimit(apiKey);
-            assertTrue(result, "Should allow request when Redis fails");
+            assertFalse(result, "Should reject request when Redis fails");
         });
     }
 

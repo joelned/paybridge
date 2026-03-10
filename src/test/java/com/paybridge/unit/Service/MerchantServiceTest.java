@@ -260,9 +260,9 @@ class MerchantServiceTest {
         assertEquals(validEmail, user.getEmail());
         assertTrue(user.isEnabled());
         assertEquals(encodedPassword, user.getPassword());
-        assertNotNull(user.getVerificationCode());
+        assertNull(user.getVerificationCode());
         assertFalse(user.isEmailVerified());
-        assertNotNull(user.getVerificationCodeExpiresAt());
+        assertNull(user.getVerificationCodeExpiresAt());
     }
 
     @Test

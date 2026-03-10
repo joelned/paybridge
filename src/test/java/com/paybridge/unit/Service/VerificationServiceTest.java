@@ -17,6 +17,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -62,7 +64,7 @@ class VerificationServiceTest {
         unverifiedUser.setEmailVerified(false);
         unverifiedUser.setUserType(UserType.MERCHANT);
         unverifiedUser.setMerchant(merchant);
-        unverifiedUser.setVerificationCode(validCode);
+        unverifiedUser.setVerificationCode(sha256(validCode));
         unverifiedUser.setVerificationCodeExpiresAt(LocalDateTime.now().plusMinutes(15));
         unverifiedUser.setVerificationAttempts(0);
 
@@ -103,7 +105,7 @@ class VerificationServiceTest {
 
         // Assert
         assertFalse(response.isSuccess());
-        assertEquals("No account found with this mail", response.getError().getMessage());
+        assertEquals("Invalid or expired verification code", response.getError().getMessage());
         verify(userRepository, never()).save(any(Users.class));
     }
 
@@ -117,7 +119,7 @@ class VerificationServiceTest {
 
         // Assert
         assertFalse(response.isSuccess());
-        assertEquals("Email is already verified", response.getError().getMessage());
+        assertEquals("Invalid or expired verification code", response.getError().getMessage());
         verify(userRepository, never()).save(any(Users.class));
     }
 
@@ -132,7 +134,7 @@ class VerificationServiceTest {
 
         // Assert
         assertFalse(response.isSuccess());
-        assertEquals("Too many requests. Please request a new code", response.getError().getMessage());
+        assertEquals("Invalid or expired verification code", response.getError().getMessage());
         verify(userRepository, never()).save(any(Users.class));
     }
 
@@ -208,10 +210,7 @@ class VerificationServiceTest {
         when(userRepository.findByEmail(validEmail)).thenReturn(null);
 
         // Act & Assert
-        RuntimeException exception = assertThrows(RuntimeException.class,
-                () -> verificationService.resendVerificationCode(validEmail));
-
-        assertEquals("No account found with this email", exception.getMessage());
+        assertDoesNotThrow(() -> verificationService.resendVerificationCode(validEmail));
         verify(userRepository, never()).save(any(Users.class));
         verify(emailProvider, never()).sendVerificationEmail(anyString(), anyString(), anyString());
     }
@@ -222,10 +221,7 @@ class VerificationServiceTest {
         when(userRepository.findByEmail("verified@example.com")).thenReturn(verifiedUser);
 
         // Act & Assert
-        RuntimeException exception = assertThrows(RuntimeException.class,
-                () -> verificationService.resendVerificationCode("verified@example.com"));
-
-        assertEquals("Email is already verified", exception.getMessage());
+        assertDoesNotThrow(() -> verificationService.resendVerificationCode("verified@example.com"));
         verify(userRepository, never()).save(any(Users.class));
         verify(emailProvider, never()).sendVerificationEmail(anyString(), anyString(), anyString());
     }
@@ -237,10 +233,7 @@ class VerificationServiceTest {
         when(userRepository.findByEmail(validEmail)).thenReturn(unverifiedUser);
 
         // Act & Assert
-        RuntimeException exception = assertThrows(RuntimeException.class,
-                () -> verificationService.resendVerificationCode(validEmail));
-
-        assertEquals("Please wait before requesting another verification code", exception.getMessage());
+        assertDoesNotThrow(() -> verificationService.resendVerificationCode(validEmail));
         verify(userRepository, never()).save(any(Users.class));
         verify(emailProvider, never()).sendVerificationEmail(anyString(), anyString(), anyString());
     }
@@ -308,11 +301,25 @@ class VerificationServiceTest {
 
         // Assert
         assertFalse(response.isSuccess());
-        assertEquals("Too many requests. Please request a new code", response.getError().getMessage());
+        assertEquals("Invalid or expired verification code", response.getError().getMessage());
 
         // Verify that save was NOT called because we blocked early
         verify(userRepository, never()).save(any(Users.class));
         // The attempt count should remain at 5, not increment to 6
         assertEquals(5, unverifiedUser.getVerificationAttempts());
+    }
+
+    private String sha256(String value) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(value.getBytes(StandardCharsets.UTF_8));
+            StringBuilder sb = new StringBuilder(hash.length * 2);
+            for (byte b : hash) {
+                sb.append(String.format("%02x", b));
+            }
+            return sb.toString();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 }

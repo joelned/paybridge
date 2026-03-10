@@ -88,11 +88,12 @@ public class MerchantService {
         }
         Merchant merchant = createMerchant(request);
         Users user = createMerchantUser(merchant, request);
+        String verificationCode = user.generateVerificationCode();
 
         userRepository.save(user);
         merchantRepository.save(merchant);
 
-       emailProvider.sendVerificationEmail(user.getEmail(), user.getVerificationCode(), user.getMerchant().getBusinessName());
+       emailProvider.sendVerificationEmail(user.getEmail(), verificationCode, user.getMerchant().getBusinessName());
     }
 
     public Merchant createMerchant(MerchantRegistrationRequest request){
@@ -117,7 +118,6 @@ public class MerchantService {
         users.setEmail(request.getEmail());
         users.setEnabled(true);
         users.setPassword(passwordEncoder.encode(request.getPassword()));
-        users.generateVerificationCode();
         return users;
     }
 
@@ -140,8 +140,8 @@ public class MerchantService {
 
     public List<MerchantApiKeySummaryResponse> getMerchantApiKeys(Merchant merchant) {
         List<MerchantApiKeySummaryResponse> response = new ArrayList<>();
-        response.add(buildApiKeySummary("test", ApiKeyMode.TEST, "Test API Key", merchant.getApiKeyTest(), merchant.getUpdatedAt()));
-        response.add(buildApiKeySummary("live", ApiKeyMode.LIVE, "Live API Key", merchant.getApiKeyLive(), merchant.getUpdatedAt()));
+        response.add(buildApiKeySummary("test", ApiKeyMode.TEST, "Test API Key", merchant.getApiKeyTestHash(), merchant.getUpdatedAt()));
+        response.add(buildApiKeySummary("live", ApiKeyMode.LIVE, "Live API Key", merchant.getApiKeyLiveHash(), merchant.getUpdatedAt()));
         return response;
     }
 
@@ -259,28 +259,26 @@ public class MerchantService {
     private MerchantApiKeySummaryResponse buildApiKeySummary(String keyId,
                                                              ApiKeyMode mode,
                                                              String label,
-                                                             String plainKey,
+                                                             String keyHash,
                                                              LocalDateTime updatedAt) {
         MerchantApiKeySummaryResponse summary = new MerchantApiKeySummaryResponse();
         summary.setKeyId(keyId);
         summary.setMode(mode);
         summary.setLabel(label);
 
-        boolean active = plainKey != null && !plainKey.isBlank();
+        boolean active = keyHash != null && !keyHash.isBlank();
         summary.setActive(active);
-        summary.setMaskedKey(active ? maskApiKey(plainKey) : null);
+        summary.setMaskedKey(active ? maskApiKeyPreview(mode) : null);
         summary.setUpdatedAt(updatedAt);
 
         return summary;
     }
 
-    private String maskApiKey(String apiKey) {
-        if (apiKey == null || apiKey.length() < 16) {
-            return "***";
+    private String maskApiKeyPreview(ApiKeyMode mode) {
+        if (mode == ApiKeyMode.TEST) {
+            return "pk_test_********";
         }
-        String prefix = apiKey.substring(0, 11);
-        String suffix = apiKey.substring(apiKey.length() - 3);
-        return prefix + "..." + suffix;
+        return "pk_live_********";
     }
 
     private String normalizeProvider(String provider) {

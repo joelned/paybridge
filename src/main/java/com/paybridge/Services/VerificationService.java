@@ -34,15 +34,15 @@ public class VerificationService {
     public ApiResponse<String> verifyEmailAndActivateMerchant(String email, String code) {
         Users user = userRepository.findByEmail(email);
         if (user == null) {
-            return ApiResponse.error(ErrorDetail.of("No account found with this mail", ApiErrorCode.ACCOUNT_NOT_FOUND));
+            return ApiResponse.error(ErrorDetail.of("Invalid or expired verification code", ApiErrorCode.VERIFICATION_CODE_INVALID));
         }
 
         if (user.isEmailVerified()) {
-            return ApiResponse.error(ErrorDetail.of("Email is already verified", ApiErrorCode.EMAIL_NOT_VERIFIED));
+            return ApiResponse.error(ErrorDetail.of("Invalid or expired verification code", ApiErrorCode.VERIFICATION_CODE_INVALID));
         }
 
         if (user.getVerificationAttempts() >= 5) {
-            return ApiResponse.error(ErrorDetail.of("Too many requests. Please request a new code", ApiErrorCode.RESEND_LIMIT_EXCEEDED));
+            return ApiResponse.error(ErrorDetail.of("Invalid or expired verification code", ApiErrorCode.VERIFICATION_CODE_INVALID));
         }
 
         // Validate code
@@ -79,21 +79,21 @@ public class VerificationService {
     public void resendVerificationCode(String email) {
         Users user = userRepository.findByEmail(email);
         if (user == null) {
-            throw new RuntimeException("No account found with this email");
+            return;
         }
 
         if (user.isEmailVerified()) {
-            throw new RuntimeException("Email is already verified");
+            return;
         }
 
         if (!user.canResendVerification()) {
-            throw new RuntimeException("Please wait before requesting another verification code");
+            return;
         }
 
-        user.generateVerificationCode();
+        String verificationCode = user.generateVerificationCode();
         userRepository.save(user);
 
         String businessName = user.getMerchant() != null ? user.getMerchant().getBusinessName() : null;
-        emailProvider.sendVerificationEmail(user.getEmail(), user.getVerificationCode(), businessName);
+        emailProvider.sendVerificationEmail(user.getEmail(), verificationCode, businessName);
     }
 }
