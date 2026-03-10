@@ -5,6 +5,8 @@ import com.paybridge.Models.DTOs.ApiResponse;
 import com.paybridge.Models.DTOs.ErrorDetail;
 import com.paybridge.Models.Enums.ApiErrorCode;
 import jakarta.servlet.http.HttpServletRequest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.support.DefaultMessageSourceResolvable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -18,12 +20,13 @@ import java.util.stream.Collectors;
 
 @ControllerAdvice
 public class GlobalExceptionHandler {
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<?>> handleGenericException(Exception ex, HttpServletRequest request) {
-        String message = ex.getMessage() != null ? ex.getMessage() : "An unexpected error occurred";
+        log.error("Unhandled exception on {}", request.getRequestURI(), ex);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(ApiResponse.error(ErrorDetail.of(message, ApiErrorCode.INTERNAL_ERROR), request.getRequestURI()));
+                .body(ApiResponse.error(ErrorDetail.of("An unexpected error occurred", ApiErrorCode.INTERNAL_ERROR), request.getRequestURI()));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
