@@ -8,6 +8,7 @@ import com.nimbusds.jose.jwk.source.JWKSource;
 import com.nimbusds.jose.proc.SecurityContext;
 import com.paybridge.Configs.RsaKeyProperties;
 import com.paybridge.Filters.ApiKeyAuthenticationFilter;
+import com.paybridge.Filters.CookieCsrfProtectionFilter;
 import com.paybridge.Filters.CookieAuthenticationFilter;
 import com.paybridge.Repositories.MerchantRepository;
 import com.paybridge.Services.ApiKeyService;
@@ -53,6 +54,9 @@ public class SecurityConfig {
     @Autowired
     private ApiKeyService apiKeyService;
 
+    @Autowired
+    private CookieCsrfProtectionFilter cookieCsrfProtectionFilter;
+
     @Value("${cors.allowed-origins}")
     private String allowedOrigins;
 
@@ -66,6 +70,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(SecurityConstants.PUBLIC_URLS).permitAll()
                         .anyRequest().authenticated())
+                .addFilterBefore(cookieCsrfProtectionFilter, UsernamePasswordAuthenticationFilter.class)
                 // API Key filter runs FIRST - checks for x-api-key header
                 .addFilterBefore(
                         new ApiKeyAuthenticationFilter(merchantRepository, apiKeyService),
