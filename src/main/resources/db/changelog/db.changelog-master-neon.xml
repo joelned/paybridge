@@ -1,0 +1,399 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+    http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+    <changeSet id="001-create-merchants-table" author="paybridge">
+        <createTable tableName="merchants">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="business_name" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="business_type" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="business_country" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="email" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="status" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="webhook_url" type="VARCHAR(500)"/>
+            <column name="website_url" type="VARCHAR(500)"/>
+            <column name="created_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="api_key_test" type="VARCHAR(255)"/>
+            <column name="api_key_live" type="VARCHAR(255)"/>
+            <column name="api_key_test_hash" type="VARCHAR(255)"/>
+            <column name="api_key_live_hash" type="VARCHAR(255)"/>
+            <column name="test_mode" type="BOOLEAN" defaultValue="true">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <createIndex tableName="merchants" indexName="idx_merchants_email">
+            <column name="email"/>
+        </createIndex>
+    </changeSet>
+
+    <!-- Create providers table -->
+    <changeSet id="002-create-providers-table" author="paybridge">
+        <createTable tableName="providers">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="name" type="VARCHAR(100)">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="display_name" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <createIndex tableName="providers" indexName="idx_providers_name">
+            <column name="name"/>
+        </createIndex>
+    </changeSet>
+
+    <!-- Create provider_configs table -->
+    <changeSet id="003-create-provider-configs-table" author="paybridge">
+        <createTable tableName="provider_configs">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="merchant_id" type="BIGINT">
+                <constraints nullable="false"
+                             foreignKeyName="fk_provider_config_merchant"
+                             references="merchants(id)"/>
+            </column>
+            <column name="provider_id" type="BIGINT">
+                <constraints nullable="false"
+                             foreignKeyName="fk_provider_config_provider"
+                             references="providers(id)"/>
+            </column>
+            <column name="is_enabled" type="BOOLEAN" defaultValue="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="last_verified_at" type="TIMESTAMP"/>
+            <column name="vault_path" type="VARCHAR(500)"/>
+            <column name="created_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <createIndex tableName="provider_configs" indexName="idx_provider_config_merchant_provider">
+            <column name="merchant_id"/>
+            <column name="provider_id"/>
+        </createIndex>
+
+        <createIndex tableName="provider_configs" indexName="idx_provider_config_enabled">
+            <column name="is_enabled"/>
+        </createIndex>
+
+        <addUniqueConstraint tableName="provider_configs"
+                             columnNames="merchant_id, provider_id"
+                             constraintName="uk_provider_config_merchant_provider"/>
+    </changeSet>
+
+    <!-- Create users table -->
+    <changeSet id="004-create-users-table" author="paybridge">
+        <createTable tableName="users">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="user_type" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="email" type="VARCHAR(255)">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="password" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="email_verified" type="BOOLEAN" defaultValue="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="merchant_id" type="BIGINT">
+                <constraints foreignKeyName="fk_users_merchant"
+                             references="merchants(id)"/>
+            </column>
+            <column name="enabled" type="BOOLEAN" defaultValue="true">
+                <constraints nullable="false"/>
+            </column>
+            <column name="verification_code" type="VARCHAR(10)"/>
+            <column name="verification_code_expires_at" type="TIMESTAMP"/>
+            <column name="verification_attempts" type="INT" defaultValue="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="last_verification_request_at" type="TIMESTAMP"/>
+        </createTable>
+
+        <createIndex tableName="users" indexName="idx_users_email">
+            <column name="email"/>
+        </createIndex>
+
+        <createIndex tableName="users" indexName="idx_users_merchant">
+            <column name="merchant_id"/>
+        </createIndex>
+
+        <createIndex tableName="users" indexName="idx_users_type">
+            <column name="user_type"/>
+        </createIndex>
+    </changeSet>
+
+    <!-- Create payments table -->
+    <changeSet id="005-create-payments-table" author="paybridge">
+        <createTable tableName="payments">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="merchant_id" type="BIGINT">
+                <constraints nullable="false"
+                             foreignKeyName="fk_payments_merchant"
+                             references="merchants(id)"/>
+            </column>
+            <column name="provider_id" type="BIGINT">
+                <constraints nullable="false"
+                             foreignKeyName="fk_payments_provider"
+                             references="providers(id)"/>
+            </column>
+            <column name="amount" type="DECIMAL(12,2)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="currency" type="VARCHAR(3)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="status" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <createIndex tableName="payments" indexName="idx_payments_merchant">
+            <column name="merchant_id"/>
+        </createIndex>
+
+        <createIndex tableName="payments" indexName="idx_payments_provider">
+            <column name="provider_id"/>
+        </createIndex>
+
+        <createIndex tableName="payments" indexName="idx_payments_status">
+            <column name="status"/>
+        </createIndex>
+
+        <createIndex tableName="payments" indexName="idx_payments_created">
+            <column name="created_at"/>
+        </createIndex>
+    </changeSet>
+
+    <!-- Create api_key_usage table -->
+    <changeSet id="006-create-api-key-usage-table" author="paybridge">
+        <createTable tableName="api_key_usage">
+            <column name="id" type="INT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="merchant_id" type="BIGINT">
+                <constraints nullable="false"
+                             foreignKeyName="fk_api_usage_merchant"
+                             references="merchants(id)"/>
+            </column>
+            <column name="endpoint" type="VARCHAR(500)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="ip_address" type="VARCHAR(45)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="response_status" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="method" type="VARCHAR(10)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="user_agent" type="VARCHAR(1000)"/>
+            <column name="time_stamp" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <createIndex tableName="api_key_usage" indexName="idx_api_usage_merchant">
+            <column name="merchant_id"/>
+        </createIndex>
+
+        <createIndex tableName="api_key_usage" indexName="idx_api_usage_timestamp">
+            <column name="time_stamp"/>
+        </createIndex>
+
+        <createIndex tableName="api_key_usage" indexName="idx_api_usage_status">
+            <column name="response_status"/>
+        </createIndex>
+
+        <createIndex tableName="api_key_usage" indexName="idx_api_usage_endpoint">
+            <column name="endpoint"/>
+        </createIndex>
+    </changeSet>
+
+    <!-- Insert initial provider data -->
+    <changeSet id="007-insert-initial-providers" author="paybridge">
+        <insert tableName="providers">
+            <column name="name" value="stripe"/>
+            <column name="display_name" value="Stripe"/>
+        </insert>
+        <insert tableName="providers">
+            <column name="name" value="paystack"/>
+            <column name="display_name" value="Paystack"/>
+        </insert>
+    </changeSet>
+
+    <!-- Insert default admin user -->
+    <changeSet id="008-insert-default-admin" author="paybridge">
+        <insert tableName="users">
+            <column name="user_type" value="ADMIN"/>
+            <column name="email" value="admin@paybridge.com"/>
+            <column name="password" value="$2a$10$JLdnn5XO62m6w0Jr.pdEUuNyLTPEZTtIV4yGXCw7y5odC0qgvKWZm"/> <!-- You should replace this with actual hashed password -->
+            <column name="email_verified" value="true"/>
+            <column name="enabled" value="true"/>
+        </insert>
+    </changeSet>
+
+    <changeSet id="009-create-customer-table" author="paybridge">
+        <createTable tableName="customers">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="merchant_id" type="BIGINT">
+                <constraints nullable="false"
+                             foreignKeyName="fk_merchant_customer"
+                             references="merchants(id)"/>
+            </column>
+            <column name="external_customer_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="full_name" type="VARCHAR(50)"/>
+            <column name="email" type="VARCHAR(50)"/>
+            <column name="phone" type="VARCHAR(18)"/>
+        </createTable>
+    </changeSet>
+
+
+    <changeSet id="010-create-idempotency-key-table" author="paybridge">
+       <createTable tableName="idempotency_keys">
+           <column name="id" type="INT" autoIncrement="true">
+               <constraints primaryKey="true" nullable="false"/>
+           </column>
+           <column name="idempotency_key" type="VARCHAR(255)">
+               <constraints nullable="false"/>
+           </column>
+           <column name="customer_id" type="BIGINT">
+               <constraints nullable="false"
+                            foreignKeyName="fk_customer_idempotency_key"
+                            references="customers(id)"/>
+
+           </column>
+           <column name="request_hash" type="TEXT">
+               <constraints nullable="false"/>
+           </column>
+           <column name="response" type="TEXT"/>
+           <column name="status" type="VARCHAR(20)" defaultValue="processing">
+               <constraints nullable="false"/>
+           </column>
+           <column name="created_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP"/>
+       </createTable>
+    </changeSet>
+
+    <changeSet id="011-align-idempotency-entity-schema" author="paybridge">
+        <addColumn tableName="idempotency_keys">
+            <column name="expires_at" type="TIMESTAMP"/>
+            <column name="locked" type="BOOLEAN" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+
+        <addDefaultValue tableName="idempotency_keys"
+                         columnName="status"
+                         columnDataType="VARCHAR(20)"
+                         defaultValue="PROCESSING"/>
+
+        <update tableName="idempotency_keys">
+            <column name="status" value="PROCESSING"/>
+            <where>status = 'processing'</where>
+        </update>
+    </changeSet>
+
+
+
+    <changeSet id="012-add-password-reset-columns-to-users" author="paybridge">
+        <addColumn tableName="users">
+            <column name="password_reset_code" type="VARCHAR(10)"/>
+            <column name="password_reset_code_expires_at" type="TIMESTAMP"/>
+        </addColumn>
+    </changeSet>
+
+
+
+    <changeSet id="013-add-provider-reference-and-webhook-events" author="paybridge">
+        <addColumn tableName="payments">
+            <column name="provider_reference" type="VARCHAR(255)"/>
+        </addColumn>
+
+        <createIndex tableName="payments" indexName="idx_payments_provider_reference">
+            <column name="provider_reference"/>
+        </createIndex>
+
+        <createTable tableName="processed_webhook_events">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="provider" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="event_id" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="processed_webhook_events"
+                             columnNames="provider,event_id"
+                             constraintName="uk_processed_webhook_provider_event"/>
+    </changeSet>
+
+    <!-- Unique constraint on idempotency_key to prevent double-processing under concurrent requests.
+         Without this, two threads can both pass the "key not found" check before either commits,
+         resulting in two payments being created for the same key. The DB unique constraint ensures
+         exactly one INSERT wins; the other gets a constraint violation and the transaction rolls back. -->
+    <changeSet id="014-add-unique-constraint-idempotency-key" author="paybridge">
+        <addUniqueConstraint tableName="idempotency_keys"
+                             columnNames="idempotency_key"
+                             constraintName="uk_idempotency_key"/>
+
+        <createIndex tableName="idempotency_keys"
+                     indexName="idx_idempotency_key_lookup"
+                     unique="true">
+            <column name="idempotency_key"/>
+        </createIndex>
+    </changeSet>
+
+</databaseChangeLog>
