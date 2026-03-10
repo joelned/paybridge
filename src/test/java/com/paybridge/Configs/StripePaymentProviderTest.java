@@ -4,7 +4,6 @@ import com.paybridge.Configs.StripePaymentProvider;
 import com.paybridge.Services.ConnectionTestResult;
 import com.stripe.StripeClient;
 import com.stripe.exception.StripeException;
-import com.stripe.model.Customer;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -33,10 +32,9 @@ class StripePaymentProviderTest {
         credentials.put("secretKey", "sk_test_123");
 
         StripeClient mockClient = mock(StripeClient.class);
-        Customer mockCustomer = mock(Customer.class);
 
         doReturn(mockClient).when(stripePaymentProvider).createStripeClient("sk_test_123");
-        doReturn(mockCustomer).when(stripePaymentProvider)
+        doNothing().when(stripePaymentProvider)
                 .createCustomerForConnectionTest(any(StripeClient.class), any());
 
         // When
