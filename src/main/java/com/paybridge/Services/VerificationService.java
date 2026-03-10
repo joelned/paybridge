@@ -17,17 +17,14 @@ public class VerificationService {
 
     private final UserRepository userRepository;
     private final MerchantRepository merchantRepository;
-    private final ApiKeyService apiKeyService;
 
     private final EmailProvider emailProvider;
 
     public VerificationService(UserRepository userRepository,
                                MerchantRepository merchantRepository,
-                               ApiKeyService apiKeyService,
                                EmailProvider emailProvider) {
         this.userRepository = userRepository;
         this.merchantRepository = merchantRepository;
-        this.apiKeyService = apiKeyService;
         this.emailProvider = emailProvider;
     }
 
@@ -65,9 +62,8 @@ public class VerificationService {
         user.markAsVerified();
         userRepository.save(user);
         merchant.setTestMode(true);
-        merchantRepository.save(merchant);
         merchant.setStatus(MerchantStatus.PENDING_PROVIDER_SETUP);
-        apiKeyService.regenerateApiKey(merchant.getId(), true, true);
+        merchantRepository.save(merchant);
 
         return ApiResponse.success("Email verified successfully");
     }

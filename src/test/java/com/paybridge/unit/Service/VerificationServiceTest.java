@@ -6,7 +6,6 @@ import com.paybridge.Models.Entities.Users;
 import com.paybridge.Models.Enums.UserType;
 import com.paybridge.Repositories.MerchantRepository;
 import com.paybridge.Repositories.UserRepository;
-import com.paybridge.Services.ApiKeyService;
 import com.paybridge.Services.EmailProvider;
 import com.paybridge.Services.VerificationService;
 import org.junit.jupiter.api.BeforeEach;
@@ -36,9 +35,6 @@ class VerificationServiceTest {
 
     @Mock
     private MerchantRepository merchantRepository;
-
-    @Mock
-    private ApiKeyService apiKeyService;
 
     @InjectMocks
     private VerificationService verificationService;
@@ -90,7 +86,6 @@ class VerificationServiceTest {
         assertEquals("Email verified successfully", response.getData());
         verify(userRepository, times(1)).save(unverifiedUser);
         verify(merchantRepository, times(1)).save(merchant);
-        verify(apiKeyService, times(1)).regenerateApiKey(eq(10L), eq(true), eq(true));
         assertTrue(unverifiedUser.isEmailVerified());
         assertNull(unverifiedUser.getVerificationCode());
     }
@@ -286,7 +281,6 @@ class VerificationServiceTest {
         assertTrue(successResponse.isSuccess());
         assertEquals("Email verified successfully", successResponse.getData());
         assertTrue(unverifiedUser.isEmailVerified());
-        verify(apiKeyService, times(1)).regenerateApiKey(eq(10L), eq(true), eq(true));
     }
 
     @Test
