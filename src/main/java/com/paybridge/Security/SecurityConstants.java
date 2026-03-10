@@ -2,6 +2,7 @@ package com.paybridge.Security;
 
 public class SecurityConstants {
     public static final String[] PUBLIC_URLS = {
+            "/actuator/health/**",
             "/api/v1/merchants",
             "/api/v1/auth/login",
             "/api/v1/auth/verify-email",
