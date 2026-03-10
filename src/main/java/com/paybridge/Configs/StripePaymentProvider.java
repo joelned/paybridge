@@ -35,7 +35,7 @@ public class StripePaymentProvider implements PaymentProvider {
                 .setEmail("test@gmail.comj")
                 .build();
         try{
-            Customer customer = stripeClient.v1().customers().create(params);
+            Customer customer = createCustomerForConnectionTest(stripeClient, params);
             System.out.println(customer);
             return ConnectionTestResult.success("Stripe test connection successful");
         } catch (StripeException e) {
@@ -112,6 +112,11 @@ public class StripePaymentProvider implements PaymentProvider {
 
     protected StripeClient createStripeClient(String apiKey) {
         return new StripeClient(apiKey);
+    }
+
+    protected Customer createCustomerForConnectionTest(StripeClient stripeClient,
+                                                       CustomerCreateParams params) throws StripeException {
+        return stripeClient.v1().customers().create(params);
     }
 
     private long toMinorUnit(BigDecimal amount) {
