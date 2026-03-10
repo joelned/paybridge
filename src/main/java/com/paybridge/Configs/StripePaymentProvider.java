@@ -5,7 +5,6 @@ import com.paybridge.Models.DTOs.PaymentProviderResponse;
 import com.paybridge.Services.ConnectionTestResult;
 import com.stripe.StripeClient;
 import com.stripe.exception.StripeException;
-import com.stripe.model.Customer;
 import com.stripe.model.checkout.Session;
 import com.stripe.param.CustomerCreateParams;
 import com.stripe.param.checkout.SessionCreateParams;
@@ -35,8 +34,7 @@ public class StripePaymentProvider implements PaymentProvider {
                 .setEmail("test@gmail.comj")
                 .build();
         try{
-            Customer customer = createCustomerForConnectionTest(stripeClient, params);
-            System.out.println(customer);
+            createCustomerForConnectionTest(stripeClient, params);
             return ConnectionTestResult.success("Stripe test connection successful");
         } catch (StripeException e) {
             throw new RuntimeException(e);
@@ -114,9 +112,9 @@ public class StripePaymentProvider implements PaymentProvider {
         return new StripeClient(apiKey);
     }
 
-    protected Customer createCustomerForConnectionTest(StripeClient stripeClient,
-                                                       CustomerCreateParams params) throws StripeException {
-        return stripeClient.v1().customers().create(params);
+    protected void createCustomerForConnectionTest(StripeClient stripeClient,
+                                                   CustomerCreateParams params) throws StripeException {
+        stripeClient.v1().customers().create(params);
     }
 
     private long toMinorUnit(BigDecimal amount) {
