@@ -102,6 +102,6 @@ public class ProviderIntegrationTest extends BaseIntegrationTest {
                 .andExpect(status().isOk());
 
         Merchant merchant = merchantRepository.findByEmail("provider@test.com").orElseThrow();
-        assertThat(merchant.getStatus()).isEqualTo(MerchantStatus.ACTIVE);
+        assertThat(merchant.getStatus()).isEqualTo(MerchantStatus.PENDING_PROVIDER_SETUP);
     }
 }

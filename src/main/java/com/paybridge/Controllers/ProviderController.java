@@ -7,8 +7,6 @@ import com.paybridge.Models.DTOs.ProviderConfigSummaryResponse;
 import com.paybridge.Models.DTOs.ProviderConfiguration;
 import com.paybridge.Models.Entities.Merchant;
 import com.paybridge.Models.Entities.ProviderConfig;
-import com.paybridge.Models.Enums.MerchantStatus;
-import com.paybridge.Repositories.MerchantRepository;
 import com.paybridge.Services.AuthenticationService;
 import com.paybridge.Services.ConnectionTestResult;
 import com.paybridge.Services.ProviderService;
@@ -28,12 +26,9 @@ public class ProviderController {
 
     private final AuthenticationService authenticationService;
 
-    private final MerchantRepository merchantRepository;
-
-    public ProviderController(ProviderService providerService, AuthenticationService authenticationService, MerchantRepository merchantRepository) {
+    public ProviderController(ProviderService providerService, AuthenticationService authenticationService) {
         this.providerService = providerService;
         this.authenticationService = authenticationService;
-        this.merchantRepository = merchantRepository;
     }
 
     @GetMapping
@@ -58,8 +53,6 @@ public class ProviderController {
                     testConnection
             );
 
-            merchant.setStatus(MerchantStatus.ACTIVE);
-            merchantRepository.save(merchant);
             return ResponseEntity.ok(ApiResponse.success(Map.of(
                     "configId", config.getId(),
                     "provider", config.getProvider().getDisplayName(),
@@ -95,8 +88,6 @@ public class ProviderController {
                     configId,
                     merchant.getId()
             );
-
-            merchantRepository.save(merchant);
 
             return ResponseEntity.ok(ApiResponse.success(Map.of(
                     "message", result.getMessage(),

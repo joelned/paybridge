@@ -77,7 +77,6 @@ public class ProviderService {
                 throw new RuntimeException("Provider connection test failed: " +
                         testResult.getMessage());
             }
-
         }
 
         // 5. Store credentials in Vault
@@ -127,8 +126,10 @@ public class ProviderService {
             config.setLastVerifiedAt(LocalDateTime.now());
         }
 
-        merchant.setStatus(MerchantStatus.ACTIVE);
-        merchantRepository.save(merchant);
+        if (testConnection) {
+            merchant.setStatus(MerchantStatus.ACTIVE);
+            merchantRepository.save(merchant);
+        }
         return providerConfigRepository.save(config);
     }
 

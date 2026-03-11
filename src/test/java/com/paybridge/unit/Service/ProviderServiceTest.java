@@ -5,6 +5,7 @@ import com.paybridge.Models.DTOs.ProviderConfiguration;
 import com.paybridge.Models.Entities.Merchant;
 import com.paybridge.Models.Entities.Provider;
 import com.paybridge.Models.Entities.ProviderConfig;
+import com.paybridge.Models.Enums.MerchantStatus;
 import com.paybridge.Repositories.MerchantRepository;
 import com.paybridge.Repositories.ProviderRepository;
 import com.paybridge.Repositories.ProviderConfigRepository;
@@ -70,6 +71,7 @@ class ProviderServiceTest {
         testMerchant = new Merchant();
         testMerchant.setId(MERCHANT_ID);
         testMerchant.setBusinessName("Test Merchant");
+        testMerchant.setStatus(MerchantStatus.PENDING_PROVIDER_SETUP);
 
         testProvider = new Provider();
         testProvider.setId(1L);
@@ -108,8 +110,10 @@ class ProviderServiceTest {
 
         // Then
         assertNotNull(result);
+        assertEquals(MerchantStatus.ACTIVE, testMerchant.getStatus());
         verify(paymentProvider).testConnection(any());
         verify(credentialStorageService).saveProviderConfig(eq(providerName), eq(MERCHANT_ID), eq(config.getConfig()));
+        verify(merchantRepository).save(testMerchant);
     }
 
     @Test
@@ -140,9 +144,11 @@ class ProviderServiceTest {
         assertTrue(result.isEnabled());
         assertEquals(CONFIG_ID, result.getId());
         assertNotNull(result.getLastVerifiedAt());
+        assertEquals(MerchantStatus.ACTIVE, testMerchant.getStatus());
 
         verify(credentialStorageService).saveProviderConfig(eq(PROVIDER_NAME), eq(MERCHANT_ID), eq(validConfig.getConfig()));
         verify(providerConfigRepository).save(existingConfig);
+        verify(merchantRepository).save(testMerchant);
     }
 
     @Test
@@ -160,10 +166,12 @@ class ProviderServiceTest {
         // Then
         assertNotNull(result);
         assertNull(result.getLastVerifiedAt()); // Should not set lastVerified when testConnection = false
+        assertEquals(MerchantStatus.PENDING_PROVIDER_SETUP, testMerchant.getStatus());
 
         verify(credentialStorageService).saveProviderConfig(eq(PROVIDER_NAME), eq(MERCHANT_ID), eq(validConfig.getConfig()));
         // Verify no interaction with payment provider registry when testConnection is false
         verifyNoInteractions(paymentProviderRegistry);
+        verify(merchantRepository, never()).save(any(Merchant.class));
     }
 
     @Test
@@ -500,8 +508,10 @@ class ProviderServiceTest {
         String expectedPath = String.format("vault://providers/%s/merchant-%d",
                 PROVIDER_NAME.toLowerCase(), MERCHANT_ID);
         assertEquals(expectedPath, result.getVaultPath());
+        assertEquals(MerchantStatus.PENDING_PROVIDER_SETUP, testMerchant.getStatus());
 
         verifyNoInteractions(paymentProviderRegistry);
+        verify(merchantRepository, never()).save(any(Merchant.class));
     }
 
     // Helper methods
